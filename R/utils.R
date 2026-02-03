@@ -386,7 +386,8 @@ ensure_environment <- function(region) {
 
   if (!file.exists(lock_file)) {
     # Create renv snapshot
-    renv::snapshot(prompt = FALSE)
+    # force = TRUE allows locally installed packages like starburst itself
+    renv::snapshot(prompt = FALSE, force = TRUE)
   }
 
   # Calculate hash

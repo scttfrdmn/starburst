@@ -54,7 +54,7 @@ cat("\n")
 # Set up execution plan
 if (use_starburst) {
   cat("Setting up staRburst...\n")
-  do.call(future::plan, list(starburst::plan.starburst, workers = n_workers))
+  plan(starburst, workers = n_workers)
 } else {
   cat("Using local sequential execution...\n")
   plan(sequential)

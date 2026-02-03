@@ -30,23 +30,34 @@ Results saved in `example-results-20260203-144349/`
 - Tests all 4 examples both locally and with AWS
 - Can be run with: `RUN_INTEGRATION_TESTS=TRUE USE_STARBURST=TRUE`
 
-## Current Blocker ⚠️
+## ✓ RESOLVED: Future Package Integration Pattern
 
-### Future Package Integration Pattern
-The staRburst package needs to properly integrate with the `future` package's strategy system.
+### Solution Implemented
+Studied `future.callr` package and implemented the correct pattern:
 
-**Issue**: The correct pattern for making `plan(starburst, workers = 10)` work is not yet implemented correctly.
+**Pattern**: Strategy function with special attributes
+```r
+starburst <- local({
+  factory <- function(workers, cpu, memory, ...) {
+    plan.starburst(...)
+  }
 
-**What we have**:
-- `plan.starburst()` - S3 method that creates the plan object ✓
-- `future_starburst()` - Internal function to create futures ✓
-- Plan object structure with proper class hierarchy ✓
+  strategy <- function(...) {
+    factory(...)
+  }
 
-**What's missing**:
-- Correct `starburst` strategy object/function that future::plan() can use
-- The pattern is tricky - needs to work with future's dispatch mechanism without causing recursion
+  class(strategy) <- c("starburst", "cluster", "future", "function")
+  attr(strategy, "init") <- TRUE
+  attr(strategy, "tweakable") <- c("workers", "cpu", "memory", ...)
+  attr(strategy, "factory") <- factory
 
-**Current error**: C stack usage (infinite recursion) when calling `plan(starburst, ...)`
+  strategy
+})
+```
+
+**Key insight**: Strategy function calls factory directly, NOT `plan()` recursively
+
+**Status**: ✓ Integration fixed, AWS test running
 
 ### Possible Solutions
 
