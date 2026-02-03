@@ -535,3 +535,36 @@ parse_memory <- function(memory) {
 `%||%` <- function(a, b) {
   if (is.null(a)) b else a
 }
+
+#' staRburst Future Strategy
+#'
+#' Constructor function for staRburst future backend
+#'
+#' @param workers Number of parallel workers
+#' @param cpu vCPUs per worker (1, 2, 4, 8, or 16)
+#' @param memory Memory per worker (supports GB notation, e.g., "8GB")
+#' @param ... Additional arguments
+#'
+#' @return A starburst future plan
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' library(furrr)
+#' plan(starburst, workers = 50)
+#' results <- future_map(1:1000, expensive_function)
+#' }
+starburst <- function(workers = 10, cpu = 4, memory = "8GB", region = NULL,
+                     timeout = 3600, auto_quota_request = interactive(), ...) {
+  # Don't call plan(), just return arguments that plan() will use
+  # Store as function so future::plan() knows this is a backend constructor
+  args <- as.list(environment())
+  args$`...` <- list(...)
+
+  # Return function that plan() will call
+  f <- function() {
+    do.call(plan.starburst, args[names(args) != "..."])
+  }
+
+  structure(f, class = c("starburst", "future", "function"))
+}

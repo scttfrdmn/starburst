@@ -1,0 +1,28 @@
+Loading required package: future
+Monte Carlo Portfolio Simulation
+=================================
+Simulations: 10000 
+Mode: Local
+
+Using local sequential execution...
+Running simulations...
+
+Results Summary
+===============
+Execution time: 0.3 seconds (0.0 minutes)
+
+Portfolio Outcomes ($100,000 initial):
+  Mean final value: $108,007
+  Median final value: $102,897
+  5th percentile: $60,733
+  95th percentile: $173,594
+
+  Mean return: 8.0%
+  Median return: 2.9%
+  Mean max drawdown: -29.7%
+  Mean Sharpe ratio: 0.24
+
+  Probability of loss: 46.8%
+  Probability of 20%+ gain: 31.1%
+
+Results saved to: monte-carlo-results-local.rds 

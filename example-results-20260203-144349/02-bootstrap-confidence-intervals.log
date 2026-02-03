@@ -1,0 +1,30 @@
+Loading required package: future
+Bootstrap Confidence Intervals
+==============================
+Sample size: 220 ( 100 control, 120 treatment)
+Bootstrap samples: 10000 
+Mode: Local
+
+Observed Statistics:
+  Control mean: 50.33
+  Treatment mean: 53.89
+  Treatment effect: 3.57
+
+Using local sequential execution...
+Running bootstrap...
+
+Bootstrap Results
+=================
+Execution time: 0.8 seconds (0.0 minutes)
+
+Treatment Effect: 3.57
+  Bootstrap SE: 1.45
+  95% CI: [0.76, 6.47]
+
+Cohen's d: 0.32
+  95% CI: [0.07, 0.59]
+
+P-value (effect <= 0): 0.0059
+Interpretation: Significant effect 
+
+Results saved to: bootstrap-results-local.rds 

@@ -49,7 +49,7 @@ library(furrr)
 starburst_setup()
 
 # Use with furrr - change one line to scale to AWS
-plan(future_starburst, workers = 50)
+plan(starburst, workers = 50)
 #> ✓ 50 workers ready
 #> 💰 Estimated cost: ~$2.80/hour
 
@@ -77,7 +77,7 @@ simulate_portfolio <- function(seed) {
 }
 
 # Run 10,000 simulations on 100 AWS workers
-plan(future_starburst, workers = 100)
+plan(starburst, workers = 100)
 #> ✓ 100 workers ready
 #> 💰 Estimated cost: ~$5.60/hour
 
@@ -113,7 +113,7 @@ starburst_config(
 )
 
 # Costs shown transparently
-plan(future_starburst, workers = 100)
+plan(starburst, workers = 100)
 #> Estimated cost: ~$3.50/hour
 
 results <- future_map(samples, analysis)
@@ -126,7 +126,7 @@ results <- future_map(samples, analysis)
 staRburst automatically handles AWS Fargate quota limitations:
 
 ``` r
-plan(future_starburst, workers = 100, cpu = 4)
+plan(starburst, workers = 100, cpu = 4)
 #> ⚠ Requested: 100 workers (400 vCPUs)
 #> ⚠ Current quota: 100 vCPUs (allows 25 workers max)
 #> 📋 Running in 4 batches of 25 workers each

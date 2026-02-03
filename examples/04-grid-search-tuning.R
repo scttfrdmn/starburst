@@ -158,7 +158,7 @@ cat("\n")
 # Set up execution plan
 if (use_starburst) {
   cat("Setting up staRburst...\n")
-  plan(future_starburst, workers = n_workers)
+  plan(starburst, workers = n_workers)
 } else {
   cat("Using local sequential execution...\n")
   plan(sequential)

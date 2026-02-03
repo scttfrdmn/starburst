@@ -1,0 +1,24 @@
+Loading required package: future
+Parallel Data Processing
+========================
+Dataset chunks: 100 
+Rows per chunk: 10000 
+Total rows: 1e+06 
+Mode: Local
+
+Using local sequential execution...
+Processing dataset chunks...
+
+Processing Results
+==================
+Execution time: 0.4 seconds (0.0 minutes)
+Throughput: 2737273 rows/second
+
+Aggregate Statistics:
+  Total likely purchasers: 130,726 (13.1%)
+  Mean engagement score: 197.1
+  Median income: $36,312
+  Mean age: 49.0 years
+
+
+Results saved to: processing-results-local.rds 

@@ -1,0 +1,36 @@
+Loading required package: future
+Hyperparameter Grid Search
+===========================
+Generating dataset...
+  Samples: 1000 
+  Features: 4 
+  Classes: 497 / 503 
+
+Grid Search Configuration:
+  Lambda values: 4 
+  Feature sets: 4 
+  Total combinations: 16 
+  CV folds: 5
+  Mode: Local
+
+Using local sequential execution...
+Running grid search...
+
+Grid Search Results
+===================
+Execution time: 0.4 seconds (0.0 minutes)
+Time per configuration: 0.0 seconds
+
+Best Model:
+  Lambda: 0.0010
+  Features: x1,x2,x3,x4
+  CV Accuracy: 0.669
+
+Top 5 Configurations:
+  0.669 | lambda=0.0010 | features=x1,x2,x3,x4
+  0.669 | lambda=0.1000 | features=x1,x2,x3
+  0.669 | lambda=0.0100 | features=x1,x2,x3,x4
+  0.668 | lambda=0.0010 | features=x1,x2,x3,x4
+  0.667 | lambda=0.0010 | features=x1,x2,x3
+
+Results saved to: grid-search-results-local.rds 
