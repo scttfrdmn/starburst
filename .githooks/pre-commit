@@ -1,0 +1,59 @@
+#!/bin/bash
+# Pre-commit hook to run R CMD check before pushing
+
+echo "🔍 Running R CMD check before commit..."
+
+# Check if R is available
+if ! command -v R &> /dev/null; then
+    echo "⚠️  R is not installed. Skipping check."
+    exit 0
+fi
+
+# Run R CMD check
+Rscript -e "
+  if (!requireNamespace('devtools', quietly = TRUE)) {
+    cat('⚠️  devtools not installed. Install with: install.packages(\"devtools\")\n')
+    quit(status = 0)
+  }
+
+  cat('Running devtools::check()...\n')
+  result <- devtools::check(
+    document = FALSE,
+    args = '--no-manual --no-build-vignettes',
+    error_on = 'error'
+  )
+
+  if (length(result\$errors) > 0) {
+    cat('❌ R CMD check found errors:\n')
+    print(result\$errors)
+    quit(status = 1)
+  }
+
+  if (length(result\$warnings) > 0) {
+    cat('⚠️  R CMD check found warnings:\n')
+    print(result\$warnings)
+    cat('\nContinuing despite warnings. Consider fixing them.\n')
+  }
+
+  if (length(result\$notes) > 0) {
+    cat('ℹ️  R CMD check notes:\n')
+    print(result\$notes)
+  }
+
+  cat('✅ R CMD check passed!\n')
+"
+
+exit_code=$?
+
+if [ $exit_code -ne 0 ]; then
+    echo ""
+    echo "❌ R CMD check failed!"
+    echo "Fix the errors above before committing."
+    echo ""
+    echo "To skip this check (not recommended):"
+    echo "  git commit --no-verify"
+    exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"
+exit 0

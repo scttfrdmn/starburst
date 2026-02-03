@@ -8,11 +8,41 @@ Thank you for your interest in contributing to staRburst! This document provides
 2. Clone your fork: `git clone https://github.com/yourusername/starburst.git`
 3. Create a branch: `git checkout -b feature/your-feature-name`
 4. Make your changes
-5. Run tests: `devtools::test()`
-6. Run checks: `devtools::check()`
+5. **IMPORTANT**: Run tests: `devtools::test()`
+6. **IMPORTANT**: Run checks: `devtools::check()`
 7. Commit: `git commit -m "Description of changes"`
 8. Push: `git push origin feature/your-feature-name`
 9. Open a Pull Request
+
+## ⚠️ Before Pushing - Run Checks Locally!
+
+**Always run `R CMD check` locally before pushing** to avoid CI failures and wasted GitHub Actions minutes.
+
+### Set Up Pre-commit Hook (Recommended)
+
+```bash
+# Enable automatic checking before every commit
+git config core.hooksPath .githooks
+```
+
+Now every commit will automatically run `devtools::check()`. The commit will be blocked if there are errors.
+
+### Manual Check Before Push
+
+```bash
+# Quick check
+Rscript -e "devtools::check()"
+
+# Or full check (what CI runs)
+R CMD build .
+R CMD check --as-cran starburst_*.tar.gz
+```
+
+### Skip Pre-commit Hook (Not Recommended)
+
+```bash
+git commit --no-verify -m "Your message"
+```
 
 ## Development Setup
 
