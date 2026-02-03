@@ -458,11 +458,18 @@ build_environment_image <- function(tag, region) {
   on.exit(unlink(build_dir, recursive = TRUE), add = TRUE)
 
   tryCatch({
-    # Copy renv.lock from project
+    # Copy renv.lock from project, excluding staRburst itself
     if (!file.exists("renv.lock")) {
       stop("renv.lock not found in current directory. Initialize renv first with: renv::init()")
     }
-    file.copy("renv.lock", file.path(build_dir, "renv.lock"))
+
+    # Read and filter lock file to exclude starburst package
+    lock_data <- jsonlite::fromJSON("renv.lock", simplifyVector = FALSE)
+    if (!is.null(lock_data$Packages$starburst)) {
+      lock_data$Packages$starburst <- NULL
+    }
+    jsonlite::write_json(lock_data, file.path(build_dir, "renv.lock"),
+                        pretty = TRUE, auto_unbox = TRUE)
 
     # Copy worker script
     worker_script <- system.file("templates", "worker.R", package = "starburst")
