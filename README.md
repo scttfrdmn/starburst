@@ -23,8 +23,9 @@ Change one line of code to scale from your laptop to 100+ cloud workers.
   future-based packages
 - **Automatic Environment Sync**: Your packages and dependencies
   automatically available on workers
-- **Smart Quota Management**: Wave-based execution when hitting AWS
-  quota limits, automatic quota increase requests
+- **Smart Quota Management**: Automatically splits work into sequential
+  batches when hitting AWS quota limits, with automatic quota increase
+  requests
 - **Cost Transparent**: See estimated and actual costs for every run
 - **Auto Cleanup**: Workers shut down automatically when done
 
@@ -49,9 +50,12 @@ starburst_setup()
 
 # Use with furrr - change one line to scale to AWS
 plan(future_starburst, workers = 50)
+#> ✓ 50 workers ready
+#> 💰 Estimated cost: ~$2.80/hour
 
 results <- future_map(samples, expensive_analysis)
-# Your code runs on 50 AWS Fargate workers automatically
+#> ✓ Cluster runtime: 18 minutes
+#> ✓ Total cost: $0.84
 ```
 
 ## Example: Monte Carlo Simulation
@@ -74,11 +78,16 @@ simulate_portfolio <- function(seed) {
 
 # Run 10,000 simulations on 100 AWS workers
 plan(future_starburst, workers = 100)
+#> ✓ 100 workers ready
+#> 💰 Estimated cost: ~$5.60/hour
 
 results <- future_map(1:10000, simulate_portfolio, .options = furrr_options(seed = TRUE))
+#> ✓ Cluster runtime: 3 minutes
+#> ✓ Total cost: $0.28
 
+# Comparison:
 # Local (single core): ~4 hours
-# Cloud (100 workers): ~3 minutes, Cost: ~$1.80
+# Cloud (100 workers): 3 minutes, $0.28
 ```
 
 ## How It Works
@@ -86,8 +95,8 @@ results <- future_map(1:10000, simulate_portfolio, .options = furrr_options(seed
 1.  **Environment Snapshot**: Captures your R packages using renv
 2.  **Container Build**: Creates Docker image with your environment,
     cached in ECR
-3.  **Task Submission**: Launches Fargate tasks (or waves if
-    quota-limited)
+3.  **Task Submission**: Launches Fargate tasks (or sequential batches
+    if quota-limited)
 4.  **Data Transfer**: Serializes dependencies to S3 using optimized
     methods
 5.  **Execution**: Workers pull data, execute, push results to S3
@@ -120,7 +129,7 @@ staRburst automatically handles AWS Fargate quota limitations:
 plan(future_starburst, workers = 100, cpu = 4)
 #> ⚠ Requested: 100 workers (400 vCPUs)
 #> ⚠ Current quota: 100 vCPUs (allows 25 workers max)
-#> 📋 Running in 4 waves of 25 workers each
+#> 📋 Running in 4 batches of 25 workers each
 #> 💡 Request quota increase to 500 vCPUs? [y/n]: y
 #> ✓ Quota increase requested (Case ID: 12345)
 ```
