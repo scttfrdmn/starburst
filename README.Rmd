@@ -37,9 +37,12 @@ staRburst is a [future](https://future.futureverse.org/) backend that lets you r
 
 ## Installation
 
-```{r}
-# Install from GitHub
-remotes::install_github("scttfrdmn/starburst")
+Currently available via GitHub. CRAN submission planned for v1.0.
+
+```r
+# In the R console:
+> install.packages("remotes")
+> remotes::install_github("scttfrdmn/starburst")
 ```
 
 ## Quick Start
