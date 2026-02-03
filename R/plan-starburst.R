@@ -538,11 +538,15 @@ parse_memory <- function(memory) {
 
 #' staRburst Future Strategy
 #'
-#' Constructor function for staRburst future backend
+#' Future strategy for running parallel R workloads on AWS Fargate
 #'
 #' @param workers Number of parallel workers
 #' @param cpu vCPUs per worker (1, 2, 4, 8, or 16)
 #' @param memory Memory per worker (supports GB notation, e.g., "8GB")
+#' @param region AWS region (default: from config or "us-east-1")
+#' @param timeout Maximum runtime in seconds (default: 3600)
+#' @param auto_quota_request Automatically request quota increases
+#' @param envir Environment for evaluation
 #' @param ... Additional arguments
 #'
 #' @return A starburst future plan
@@ -554,17 +558,37 @@ parse_memory <- function(memory) {
 #' plan(starburst, workers = 50)
 #' results <- future_map(1:1000, expensive_function)
 #' }
-starburst <- function(workers = 10, cpu = 4, memory = "8GB", region = NULL,
+starburst <- local({
+  ## The factory function that creates the actual plan
+  factory <- function(workers = 10, cpu = 4, memory = "8GB", region = NULL,
                      timeout = 3600, auto_quota_request = interactive(), ...) {
-  # Don't call plan(), just return arguments that plan() will use
-  # Store as function so future::plan() knows this is a backend constructor
-  args <- as.list(environment())
-  args$`...` <- list(...)
-
-  # Return function that plan() will call
-  f <- function() {
-    do.call(plan.starburst, args[names(args) != "..."])
+    plan.starburst(
+      workers = workers,
+      cpu = cpu,
+      memory = memory,
+      region = region,
+      timeout = timeout,
+      auto_quota_request = auto_quota_request,
+      ...
+    )
   }
 
-  structure(f, class = c("starburst", "future", "function"))
-}
+  ## The strategy function with attributes
+  strategy <- function(..., workers = 10, cpu = 4, memory = "8GB",
+                       region = NULL, timeout = 3600,
+                       auto_quota_request = interactive(),
+                       envir = parent.frame()) {
+    ## Just call the factory - plan() will handle the rest
+    factory(workers = workers, cpu = cpu, memory = memory,
+           region = region, timeout = timeout,
+           auto_quota_request = auto_quota_request, ...)
+  }
+
+  ## Add required attributes
+  class(strategy) <- c("starburst", "cluster", "future", "function")
+  attr(strategy, "init") <- TRUE
+  attr(strategy, "tweakable") <- c("workers", "cpu", "memory", "region", "timeout", "auto_quota_request")
+  attr(strategy, "factory") <- factory
+
+  strategy
+})

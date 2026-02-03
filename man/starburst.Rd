@@ -4,22 +4,39 @@
 \alias{starburst}
 \title{staRburst Future Strategy}
 \usage{
-starburst(workers = 10, cpu = 4, memory = "8GB", ...)
+starburst(
+  ...,
+  workers = 10,
+  cpu = 4,
+  memory = "8GB",
+  region = NULL,
+  timeout = 3600,
+  auto_quota_request = interactive(),
+  envir = parent.frame()
+)
 }
 \arguments{
+\item{...}{Additional arguments}
+
 \item{workers}{Number of parallel workers}
 
 \item{cpu}{vCPUs per worker (1, 2, 4, 8, or 16)}
 
 \item{memory}{Memory per worker (supports GB notation, e.g., "8GB")}
 
-\item{...}{Additional arguments}
+\item{region}{AWS region (default: from config or "us-east-1")}
+
+\item{timeout}{Maximum runtime in seconds (default: 3600)}
+
+\item{auto_quota_request}{Automatically request quota increases}
+
+\item{envir}{Environment for evaluation}
 }
 \value{
 A starburst future plan
 }
 \description{
-Constructor function for staRburst future backend
+Future strategy for running parallel R workloads on AWS Fargate
 }
 \examples{
 \dontrun{
