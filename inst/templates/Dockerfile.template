@@ -1,0 +1,38 @@
+# staRburst Worker Docker Image
+# This template is used to build worker containers with user's R environment
+
+FROM rocker/r-ver:{{R_VERSION}}
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install AWS CLI
+RUN apt-get update && apt-get install -y \
+    awscli \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install renv
+RUN R -e "install.packages('renv', repos = 'https://cloud.r-project.org')"
+
+# Copy renv lock file
+COPY renv.lock /app/renv.lock
+
+# Set working directory
+WORKDIR /app
+
+# Initialize renv and restore packages
+RUN R -e "renv::init(bare = TRUE); renv::restore()"
+
+# Install staRburst worker dependencies
+RUN R -e "install.packages(c('qs', 'jsonlite'), repos = 'https://cloud.r-project.org')"
+
+# Copy worker script
+COPY worker.R /app/worker.R
+
+# Set entrypoint
+ENTRYPOINT ["Rscript", "/app/worker.R"]

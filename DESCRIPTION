@@ -1,0 +1,45 @@
+Package: starburst
+Type: Package
+Title: Seamless AWS Cloud Bursting for Parallel R Workloads
+Version: 0.1.0
+Authors@R: c(
+    person("Scott", "Friedman", email = "scott@example.com", role = c("aut", "cre"))
+    )
+Description: A future backend that enables seamless execution of parallel R
+    workloads on AWS Fargate. staRburst handles environment synchronization,
+    data transfer, quota management, and worker orchestration automatically,
+    allowing users to scale from local execution to 100+ cloud workers with
+    a single line of code change.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.2.3
+Depends:
+    R (>= 4.0.0)
+Imports:
+    future (>= 1.33.0),
+    paws.compute,
+    paws.storage,
+    paws.management,
+    paws.networking,
+    qs (>= 0.25.0),
+    uuid,
+    renv,
+    jsonlite,
+    crayon,
+    arrow,
+    cli,
+    rlang,
+    digest,
+    base64enc
+Suggests:
+    furrr,
+    future.apply,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    withr,
+    mockery
+VignetteBuilder: knitr
+URL: https://github.com/yourusername/starburst
+BugReports: https://github.com/yourusername/starburst/issues

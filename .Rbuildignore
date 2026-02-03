@@ -1,0 +1,16 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^README\.Rmd$
+^\.github$
+^\.git$
+^\.gitignore$
+^data-raw$
+^docs$
+^_pkgdown\.yml$
+^pkgdown$
+^starburst-chat\.md$
+^starburst\.zip$
+^extracted$
+^ARCHITECTURE\.md$
+^ROADMAP\.md$
