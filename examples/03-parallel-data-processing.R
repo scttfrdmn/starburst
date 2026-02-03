@@ -125,7 +125,7 @@ cat(sprintf("  Total likely purchasers: %s (%.1f%%)\n",
             format(total_likely_purchasers, big.mark = ","),
             (total_likely_purchasers / (n_chunks * rows_per_chunk)) * 100))
 cat(sprintf("  Mean engagement score: %.1f\n", mean_engagement))
-cat(sprintf("  Median income: $%,.0f\n", median_income))
+cat(sprintf("  Median income: $%s\n", format(round(median_income), big.mark = ",")))
 cat(sprintf("  Mean age: %.1f years\n", mean_age))
 cat("\n")
 
