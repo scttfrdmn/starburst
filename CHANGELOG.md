@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- License changed from MIT to Apache License 2.0
+- Copyright holder: Scott Friedman (2026)
+
 ## [0.1.0] - 2026-02-03
 
 ### Added
