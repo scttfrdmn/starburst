@@ -24,7 +24,7 @@ Change one line of code to scale from your laptop to 100+ cloud workers.
 - **Automatic Environment Sync**: Your packages and dependencies
   automatically available on workers
 - **Smart Quota Management**: Wave-based execution when hitting AWS
-  limits, automatic quota increase requests
+  quota limits, automatic quota increase requests
 - **Cost Transparent**: See estimated and actual costs for every run
 - **Auto Cleanup**: Workers shut down automatically when done
 

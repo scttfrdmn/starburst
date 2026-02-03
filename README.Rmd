@@ -31,7 +31,7 @@ staRburst is a [future](https://future.futureverse.org/) backend that lets you r
 - **Simple Setup**: One-time configuration, then seamless operation
 - **future Ecosystem**: Works with furrr, future.apply, targets, and all future-based packages
 - **Automatic Environment Sync**: Your packages and dependencies automatically available on workers
-- **Smart Quota Management**: Wave-based execution when hitting AWS limits, automatic quota increase requests
+- **Smart Quota Management**: Wave-based execution when hitting AWS quota limits, automatic quota increase requests
 - **Cost Transparent**: See estimated and actual costs for every run
 - **Auto Cleanup**: Workers shut down automatically when done
 
