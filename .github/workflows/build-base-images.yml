@@ -1,0 +1,131 @@
+name: Build and Push Base Docker Images
+
+on:
+  schedule:
+    # Run monthly on the 1st at 00:00 UTC
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+    inputs:
+      r_versions:
+        description: 'R versions to build (comma-separated, e.g., 4.4.2,4.5.2)'
+        required: false
+        default: '4.4.2,4.5.2'
+  push:
+    branches:
+      - main
+    paths:
+      - 'inst/templates/Dockerfile.base'
+      - '.github/workflows/build-base-images.yml'
+
+env:
+  PUBLIC_ECR_REGISTRY: public.ecr.aws/starburst
+  REPOSITORY_NAME: base
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        r_version: ['4.4.2', '4.5.2']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon Public ECR
+        run: |
+          aws ecr-public get-login-password --region us-east-1 | \
+            docker login --username AWS --password-stdin public.ecr.aws
+
+      - name: Build base image
+        run: |
+          docker buildx build \
+            --file inst/templates/Dockerfile.base \
+            --build-arg R_VERSION=${{ matrix.r_version }} \
+            --tag ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:r${{ matrix.r_version }} \
+            --tag ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:r${{ matrix.r_version }}-$(date +%Y%m%d) \
+            --platform linux/amd64 \
+            --push \
+            .
+
+      - name: Update latest tag for latest R version
+        if: matrix.r_version == '4.5.2'
+        run: |
+          docker buildx imagetools create \
+            --tag ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:latest \
+            ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:r${{ matrix.r_version }}
+
+      - name: Generate image manifest
+        run: |
+          echo "Image: ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:r${{ matrix.r_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
+  create-release:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create release with manifest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="base-images-$(date +%Y%m%d)"
+
+          cat > release_notes.md << EOF
+          # Base Docker Images Release
+
+          ## Images Published
+
+          - \`public.ecr.aws/starburst/base:r4.4.2\`
+          - \`public.ecr.aws/starburst/base:r4.5.2\`
+          - \`public.ecr.aws/starburst/base:latest\` (points to r4.5.2)
+
+          ## Image Details
+
+          **Built:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Commit:** ${{ github.sha }}
+
+          ## Usage
+
+          These base images are automatically used by staRburst v0.3.0+.
+
+          To use in your project:
+          \`\`\`r
+          library(starburst)
+          starburst_setup()  # Uses public base images by default
+          \`\`\`
+
+          To build private base images instead:
+          \`\`\`r
+          starburst_setup(use_public_base = FALSE)
+          \`\`\`
+
+          ## Image Contents
+
+          - R version as specified
+          - System dependencies for common R packages
+          - renv for package management
+          - Core libraries (curl, openssl, git, etc.)
+
+          See \`inst/templates/Dockerfile.base\` for full details.
+          EOF
+
+          gh release create "$VERSION" \
+            --title "Base Images $VERSION" \
+            --notes-file release_notes.md \
+            --target main

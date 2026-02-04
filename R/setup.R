@@ -4,14 +4,20 @@
 #'
 #' @param region AWS region (default: "us-east-1")
 #' @param force Force re-setup even if already configured
+#' @param use_public_base Use public base Docker images (default: TRUE).
+#'   Set to FALSE to build private base images in your ECR.
 #'
 #' @export
 #'
 #' @examples
 #' \dontrun{
+#' # Default: use public base images (faster setup)
 #' starburst_setup()
+#'
+#' # Use private base images
+#' starburst_setup(use_public_base = FALSE)
 #' }
-starburst_setup <- function(region = "us-east-1", force = FALSE) {
+starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base = TRUE) {
   
   cat_header("⚡ staRburst Setup\n")
   
@@ -81,6 +87,7 @@ starburst_setup <- function(region = "us-east-1", force = FALSE) {
     vpc_id = vpc_resources$vpc_id,
     subnets = vpc_resources$subnets,
     security_groups = vpc_resources$security_groups,
+    use_public_base = use_public_base,
     setup_at = Sys.time()
   )
   

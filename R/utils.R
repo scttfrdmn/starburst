@@ -550,29 +550,70 @@ build_base_image <- function(region) {
   })
 }
 
+#' Get base image source URI
+#'
+#' @param use_public Logical, use public ECR base image (default TRUE)
+#' @keywords internal
+get_base_image_source <- function(use_public = TRUE) {
+  r_version <- paste0(R.version$major, ".", R.version$minor)
+
+  if (use_public) {
+    # Public ECR (no auth needed, instant pull)
+    # NOTE: This will be available when public images are published
+    return(sprintf("public.ecr.aws/starburst/base:r%s", r_version))
+  } else {
+    # Private ECR (build if missing)
+    config <- get_starburst_config()
+    account_id <- config$aws_account_id
+    region <- config$region
+    return(sprintf("%s.dkr.ecr.%s.amazonaws.com/starburst-worker:base-%s",
+                   account_id, region, r_version))
+  }
+}
+
 #' Ensure base image exists
 #'
+#' @param region AWS region
+#' @param use_public Logical, use public ECR base image (default TRUE)
 #' @keywords internal
-ensure_base_image <- function(region) {
+ensure_base_image <- function(region, use_public = NULL) {
+  # Get preference from config or default to TRUE
+  if (is.null(use_public)) {
+    config <- get_starburst_config()
+    use_public <- config$use_public_base %||% TRUE
+  }
+
   r_version <- paste0(R.version$major, ".", R.version$minor)
   base_tag <- sprintf("base-%s", r_version)
 
-  # Check if base image exists
-  if (!check_ecr_image_exists(base_tag, region)) {
-    cat_info("📦 Base image not found, building it now...\n")
-    build_base_image(region)
+  if (use_public) {
+    # Use public base image (no build needed)
+    base_uri <- get_base_image_source(use_public = TRUE)
+    cat_info(sprintf("✓ Using public base image: %s\n", base_uri))
+    cat_info("   (Fast setup - no build required!)\n")
+    return(base_uri)
   } else {
-    base_uri <- get_base_image_uri(region)
-    cat_info(sprintf("✓ Using existing base image: %s\n", base_uri))
-  }
+    # Use private base image (build if needed)
+    if (!check_ecr_image_exists(base_tag, region)) {
+      cat_info("📦 Base image not found in private ECR, building it now...\n")
+      cat_info("   (This will take 3-5 minutes, but only needed once per R version)\n")
+      build_base_image(region)
+    } else {
+      base_uri <- get_base_image_uri(region)
+      cat_info(sprintf("✓ Using existing private base image: %s\n", base_uri))
+    }
 
-  return(get_base_image_uri(region))
+    return(get_base_image_uri(region))
+  }
 }
 
 #' Build environment image
 #'
+#' @param tag Image tag
+#' @param region AWS region
+#' @param use_public Logical, use public ECR base image (default NULL = from config)
 #' @keywords internal
-build_environment_image <- function(tag, region) {
+build_environment_image <- function(tag, region, use_public = NULL) {
   cat_info("🐳 Building project Docker image...\n")
 
   # Validate Docker is installed
@@ -581,8 +622,8 @@ build_environment_image <- function(tag, region) {
     stop("Docker is not installed or not accessible. Please install Docker: https://docs.docker.com/get-docker/")
   }
 
-  # Ensure base image exists (will build if needed)
-  base_image_uri <- ensure_base_image(region)
+  # Ensure base image exists (will build if needed, or use public)
+  base_image_uri <- ensure_base_image(region, use_public = use_public)
 
   # Get configuration
   config <- get_starburst_config()
