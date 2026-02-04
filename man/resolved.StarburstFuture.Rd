@@ -4,7 +4,7 @@
 \alias{resolved.StarburstFuture}
 \title{Check if StarburstFuture is Resolved}
 \usage{
-resolved.StarburstFuture(future, ...)
+\method{resolved}{StarburstFuture}(future, ...)
 }
 \arguments{
 \item{future}{A StarburstFuture object}

@@ -83,11 +83,18 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 
   for (i in seq_along(.x)) {
     item <- .x[[i]]
+
+    # Create globals list with the function and item
+    globals_list <- list(
+      .f_wrapped = .f_wrapped,
+      .item = item
+    )
+
     futures[[i]] <- StarburstFuture(
       expr = quote(.f_wrapped(.item)),
-      envir = list2env(list(.f_wrapped = .f_wrapped, .item = item), parent = parent.frame()),
+      envir = parent.frame(),
       substitute = FALSE,
-      globals = FALSE,
+      globals = globals_list,  # Pass as globals so they get serialized
       packages = NULL
     )
   }
@@ -246,11 +253,18 @@ starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
   for (i in seq_along(.x)) {
     # Create a future for this item
     item <- .x[[i]]
+
+    # Create globals list
+    globals_list <- list(
+      .f = .f,
+      .item = item
+    )
+
     futures[[i]] <- StarburstFuture(
       expr = quote(.f(.item)),
-      envir = list2env(list(.f = .f, .item = item), parent = parent.frame()),
+      envir = parent.frame(),
       substitute = FALSE,
-      globals = FALSE,  # Already captured in envir
+      globals = globals_list,  # Pass as globals so they get serialized
       packages = NULL
     )
   }

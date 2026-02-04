@@ -4,7 +4,7 @@
 \alias{run.StarburstFuture}
 \title{Run a StarburstFuture}
 \usage{
-run.StarburstFuture(future, ...)
+\method{run}{StarburstFuture}(future, ...)
 }
 \arguments{
 \item{future}{A StarburstFuture object}

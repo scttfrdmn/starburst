@@ -7,6 +7,6 @@
 starburst_cluster_map(cluster, .x, .f, .progress = TRUE)
 }
 \description{
-Internal function to execute parallel map using Future backend
+Internal function to execute parallel map by creating StarburstFuture objects directly
 }
 \keyword{internal}

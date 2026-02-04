@@ -86,27 +86,26 @@ StarburstFuture <- function(expr, envir = parent.frame(), substitute = TRUE,
   # Generate task ID
   task_id <- sprintf("task-%s", gsub("-", "", uuid::UUIDgenerate()))
 
-  # Create future object
-  f <- structure(
-    list(
-      expr = expr,
-      envir = envir,
-      globals = globals,
-      packages = packages,
-      seed = seed,
-      task_id = task_id,
-      backend = backend,
-      state = "created",
-      result_value = NULL,
-      task_arn = NULL,
-      submitted_at = NULL,
-      ...
-    ),
-    class = c("StarburstFuture", "Future", "environment")
+  # Create future object as a list first
+  f_list <- list(
+    expr = expr,
+    envir = envir,
+    globals = globals,
+    packages = packages,
+    seed = seed,
+    task_id = task_id,
+    backend = backend,
+    state = "created",
+    result_value = NULL,
+    task_arn = NULL,
+    submitted_at = NULL,
+    ...
   )
 
-  # Make it an environment so it's mutable
-  f <- list2env(as.list(f), parent = emptyenv())
+  # Convert to environment for mutability
+  f <- list2env(f_list, parent = emptyenv())
+
+  # Set class after conversion to environment
   class(f) <- c("StarburstFuture", "Future", "environment")
 
   f
@@ -120,6 +119,7 @@ StarburstFuture <- function(expr, envir = parent.frame(), substitute = TRUE,
 #' @param ... Additional arguments
 #'
 #' @return The future object (invisibly)
+#' @importFrom future run resolved result
 #' @export
 run.StarburstFuture <- function(future, ...) {
 

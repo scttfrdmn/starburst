@@ -4,7 +4,7 @@
 \alias{result.StarburstFuture}
 \title{Get Result from StarburstFuture}
 \usage{
-result.StarburstFuture(future, ...)
+\method{result}{StarburstFuture}(future, ...)
 }
 \arguments{
 \item{future}{A StarburstFuture object}
