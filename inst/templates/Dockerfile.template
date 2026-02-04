@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     libfontconfig1-dev \
     libfreetype6-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
     libgit2-dev \
     && rm -rf /var/lib/apt/lists/*
 
