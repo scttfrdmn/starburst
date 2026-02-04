@@ -580,127 +580,44 @@ ensure_log_group <- function(log_group_name, region) {
   })
 }
 
-#' Get or create IAM execution role
+#' Get IAM execution role ARN
+#'
+#' Returns the ARN for the ECS execution role (should be created during setup)
 #'
 #' @keywords internal
 get_execution_role_arn <- function(region) {
   config <- get_starburst_config()
+
+  # Use role from config if available
+  if (!is.null(config$execution_role_arn)) {
+    return(config$execution_role_arn)
+  }
+
+  # Return default role ARN
+  aws_account_id <- config$aws_account_id
   role_name <- "starburstECSExecutionRole"
 
-  iam <- paws.management::iam(
-    config = list(
-      credentials = list(profile = Sys.getenv("AWS_PROFILE", "default")),
-      region = region
-    )
-  )
-
-  # Check if role exists
-  tryCatch({
-    role <- iam$get_role(RoleName = role_name)
-    return(role$Role$Arn)
-  }, error = function(e) {
-    if (!grepl("NoSuchEntity", e$message)) {
-      stop(e)
-    }
-  })
-
-  # Create role with trust policy
-  trust_policy <- jsonlite::toJSON(list(
-    Version = "2012-10-17",
-    Statement = list(
-      list(
-        Effect = "Allow",
-        Principal = list(Service = "ecs-tasks.amazonaws.com"),
-        Action = "sts:AssumeRole"
-      )
-    )
-  ), auto_unbox = TRUE)
-
-  role <- iam$create_role(
-    RoleName = role_name,
-    AssumeRolePolicyDocument = as.character(trust_policy),
-    Description = "Execution role for staRburst ECS tasks"
-  )
-
-  # Attach AWS managed policy for ECS task execution
-  iam$attach_role_policy(
-    RoleName = role_name,
-    PolicyArn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-  )
-
-  cat_info(sprintf("   • Created IAM execution role: %s\n", role_name))
-
-  return(role$Role$Arn)
+  sprintf("arn:aws:iam::%s:role/%s", aws_account_id, role_name)
 }
 
-#' Get or create IAM task role
+#' Get IAM task role ARN
+#'
+#' Returns the ARN for the ECS task role (should be created during setup)
 #'
 #' @keywords internal
 get_task_role_arn <- function(region) {
   config <- get_starburst_config()
+
+  # Use role from config if available
+  if (!is.null(config$task_role_arn)) {
+    return(config$task_role_arn)
+  }
+
+  # Return default role ARN
+  aws_account_id <- config$aws_account_id
   role_name <- "starburstECSTaskRole"
-  account_id <- config$aws_account_id
-  bucket_name <- config$bucket_name
 
-  iam <- paws.management::iam(
-    config = list(
-      credentials = list(profile = Sys.getenv("AWS_PROFILE", "default")),
-      region = region
-    )
-  )
-
-  # Check if role exists
-  tryCatch({
-    role <- iam$get_role(RoleName = role_name)
-    return(role$Role$Arn)
-  }, error = function(e) {
-    if (!grepl("NoSuchEntity", e$message)) {
-      stop(e)
-    }
-  })
-
-  # Create role with trust policy
-  trust_policy <- jsonlite::toJSON(list(
-    Version = "2012-10-17",
-    Statement = list(
-      list(
-        Effect = "Allow",
-        Principal = list(Service = "ecs-tasks.amazonaws.com"),
-        Action = "sts:AssumeRole"
-      )
-    )
-  ), auto_unbox = TRUE)
-
-  role <- iam$create_role(
-    RoleName = role_name,
-    AssumeRolePolicyDocument = as.character(trust_policy),
-    Description = "Task role for staRburst workers"
-  )
-
-  # Create inline policy for S3 access
-  s3_policy <- jsonlite::toJSON(list(
-    Version = "2012-10-17",
-    Statement = list(
-      list(
-        Effect = "Allow",
-        Action = c("s3:GetObject", "s3:PutObject", "s3:ListBucket"),
-        Resource = c(
-          sprintf("arn:aws:s3:::%s", bucket_name),
-          sprintf("arn:aws:s3:::%s/*", bucket_name)
-        )
-      )
-    )
-  ), auto_unbox = TRUE)
-
-  iam$put_role_policy(
-    RoleName = role_name,
-    PolicyName = "StarburstS3Access",
-    PolicyDocument = as.character(s3_policy)
-  )
-
-  cat_info(sprintf("   • Created IAM task role: %s\n", role_name))
-
-  return(role$Role$Arn)
+  sprintf("arn:aws:iam::%s:role/%s", aws_account_id, role_name)
 }
 
 #' Get or create task definition

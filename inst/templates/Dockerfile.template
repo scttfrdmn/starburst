@@ -23,9 +23,6 @@ WORKDIR /app
 # Initialize renv and restore packages
 RUN R -e "renv::init(bare = TRUE); renv::restore()"
 
-# Install staRburst worker dependencies
-RUN R -e "install.packages(c('qs', 'jsonlite'), repos = 'https://cloud.r-project.org')"
-
 # Copy worker script
 COPY worker.R /app/worker.R
 

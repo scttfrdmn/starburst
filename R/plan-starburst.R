@@ -111,37 +111,66 @@ plan.starburst <- function(workers = 10,
   # Create cluster identifier
   cluster_id <- sprintf("starburst-%s", uuid::UUIDgenerate())
   
-  # Create plan object
-  plan <- structure(
-    list(
-      cluster_id = cluster_id,
-      workers = workers,
-      workers_per_wave = workers_per_wave,
-      num_waves = num_waves,
-      quota_limited = quota_limited,
-      cpu = cpu,
-      memory = memory,
-      region = region,
-      timeout = timeout,
-      env_hash = env_info$hash,
-      image_uri = env_info$image_uri,
-      created_at = Sys.time(),
-      total_tasks = 0,
-      completed_tasks = 0,
-      failed_tasks = 0,
-      total_cost = 0,
-      wave_queue = list(
-        pending = list(),         # Tasks waiting to be submitted
-        current_wave = 1,         # Current wave number
-        wave_futures = list(),    # Currently running futures
-        completed = 0             # Number of completed tasks
-      ),
-      worker_cpu = cpu,
-      worker_memory = as.numeric(gsub("[^0-9.]", "", memory)),
-      task_definition_arn = NULL  # Will be set during first task submission
+  # Get config for bucket
+  config <- get_starburst_config()
+
+  # Create backend object (mutable environment)
+  backend <- list(
+    cluster_id = cluster_id,
+    workers = workers,
+    workers_per_wave = workers_per_wave,
+    num_waves = num_waves,
+    quota_limited = quota_limited,
+    cpu = cpu,
+    memory = memory,
+    region = region,
+    bucket = config$bucket,
+    timeout = timeout,
+    env_hash = env_info$hash,
+    image_uri = env_info$image_uri,
+    created_at = Sys.time(),
+    total_tasks = 0,
+    completed_tasks = 0,
+    failed_tasks = 0,
+    total_cost = 0,
+    wave_queue = list(
+      pending = list(),         # Futures waiting to be submitted
+      current_wave = 1,         # Current wave number
+      wave_futures = list(),    # Currently running futures
+      completed = 0             # Number of completed tasks
     ),
-    class = c("starburst", "cluster", "future")
+    worker_cpu = cpu,
+    worker_memory = as.numeric(gsub("[^0-9.]", "", memory)),
+    task_definition_arn = NULL  # Will be set during first task submission
   )
+
+  # Convert backend list to environment for mutability
+  backend_env <- list2env(backend, parent = emptyenv())
+
+  # Create an evaluator function that creates StarburstFuture objects
+  evaluator <- function(expr, envir = parent.frame(), substitute = TRUE,
+                        globals = TRUE, packages = NULL, lazy = FALSE,
+                        seed = FALSE, ...) {
+    StarburstFuture(
+      expr = expr,
+      envir = envir,
+      substitute = substitute,
+      globals = globals,
+      packages = packages,
+      lazy = lazy,
+      seed = seed,
+      ...
+    )
+  }
+
+  # Attach backend as attribute
+  attr(evaluator, "backend") <- backend_env
+  attr(evaluator, "init") <- TRUE
+
+  # Set proper class
+  class(evaluator) <- c("StarburstEvaluator", "FutureEvaluator", "function")
+
+  evaluator
   
   # Register cleanup on exit
   register_cleanup(plan)
@@ -558,37 +587,8 @@ parse_memory <- function(memory) {
 #' plan(starburst, workers = 50)
 #' results <- future_map(1:1000, expensive_function)
 #' }
-starburst <- local({
-  ## The factory function that creates the actual plan
-  factory <- function(workers = 10, cpu = 4, memory = "8GB", region = NULL,
-                     timeout = 3600, auto_quota_request = interactive(), ...) {
-    plan.starburst(
-      workers = workers,
-      cpu = cpu,
-      memory = memory,
-      region = region,
-      timeout = timeout,
-      auto_quota_request = auto_quota_request,
-      ...
-    )
-  }
 
-  ## The strategy function with attributes
-  strategy <- function(..., workers = 10, cpu = 4, memory = "8GB",
-                       region = NULL, timeout = 3600,
-                       auto_quota_request = interactive(),
-                       envir = parent.frame()) {
-    ## Just call the factory - plan() will handle the rest
-    factory(workers = workers, cpu = cpu, memory = memory,
-           region = region, timeout = timeout,
-           auto_quota_request = auto_quota_request, ...)
-  }
-
-  ## Add required attributes
-  class(strategy) <- c("starburst", "cluster", "future", "function")
-  attr(strategy, "init") <- TRUE
-  attr(strategy, "tweakable") <- c("workers", "cpu", "memory", "region", "timeout", "auto_quota_request")
-  attr(strategy, "factory") <- factory
-
-  strategy
-})
+#' Starburst strategy marker
+#' @export
+starburst <- structure(function(...) {},
+                       class = c("starburst", "future", "function"))
