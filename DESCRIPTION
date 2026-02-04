@@ -3,7 +3,7 @@ Type: Package
 Title: Seamless AWS Cloud Bursting for Parallel R Workloads
 Version: 0.2.0
 Authors@R: c(
-    person("Scott", "Friedman", email = "scott@example.com", role = c("aut", "cre"))
+    person("Scott", "Friedman", email = "help@starburst.ing", role = c("aut", "cre"))
     )
 Description: A future backend that enables seamless execution of parallel R
     workloads on AWS Fargate. staRburst handles environment synchronization,
@@ -40,5 +40,5 @@ Suggests:
     withr,
     mockery
 VignetteBuilder: knitr
-URL: https://github.com/yourusername/starburst
-BugReports: https://github.com/yourusername/starburst/issues
+URL: https://starburst.ing, https://github.com/scttfrdmn/starburst
+BugReports: https://github.com/scttfrdmn/starburst/issues
