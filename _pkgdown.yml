@@ -1,0 +1,118 @@
+url: https://scttfrdmn.github.io/starburst
+template:
+  bootstrap: 5
+  bootswatch: cosmo
+  bslib:
+    primary: "#0066cc"
+
+home:
+  title: "staRburst • Seamless AWS Cloud Bursting for R"
+  description: >
+    Scale R to 100+ AWS workers with one line. Zero infrastructure management,
+    automatic environment sync, and transparent cost tracking.
+
+navbar:
+  structure:
+    left: [intro, reference, articles, examples, news]
+    right: [search, github]
+  components:
+    home: ~
+    intro:
+      text: Get Started
+      href: articles/getting-started.html
+    reference:
+      text: Reference
+      href: reference/index.html
+    articles:
+      text: Examples
+      menu:
+      - text: "Getting Started"
+        href: articles/getting-started.html
+      - text: "---"
+      - text: "Data Processing Examples"
+      - text: "Monte Carlo Simulation"
+        href: articles/example-monte-carlo.html
+      - text: "Bulk API Calls"
+        href: articles/example-api-calls.html
+      - text: "Geospatial Analysis"
+        href: articles/example-geospatial.html
+      - text: "Model Grid Search"
+        href: articles/example-grid-search.html
+      - text: "---"
+      - text: "Business Use Cases"
+      - text: "Financial Risk Modeling"
+        href: articles/example-risk-modeling.html
+      - text: "ML Feature Engineering"
+        href: articles/example-feature-engineering.html
+      - text: "A/B Test Analysis"
+        href: articles/example-bootstrap.html
+      - text: "Report Generation"
+        href: articles/example-reports.html
+    examples:
+      text: Runnable Scripts
+      href: reference/examples.html
+    news:
+      text: News
+      href: news/index.html
+
+reference:
+- title: "Main Functions"
+  desc: "Core functions for cloud bursting"
+  contents:
+  - starburst_map
+  - starburst_cluster
+  - starburst_setup
+
+- title: "Configuration"
+  desc: "Configure and manage staRburst"
+  contents:
+  - starburst_config
+  - starburst_status
+  - get_starburst_config
+
+- title: "Cost Management"
+  desc: "Track and manage AWS costs"
+  contents:
+  - estimate_cost
+  - get_job_cost
+
+- title: "Advanced"
+  desc: "Advanced usage and utilities"
+  contents:
+  - build_environment_image
+  - ensure_base_image
+
+articles:
+- title: "Getting Started"
+  navbar: ~
+  contents:
+  - getting-started
+
+- title: "Data Processing Examples"
+  desc: "Parallel data processing use cases"
+  contents:
+  - example-monte-carlo
+  - example-api-calls
+  - example-geospatial
+  - example-grid-search
+
+- title: "Business Use Cases"
+  desc: "Real-world business applications"
+  contents:
+  - example-risk-modeling
+  - example-feature-engineering
+  - example-bootstrap
+  - example-reports
+
+footer:
+  structure:
+    left: developed_by
+    right: built_with
+  components:
+    developed_by: |
+      staRburst is developed by [Scott Friedman](https://github.com/scttfrdmn).
+
+      Contact: [help@starburst.ing](mailto:help@starburst.ing)
+    built_with: |
+      Built with [pkgdown](https://pkgdown.r-lib.org/) and powered by
+      [paws](https://paws-r.github.io/).
