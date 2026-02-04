@@ -342,6 +342,74 @@ submit_fargate_task <- function(future, backend) {
   invisible(NULL)
 }
 
+#' Check and Submit Wave if Ready
+#'
+#' Checks wave queue and submits next wave if current wave is complete
+#'
+#' @param backend Backend environment
+#' @keywords internal
+check_and_submit_wave <- function(backend) {
+
+  if (!backend$quota_limited) {
+    return(invisible(NULL))
+  }
+
+  # Check how many futures are currently running
+  running_futures <- backend$wave_queue$wave_futures
+  running_count <- length(running_futures)
+
+  # Remove completed futures from wave_futures
+  if (running_count > 0) {
+    still_running <- list()
+    for (i in seq_along(running_futures)) {
+      future_obj <- running_futures[[i]]
+      if (!resolved(future_obj)) {
+        still_running <- append(still_running, list(future_obj))
+      } else {
+        backend$wave_queue$completed <- backend$wave_queue$completed + 1
+      }
+    }
+    backend$wave_queue$wave_futures <- still_running
+    running_count <- length(still_running)
+  }
+
+  # If current wave is empty and there are pending futures, start new wave
+  pending_futures <- backend$wave_queue$pending
+  if (running_count == 0 && length(pending_futures) > 0) {
+    # Calculate how many tasks to submit in this wave
+    tasks_to_submit <- min(backend$workers_per_wave, length(pending_futures))
+
+    cat_info(sprintf(
+      "📊 Starting wave %d: submitting %d tasks (%d pending, %d completed)\n",
+      backend$wave_queue$current_wave,
+      tasks_to_submit,
+      length(pending_futures),
+      backend$wave_queue$completed
+    ))
+
+    # Submit futures
+    for (i in seq_len(tasks_to_submit)) {
+      future_obj <- pending_futures[[1]]
+      backend$wave_queue$pending <- pending_futures[-1]
+      pending_futures <- backend$wave_queue$pending
+
+      # Submit the future to Fargate
+      submit_fargate_task(future_obj, backend)
+
+      # Add to wave_futures for tracking
+      backend$wave_queue$wave_futures <- append(
+        backend$wave_queue$wave_futures,
+        list(future_obj)
+      )
+    }
+
+    # Increment wave counter
+    backend$wave_queue$current_wave <- backend$wave_queue$current_wave + 1
+  }
+
+  invisible(NULL)
+}
+
 #' Null-coalescing operator
 #' @keywords internal
 `%||%` <- function(x, y) {

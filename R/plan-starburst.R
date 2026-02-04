@@ -171,351 +171,83 @@ plan.starburst <- function(workers = 10,
   class(evaluator) <- c("StarburstEvaluator", "FutureEvaluator", "function")
 
   evaluator
-  
+
   # Register cleanup on exit
-  register_cleanup(plan)
-  
+  register_cleanup(evaluator)
+
   cat_success(sprintf("✓ Cluster ready: %s\n", cluster_id))
-  
-  plan
-}
 
-#' Create a future using staRburst backend
-#'
-#' @param expr Expression to evaluate
-#' @param envir Environment for evaluation
-#' @param substitute Substitute expression
-#' @param globals List of global variables
-#' @param packages Packages to load
-#' @param ... Additional arguments
-#'
-#' @keywords internal
-future_starburst <- function(expr, envir = parent.frame(), 
-                            substitute = TRUE, globals = TRUE,
-                            packages = NULL, ...) {
-  
-  # Get current plan
-  plan <- future::plan("next")
-  if (!inherits(plan, "starburst")) {
-    stop("No starburst plan active. Call plan(future_starburst) first.")
-  }
-  
-  # Capture expression
-  if (substitute) {
-    expr <- substitute(expr)
-  }
-  
-  # Identify dependencies
-  if (isTRUE(globals)) {
-    globals <- future::getGlobalsAndPackages(expr, envir = envir)
-  }
-  
-  # Create task
-  task <- create_task(
-    expr = expr,
-    globals = globals,
-    packages = packages,
-    plan = plan
-  )
-  
-  # Submit to Fargate
-  future_obj <- submit_task(task, plan)
-  
-  # Update plan counters
-  plan$total_tasks <- plan$total_tasks + 1
-  
-  future_obj
-}
-
-#' Get value from starburst future
-#'
-#' @param future A starburst future object
-#' @param ... Additional arguments
-#'
-#' @return The result of the future evaluation
-#' @keywords internal
-value.starburst_future <- function(future, ...) {
-  
-  # Check if already resolved
-  if (!is.null(future$value)) {
-    return(future$value)
-  }
-  
-  # Poll for result
-  result <- poll_for_result(future)
-  
-  # Handle errors
-  if (is.list(result) && isTRUE(result$error)) {
-    stop(sprintf("Task failed: %s\n%s", result$message, result$traceback))
-  }
-  
-  # Cache value
-  future$value <- result
-  future$state <- "resolved"
-  
-  # Update plan
-  plan <- future$plan
-  plan$completed_tasks <- plan$completed_tasks + 1
-  
-  # Track cost for this task
-  task_cost <- calculate_task_cost(future)
-  plan$total_cost <- plan$total_cost + task_cost
-  
-  result
-}
-
-#' Check if future is resolved
-#'
-#' @param future A starburst future object
-#' @param ... Additional arguments
-#'
-#' @return Logical indicating if resolved
-#' @keywords internal
-resolved.starburst_future <- function(future, ...) {
-  if (!is.null(future$value)) {
-    return(TRUE)
-  }
-
-  # If using wave execution, check wave queue progress
-  if (future$plan$quota_limited && future$state == "queued") {
-    # Trigger wave check (will submit next wave if current is done)
-    future$plan <- check_and_submit_wave(future$plan)
-
-    # Check if this task has been submitted yet
-    if (future$task_id %in% names(future$plan$wave_queue$wave_futures)) {
-      future$state <- "running"
-    } else if (!(future$task_id %in% future$plan$wave_queue$pending)) {
-      # Not in pending and not in wave_futures - must check S3
-      # (could have been submitted and completed)
-    }
-  }
-
-  # Check S3 for result
-  result_exists(future$task_id, future$plan$region)
-}
-
-#' Submit task to Fargate
-#'
-#' @keywords internal
-submit_task <- function(task, plan) {
-
-  # Generate task ID
-  task_id <- uuid::UUIDgenerate()
-
-  # Serialize task to S3
-  bucket <- get_starburst_bucket()
-  task_key <- sprintf("tasks/%s/%s.qs", plan$cluster_id, task_id)
-
-  serialize_and_upload(task, bucket, task_key)
-
-  # Determine if we need to queue or can submit now
-  if (plan$quota_limited) {
-    # Wave-based execution - add to queue and get updated plan
-    plan <- add_to_queue(task_id, plan)
-  } else {
-    # Submit immediately
-    submit_fargate_task(task_id, plan)
-  }
-
-  # Create future object with updated plan
-  future_obj <- structure(
-    list(
-      task_id = task_id,
-      plan = plan,
-      submitted_at = Sys.time(),
-      state = if (plan$quota_limited) "queued" else "running",
-      value = NULL
-    ),
-    class = c("starburst_future", "future")
-  )
-
-  future_obj
-}
-
-#' Submit actual Fargate task
-#'
-#' @keywords internal
-submit_fargate_task <- function(task_id, plan) {
-  
-  # Get AWS clients
-  ecs <- get_ecs_client(plan$region)
-  
-  # Task definition ARN
-  task_def <- get_or_create_task_definition(plan)
-  
-  # Submit task
-  response <- ecs$run_task(
-    cluster = "starburst-cluster",
-    taskDefinition = task_def,
-    launchType = "FARGATE",
-    networkConfiguration = list(
-      awsvpcConfiguration = list(
-        subnets = get_starburst_subnets(plan$region),
-        securityGroups = get_starburst_security_groups(plan$region),
-        assignPublicIp = "DISABLED"
-      )
-    ),
-    overrides = list(
-      containerOverrides = list(
-        list(
-          name = "worker",
-          environment = list(
-            list(name = "TASK_ID", value = task_id),
-            list(name = "CLUSTER_ID", value = plan$cluster_id),
-            list(name = "S3_BUCKET", value = get_starburst_bucket()),
-            list(name = "AWS_REGION", value = plan$region)
-          )
-        )
-      )
-    )
-  )
-  
-  # Store task ARN for monitoring
-  store_task_arn(task_id, response$tasks[[1]]$taskArn)
-  
-  invisible(NULL)
-}
-
-#' Wave-based queue management - Add task to queue
-#'
-#' @keywords internal
-#' @return Modified plan object
-add_to_queue <- function(task_id, plan) {
-  # Add task to pending queue
-  plan$wave_queue$pending <- append(plan$wave_queue$pending, task_id)
-
-  # Check if we can submit the next wave
-  plan <- check_and_submit_wave(plan)
-
-  return(plan)
-}
-
-#' Check and submit wave if ready
-#'
-#' @keywords internal
-#' @return Modified plan object
-check_and_submit_wave <- function(plan) {
-  # Check how many tasks are currently running
-  running_count <- length(plan$wave_queue$wave_futures)
-
-  # Remove completed futures from wave_futures
-  if (running_count > 0) {
-    still_running <- list()
-    for (task_id in names(plan$wave_queue$wave_futures)) {
-      future_obj <- plan$wave_queue$wave_futures[[task_id]]
-      if (!resolved(future_obj)) {
-        still_running[[task_id]] <- future_obj
-      } else {
-        plan$wave_queue$completed <- plan$wave_queue$completed + 1
-      }
-    }
-    plan$wave_queue$wave_futures <- still_running
-    running_count <- length(still_running)
-  }
-
-  # If current wave is empty and there are pending tasks, start new wave
-  if (running_count == 0 && length(plan$wave_queue$pending) > 0) {
-    # Calculate how many tasks to submit in this wave
-    tasks_to_submit <- min(plan$workers_per_wave, length(plan$wave_queue$pending))
-
-    cat_info(sprintf(
-      "📊 Starting wave %d: submitting %d tasks (%d pending, %d completed)\n",
-      plan$wave_queue$current_wave,
-      tasks_to_submit,
-      length(plan$wave_queue$pending),
-      plan$wave_queue$completed
-    ))
-
-    # Submit tasks
-    for (i in 1:tasks_to_submit) {
-      task_id <- plan$wave_queue$pending[[1]]
-      plan$wave_queue$pending <- plan$wave_queue$pending[-1]
-
-      # Submit the task
-      submit_fargate_task(task_id, plan)
-
-      # Create a future object for tracking
-      future_obj <- structure(
-        list(
-          task_id = task_id,
-          plan = plan,
-          submitted_at = Sys.time(),
-          state = "running",
-          value = NULL
-        ),
-        class = c("starburst_future", "future")
-      )
-
-      plan$wave_queue$wave_futures[[task_id]] <- future_obj
-    }
-
-    # Increment wave counter
-    plan$wave_queue$current_wave <- plan$wave_queue$current_wave + 1
-  }
-
-  return(plan)
+  evaluator
 }
 
 #' Get wave queue status
 #'
+#' @param backend Backend environment
 #' @keywords internal
-get_wave_status <- function(plan) {
-  if (!plan$quota_limited) {
+get_wave_status <- function(backend) {
+  if (!backend$quota_limited) {
     return(NULL)
   }
 
   list(
-    current_wave = plan$wave_queue$current_wave,
-    pending = length(plan$wave_queue$pending),
-    running = length(plan$wave_queue$wave_futures),
-    completed = plan$wave_queue$completed,
-    total_waves = plan$num_waves
+    current_wave = backend$wave_queue$current_wave,
+    pending = length(backend$wave_queue$pending),
+    running = length(backend$wave_queue$wave_futures),
+    completed = backend$wave_queue$completed,
+    total_waves = backend$num_waves
   )
 }
 
 #' Clean up cluster resources
 #'
 #' @keywords internal
-cleanup_cluster <- function(plan) {
-  cat_info(sprintf("\n🧹 Cleaning up cluster: %s\n", plan$cluster_id))
-  
+cleanup_cluster <- function(backend) {
+  cat_info(sprintf("\n🧹 Cleaning up cluster: %s\n", backend$cluster_id))
+
   # Stop any running tasks
-  stop_running_tasks(plan)
-  
+  stop_running_tasks(backend)
+
   # Calculate final cost
-  final_cost <- calculate_total_cost(plan)
-  
+  final_cost <- calculate_total_cost(backend)
+
   # Calculate runtime
-  runtime <- as.numeric(difftime(Sys.time(), plan$created_at, units = "mins"))
-  
+  runtime <- as.numeric(difftime(Sys.time(), backend$created_at, units = "mins"))
+
   # Report
   cat_success(sprintf(
     "✓ Cluster shutdown:\n   • Runtime: %.1f minutes\n   • Tasks completed: %d\n   • Tasks failed: %d\n   • Total cost: $%.2f\n",
-    runtime, plan$completed_tasks, plan$failed_tasks, final_cost
+    runtime, backend$completed_tasks, backend$failed_tasks, final_cost
   ))
-  
+
   # Optionally clean up S3 files
   if (getOption("starburst.cleanup_s3", TRUE)) {
-    cleanup_s3_files(plan)
+    cleanup_s3_files(backend)
   }
-  
+
   invisible(NULL)
 }
 
 #' Register cleanup handler
 #'
 #' @keywords internal
-register_cleanup <- function(plan) {
+register_cleanup <- function(evaluator) {
+  # Get backend from evaluator
+  backend <- attr(evaluator, "backend")
+
+  if (is.null(backend)) {
+    return(invisible(NULL))
+  }
+
   # Register cleanup on R session exit
   cleanup_handler <- function() {
-    cleanup_cluster(plan)
+    cleanup_cluster(backend)
   }
-  
+
   # Store in option for later retrieval
   cleanup_handlers <- getOption("starburst.cleanup_handlers", list())
-  cleanup_handlers[[plan$cluster_id]] <- cleanup_handler
+  cleanup_handlers[[backend$cluster_id]] <- cleanup_handler
   options(starburst.cleanup_handlers = cleanup_handlers)
-  
+
   invisible(NULL)
 }
 

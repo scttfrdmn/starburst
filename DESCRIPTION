@@ -18,6 +18,7 @@ Depends:
     R (>= 4.0.0)
 Imports:
     future (>= 1.33.0),
+    furrr (>= 0.3.0),
     paws.compute,
     paws.storage,
     paws.management,
@@ -32,7 +33,6 @@ Imports:
     digest,
     base64enc
 Suggests:
-    furrr,
     future.apply,
     testthat (>= 3.0.0),
     knitr,
