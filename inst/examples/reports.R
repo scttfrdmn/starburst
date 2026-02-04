@@ -189,9 +189,9 @@ if (success_count > 0) {
   # Revenue statistics
   revenues <- sapply(successful_results, function(x) x$revenue)
   cat("Revenue statistics:\n")
-  cat(sprintf("  Total revenue: $%,.0f\n", sum(revenues)))
-  cat(sprintf("  Average: $%,.0f\n", mean(revenues)))
-  cat(sprintf("  Range: $%,.0f - $%,.0f\n\n",
+  cat(sprintf("  Total revenue: $%.0f\n", sum(revenues)))
+  cat(sprintf("  Average: $%.0f\n", mean(revenues)))
+  cat(sprintf("  Range: $%.0f - $%.0f\n\n",
               min(revenues), max(revenues)))
 
   # Show sample output files

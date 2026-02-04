@@ -43,7 +43,7 @@ portfolio <- data.frame(
 total_portfolio_value <- sum(portfolio$position_value)
 
 cat(sprintf("✓ Portfolio created:\n"))
-cat(sprintf("  Total value: $%,.0f\n", total_portfolio_value))
+cat(sprintf("  Total value: $%.0f\n", total_portfolio_value))
 cat(sprintf("  Number of positions: %d\n\n", n_assets))
 
 # Scenario generation functions
@@ -186,13 +186,13 @@ cat("=== Comprehensive Risk Analysis Results ===\n\n")
 
 # Stress test results
 cat("=== Stress Test Results ===\n")
-cat(sprintf("Worst case loss: $%,.0f (%.2f%%)\n",
+cat(sprintf("Worst case loss: $%.0f (%.2f%%)\n",
             min(stress_pnl),
             min(stress_pnl) / total_portfolio_value * 100))
-cat(sprintf("Average stress loss: $%,.0f (%.2f%%)\n",
+cat(sprintf("Average stress loss: $%.0f (%.2f%%)\n",
             mean(stress_pnl),
             mean(stress_pnl) / total_portfolio_value * 100))
-cat(sprintf("Best case: $%,.0f (%.2f%%)\n\n",
+cat(sprintf("Best case: $%.0f (%.2f%%)\n\n",
             max(stress_pnl),
             max(stress_pnl) / total_portfolio_value * 100))
 
@@ -202,11 +202,11 @@ var_95 <- quantile(mc_pnl, 0.05)
 var_99 <- quantile(mc_pnl, 0.01)
 var_999 <- quantile(mc_pnl, 0.001)
 
-cat(sprintf("VaR (95%%): $%,.0f (%.2f%%)\n",
+cat(sprintf("VaR (95%%): $%.0f (%.2f%%)\n",
             -var_95, -var_95 / total_portfolio_value * 100))
-cat(sprintf("VaR (99%%): $%,.0f (%.2f%%)\n",
+cat(sprintf("VaR (99%%): $%.0f (%.2f%%)\n",
             -var_99, -var_99 / total_portfolio_value * 100))
-cat(sprintf("VaR (99.9%%): $%,.0f (%.2f%%)\n\n",
+cat(sprintf("VaR (99.9%%): $%.0f (%.2f%%)\n\n",
             -var_999, -var_999 / total_portfolio_value * 100))
 
 # Expected Shortfall
@@ -214,15 +214,15 @@ cat("=== Expected Shortfall (CVaR) ===\n")
 es_95 <- mean(mc_pnl[mc_pnl <= var_95])
 es_99 <- mean(mc_pnl[mc_pnl <= var_99])
 
-cat(sprintf("ES (95%%): $%,.0f (%.2f%%)\n",
+cat(sprintf("ES (95%%): $%.0f (%.2f%%)\n",
             -es_95, -es_95 / total_portfolio_value * 100))
-cat(sprintf("ES (99%%): $%,.0f (%.2f%%)\n\n",
+cat(sprintf("ES (99%%): $%.0f (%.2f%%)\n\n",
             -es_99, -es_99 / total_portfolio_value * 100))
 
 # Portfolio statistics
 cat("=== Portfolio Statistics ===\n")
-cat(sprintf("Mean P&L: $%,.0f\n", mean(mc_pnl)))
-cat(sprintf("Std Dev P&L: $%,.0f\n", sd(mc_pnl)))
+cat(sprintf("Mean P&L: $%.0f\n", mean(mc_pnl)))
+cat(sprintf("Std Dev P&L: $%.0f\n", sd(mc_pnl)))
 cat(sprintf("Skewness: %.3f\n",
             mean((mc_pnl - mean(mc_pnl))^3) / sd(mc_pnl)^3))
 cat(sprintf("Probability of loss: %.2f%%\n\n",
@@ -231,7 +231,7 @@ cat(sprintf("Probability of loss: %.2f%%\n\n",
 # Regulatory metrics
 cat("=== Regulatory Metrics ===\n")
 market_risk_capital <- -var_99 * 3
-cat(sprintf("Market Risk Capital Requirement: $%,.0f\n", market_risk_capital))
+cat(sprintf("Market Risk Capital Requirement: $%.0f\n", market_risk_capital))
 cat(sprintf("Capital as %% of Portfolio: %.2f%%\n\n",
             market_risk_capital / total_portfolio_value * 100))
 

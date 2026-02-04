@@ -103,12 +103,12 @@ max_drawdowns <- sapply(results, function(x) x$max_drawdown)
 
 # Print results
 cat("\n=== Results ===\n\n")
-cat(sprintf("Mean final value: $%,.0f\n", mean(final_values)))
-cat(sprintf("Median final value: $%,.0f\n", median(final_values)))
+cat(sprintf("Mean final value: $%.0f\n", mean(final_values)))
+cat(sprintf("Median final value: $%.0f\n", median(final_values)))
 cat(sprintf("\nMean return: %.2f%%\n", mean(returns)))
 cat(sprintf("Std dev of returns: %.2f%%\n", sd(returns)))
-cat(sprintf("\nValue at Risk (5%%): $%,.0f\n", quantile(final_values, 0.05)))
-cat(sprintf("Expected Shortfall (5%%): $%,.0f\n",
+cat(sprintf("\nValue at Risk (5%%): $%.0f\n", quantile(final_values, 0.05)))
+cat(sprintf("Expected Shortfall (5%%): $%.0f\n",
             mean(final_values[final_values <= quantile(final_values, 0.05)])))
 cat(sprintf("\nMean Sharpe Ratio: %.2f\n", mean(sharpe_ratios)))
 cat(sprintf("Mean Max Drawdown: %.2f%%\n", mean(max_drawdowns) * 100))

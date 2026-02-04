@@ -73,7 +73,7 @@ This report summarizes activity for `r params$customer_name` during `r params$mo
 ```{r summary}
 data <- params$data
 cat(sprintf("Total transactions: %d\\n", nrow(data)))
-cat(sprintf("Total revenue: $%,.2f\\n", sum(data$revenue)))
+cat(sprintf("Total revenue: $%.2f\\n", sum(data$revenue)))
 cat(sprintf("Average order value: $%.2f\\n", mean(data$revenue)))
 cat(sprintf("Active days: %d\\n", length(unique(data$date))))
 ```

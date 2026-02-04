@@ -238,7 +238,7 @@ cat(sprintf("High competition stores (5+ nearby): %d (%.1f%%)\n\n",
 cat("=== Customer Coverage Analysis ===\n")
 cat(sprintf("Average customers within 5km: %.0f\n",
             mean(spatial_metrics$customers_5km)))
-cat(sprintf("Average market potential (5km): $%,.0f\n",
+cat(sprintf("Average market potential (5km): $%.0f\n",
             mean(spatial_metrics$market_potential)))
 cat(sprintf("Average customer density: %.1f customers/km²\n",
             mean(spatial_metrics$customer_density)))
@@ -258,7 +258,7 @@ opportunity_stores <- spatial_metrics[
 ]
 cat(sprintf("High opportunity stores: %d\n", nrow(opportunity_stores)))
 if (nrow(opportunity_stores) > 0) {
-  cat(sprintf("  Avg market potential: $%,.0f\n",
+  cat(sprintf("  Avg market potential: $%.0f\n",
               mean(opportunity_stores$market_potential)))
   cat(sprintf("  Avg competitors nearby: %.1f\n\n",
               mean(opportunity_stores$competitors_within_5km)))
@@ -270,7 +270,7 @@ region_summary <- aggregate(market_potential ~ region_name,
                            data = spatial_metrics, FUN = mean)
 region_summary <- region_summary[order(-region_summary$market_potential), ]
 for (i in 1:min(5, nrow(region_summary))) {
-  cat(sprintf("%d. %s: $%,.0f\n", i,
+  cat(sprintf("%d. %s: $%.0f\n", i,
               region_summary$region_name[i],
               region_summary$market_potential[i]))
 }
