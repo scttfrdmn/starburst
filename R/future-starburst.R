@@ -81,6 +81,9 @@ StarburstFuture <- function(expr, envir = parent.frame(), substitute = TRUE,
     if (is.null(packages)) {
       packages <- gp$packages
     }
+  } else if (is.list(globals) && !inherits(globals, "Globals")) {
+    # Convert plain list to Globals object for proper serialization
+    globals <- globals::as.Globals(globals)
   }
 
   # Generate task ID
