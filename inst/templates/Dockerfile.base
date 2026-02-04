@@ -1,0 +1,42 @@
+# staRburst Base Image
+# Pre-built image with common R packages for faster project-specific builds
+
+FROM rocker/r-ver:{{R_VERSION}}
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
+    libpq-dev \
+    zlib1g-dev \
+    libfontconfig1-dev \
+    libfreetype6-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libgit2-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libtiff-dev \
+    git \
+    pandoc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install renv first (needed for all projects)
+RUN R -e "install.packages('renv', repos = 'https://cloud.r-project.org')"
+
+# Install commonly used staRburst dependencies
+# These are required for worker functionality and rarely change
+RUN R -e "install.packages(c(\
+    'future', \
+    'globals', \
+    'listenv', \
+    'parallelly', \
+    'qs', \
+    'paws.common', \
+    'paws.storage', \
+    'paws.compute' \
+    ), repos = 'https://cloud.r-project.org')"
+
+# Set working directory for subsequent builds
+WORKDIR /app

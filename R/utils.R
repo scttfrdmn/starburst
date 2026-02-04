@@ -433,17 +433,156 @@ check_ecr_image_exists <- function(tag, region) {
   })
 }
 
-#' Build environment image
+#' Get base image URI
 #'
 #' @keywords internal
-build_environment_image <- function(tag, region) {
-  cat_info("🐳 Building Docker image...\n")
+get_base_image_uri <- function(region) {
+  config <- get_starburst_config()
+  account_id <- config$aws_account_id
+  r_version <- paste0(R.version$major, ".", R.version$minor)
+
+  # Use base image tag based on R version
+  base_tag <- sprintf("base-%s", r_version)
+
+  sprintf("%s.dkr.ecr.%s.amazonaws.com/starburst-worker:%s",
+          account_id, region, base_tag)
+}
+
+#' Build base Docker image with common dependencies
+#'
+#' @keywords internal
+build_base_image <- function(region) {
+  cat_info("🐳 Building staRburst base image...\n")
 
   # Validate Docker is installed
   docker_check <- system2("docker", "--version", stdout = TRUE, stderr = TRUE)
   if (attr(docker_check, "status") != 0 && !is.null(attr(docker_check, "status"))) {
     stop("Docker is not installed or not accessible. Please install Docker: https://docs.docker.com/get-docker/")
   }
+
+  # Get configuration
+  config <- get_starburst_config()
+  account_id <- config$aws_account_id
+  r_version <- paste0(R.version$major, ".", R.version$minor)
+  base_tag <- sprintf("base-%s", r_version)
+
+  # Check if base image already exists
+  if (check_ecr_image_exists(base_tag, region)) {
+    base_uri <- get_base_image_uri(region)
+    cat_success(sprintf("✓ Base image already exists: %s\n", base_uri))
+    return(base_uri)
+  }
+
+  # Create temporary build directory
+  build_dir <- tempfile(pattern = "starburst_base_build_")
+  dir.create(build_dir, recursive = TRUE)
+  on.exit(unlink(build_dir, recursive = TRUE), add = TRUE)
+
+  tryCatch({
+    # Process Dockerfile.base template
+    dockerfile_template <- system.file("templates", "Dockerfile.base", package = "starburst")
+    if (!file.exists(dockerfile_template)) {
+      stop("Dockerfile.base template not found")
+    }
+
+    template_content <- readLines(dockerfile_template)
+    dockerfile_content <- gsub("\\{\\{R_VERSION\\}\\}", r_version, template_content)
+    writeLines(dockerfile_content, file.path(build_dir, "Dockerfile"))
+
+    cat_info(sprintf("   • Build directory: %s\n", build_dir))
+    cat_info(sprintf("   • R version: %s\n", r_version))
+    cat_info("   • This includes system deps + renv + future/globals/qs/paws\n")
+    cat_info("   • This is a one-time build (3-5 min), reused by all projects\n")
+
+    # Authenticate with ECR
+    cat_info("   • Authenticating with ECR...\n")
+    ecr <- get_ecr_client(region)
+    auth_token <- ecr$get_authorization_token()
+
+    if (length(auth_token$authorizationData) == 0) {
+      stop("Failed to get ECR authorization token")
+    }
+
+    token_data <- auth_token$authorizationData[[1]]
+    decoded_token <- rawToChar(base64enc::base64decode(token_data$authorizationToken))
+    token_parts <- strsplit(decoded_token, ":")[[1]]
+    password <- token_parts[2]
+
+    # Docker login
+    login_cmd <- sprintf("echo %s | docker login --username AWS --password-stdin %s",
+                        shQuote(password), token_data$proxyEndpoint)
+    login_result <- system(login_cmd, ignore.stdout = TRUE, ignore.stderr = FALSE)
+
+    if (login_result != 0) {
+      stop("Failed to authenticate with ECR")
+    }
+
+    # Build base image
+    ecr_uri <- sprintf("%s.dkr.ecr.%s.amazonaws.com/starburst-worker", account_id, region)
+    image_tag <- sprintf("%s:%s", ecr_uri, base_tag)
+    cat_info(sprintf("   • Building base image: %s\n", image_tag))
+
+    build_cmd <- sprintf("docker build --platform linux/amd64 -t %s %s",
+                        shQuote(image_tag), shQuote(build_dir))
+    build_result <- system(build_cmd)
+
+    if (build_result != 0) {
+      stop("Docker build failed")
+    }
+
+    # Push base image
+    cat_info("   • Pushing base image to ECR...\n")
+    push_cmd <- sprintf("docker push %s", shQuote(image_tag))
+    push_result <- system(push_cmd)
+
+    if (push_result != 0) {
+      stop("Failed to push base image to ECR")
+    }
+
+    cat_success(sprintf("✓ Base image built and pushed: %s\n", image_tag))
+    cat_success("✓ This base image will be reused by all future projects\n")
+
+    return(image_tag)
+
+  }, error = function(e) {
+    cat_error(sprintf("✗ Base image build failed: %s\n", e$message))
+    stop(e)
+  })
+}
+
+#' Ensure base image exists
+#'
+#' @keywords internal
+ensure_base_image <- function(region) {
+  r_version <- paste0(R.version$major, ".", R.version$minor)
+  base_tag <- sprintf("base-%s", r_version)
+
+  # Check if base image exists
+  if (!check_ecr_image_exists(base_tag, region)) {
+    cat_info("📦 Base image not found, building it now...\n")
+    build_base_image(region)
+  } else {
+    base_uri <- get_base_image_uri(region)
+    cat_info(sprintf("✓ Using existing base image: %s\n", base_uri))
+  }
+
+  return(get_base_image_uri(region))
+}
+
+#' Build environment image
+#'
+#' @keywords internal
+build_environment_image <- function(tag, region) {
+  cat_info("🐳 Building project Docker image...\n")
+
+  # Validate Docker is installed
+  docker_check <- system2("docker", "--version", stdout = TRUE, stderr = TRUE)
+  if (attr(docker_check, "status") != 0 && !is.null(attr(docker_check, "status"))) {
+    stop("Docker is not installed or not accessible. Please install Docker: https://docs.docker.com/get-docker/")
+  }
+
+  # Ensure base image exists (will build if needed)
+  base_image_uri <- ensure_base_image(region)
 
   # Get configuration
   config <- get_starburst_config()
@@ -485,12 +624,12 @@ build_environment_image <- function(tag, region) {
     }
 
     template_content <- readLines(dockerfile_template)
-    r_version <- paste0(R.version$major, ".", R.version$minor)
-    dockerfile_content <- gsub("\\{\\{R_VERSION\\}\\}", r_version, template_content)
+    dockerfile_content <- gsub("\\{\\{BASE_IMAGE\\}\\}", base_image_uri, template_content)
     writeLines(dockerfile_content, file.path(build_dir, "Dockerfile"))
 
     cat_info(sprintf("   • Build directory: %s\n", build_dir))
-    cat_info(sprintf("   • R version: %s\n", r_version))
+    cat_info(sprintf("   • Base image: %s\n", base_image_uri))
+    cat_info("   • Building only project-specific packages...\n")
 
     # Authenticate with ECR
     cat_info("   • Authenticating with ECR...\n")

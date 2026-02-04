@@ -1,29 +1,7 @@
 # staRburst Worker Docker Image
 # This template is used to build worker containers with user's R environment
 
-FROM rocker/r-ver:{{R_VERSION}}
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    libxml2-dev \
-    libpq-dev \
-    zlib1g-dev \
-    libfontconfig1-dev \
-    libfreetype6-dev \
-    libharfbuzz-dev \
-    libfribidi-dev \
-    libgit2-dev \
-    libpng-dev \
-    libjpeg-dev \
-    libtiff-dev \
-    git \
-    pandoc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install renv
-RUN R -e "install.packages('renv', repos = 'https://cloud.r-project.org')"
+FROM {{BASE_IMAGE}}
 
 # Copy renv lock file
 COPY renv.lock /app/renv.lock
