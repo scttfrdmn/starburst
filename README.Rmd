@@ -31,7 +31,7 @@ staRburst lets you run parallel R code on AWS Fargate with zero infrastructure m
 - **Simple Setup**: One-time configuration (~2 minutes), then seamless operation
 - **Simple API**: Direct `starburst_map()` function - no new concepts to learn
 - **Automatic Environment Sync**: Your packages and dependencies automatically available on workers
-- **Smart Quota Management**: Automatically handles AWS quota limits with batch execution
+- **Smart Quota Management**: Automatically handles AWS quota limits with wave execution
 - **Cost Transparent**: See estimated and actual costs for every run
 - **Auto Cleanup**: Workers shut down automatically when done
 

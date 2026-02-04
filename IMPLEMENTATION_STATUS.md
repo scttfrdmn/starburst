@@ -28,42 +28,24 @@
 
 ## 📋 Setup Requirements
 
-### IAM Roles (Must be created manually)
+### IAM Roles Setup
 
-#### 1. ECS Execution Role: `starburstECSExecutionRole`
-Trust policy:
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Effect": "Allow",
-    "Principal": {"Service": "ecs-tasks.amazonaws.com"},
-    "Action": "sts:AssumeRole"
-  }]
-}
+staRburst requires two IAM roles for ECS Fargate execution.
+
+**Quick Setup:**
+```bash
+AWS_PROFILE=aws ./setup-iam-roles.sh
 ```
 
-Attach policies:
-- `arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy`
-- `arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly`
+**Roles Created:**
+1. `starburstECSExecutionRole` - For ECS/ECR/CloudWatch access
+2. `starburstECSTaskRole` - For S3 data access
 
-#### 2. ECS Task Role: `starburstECSTaskRole`
-Trust policy: (same as above)
-
-Inline policy for S3 access:
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Effect": "Allow",
-    "Action": ["s3:GetObject", "s3:PutObject", "s3:ListBucket"],
-    "Resource": [
-      "arn:aws:s3:::starburst-*",
-      "arn:aws:s3:::starburst-*/*"
-    ]
-  }]
-}
-```
+**Detailed Documentation:** See [docs/IAM_SETUP.md](docs/IAM_SETUP.md) for:
+- Complete trust policies
+- Required permissions
+- Manual setup instructions
+- Troubleshooting guide
 
 ## 📖 Usage Examples
 

@@ -25,7 +25,7 @@ with a simple function call.
 - **Automatic Environment Sync**: Your packages and dependencies
   automatically available on workers
 - **Smart Quota Management**: Automatically handles AWS quota limits
-  with batch execution
+  with wave execution
 - **Cost Transparent**: See estimated and actual costs for every run
 - **Auto Cleanup**: Workers shut down automatically when done
 

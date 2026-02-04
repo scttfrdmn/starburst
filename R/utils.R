@@ -519,7 +519,7 @@ build_environment_image <- function(tag, region) {
     image_tag <- sprintf("%s:%s", ecr_uri, tag)
     cat_info(sprintf("   • Building image: %s\n", image_tag))
 
-    build_cmd <- sprintf("docker build -t %s %s", shQuote(image_tag), shQuote(build_dir))
+    build_cmd <- sprintf("docker build --platform linux/amd64 -t %s %s", shQuote(image_tag), shQuote(build_dir))
     build_result <- system(build_cmd)
 
     if (build_result != 0) {
@@ -563,20 +563,27 @@ ensure_log_group <- function(log_group_name, region) {
     )
   )
 
-  tryCatch({
-    logs$describe_log_groups(logGroupNamePrefix = log_group_name)
-    # Log group exists
-  }, error = function(e) {
-    # Create log group
-    tryCatch({
-      logs$create_log_group(logGroupName = log_group_name)
-      cat_info(sprintf("   • Created log group: %s\n", log_group_name))
-    }, error = function(e2) {
-      # Ignore if already exists
-      if (!grepl("ResourceAlreadyExistsException", e2$message)) {
-        stop(e2)
+  # Check if log group exists
+  result <- logs$describe_log_groups(logGroupNamePrefix = log_group_name)
+
+  # If log group exists with exact name match, return
+  if (length(result$logGroups) > 0) {
+    for (lg in result$logGroups) {
+      if (lg$logGroupName == log_group_name) {
+        return(invisible(NULL))
       }
-    })
+    }
+  }
+
+  # Create log group if it doesn't exist
+  tryCatch({
+    logs$create_log_group(logGroupName = log_group_name)
+    cat_info(sprintf("   • Created log group: %s\n", log_group_name))
+  }, error = function(e) {
+    # Ignore if already exists
+    if (!grepl("ResourceAlreadyExistsException", e$message)) {
+      stop(e)
+    }
   })
 }
 
@@ -631,10 +638,15 @@ get_or_create_task_definition <- function(plan) {
 
   # Calculate CPU and memory in ECS units
   # CPU: 1 vCPU = 1024 units
-  cpu_units <- as.character(as.integer(plan$worker_cpu * 1024))
+  cpu <- plan$cpu %||% plan$worker_cpu
+  cpu_units <- as.character(as.integer(cpu * 1024))
 
-  # Memory in MB
-  memory_mb <- as.character(as.integer(plan$worker_memory * 1024))
+  # Memory in MB (parse from string like "8GB")
+  memory <- plan$memory %||% plan$worker_memory
+  if (is.character(memory)) {
+    memory <- as.numeric(gsub("[^0-9.]", "", memory))
+  }
+  memory_mb <- as.character(as.integer(memory * 1024))
 
   # Ensure log group exists
   log_group_name <- "/aws/ecs/starburst-worker"
@@ -681,7 +693,6 @@ get_or_create_task_definition <- function(plan) {
   container_def <- list(
     name = "starburst-worker",
     image = plan$image_uri,
-    cpu = as.integer(cpu_units),
     memory = as.integer(memory_mb),
     essential = TRUE,
     logConfiguration = list(
@@ -953,4 +964,40 @@ get_or_create_security_group <- function(vpc_id, region) {
   )
 
   sg$GroupId
+}
+
+#' Get VPC configuration for ECS tasks
+#'
+#' @keywords internal
+get_vpc_config <- function(region) {
+  ec2 <- get_ec2_client(region)
+
+  # Get default VPC
+  vpcs <- ec2$describe_vpcs(
+    Filters = list(
+      list(Name = "isDefault", Values = list("true"))
+    )
+  )
+
+  if (length(vpcs$Vpcs) == 0) {
+    stop("No default VPC found. Please create a VPC in region: ", region)
+  }
+
+  vpc_id <- vpcs$Vpcs[[1]]$VpcId
+
+  # Get or create subnets
+  subnets <- get_or_create_subnets(vpc_id, region)
+
+  if (length(subnets) == 0) {
+    stop("Failed to create subnets in VPC: ", vpc_id)
+  }
+
+  # Get or create security group
+  sg_id <- get_or_create_security_group(vpc_id, region)
+
+  list(
+    vpc_id = vpc_id,
+    subnets = as.list(subnets),
+    security_groups = list(sg_id)
+  )
 }
