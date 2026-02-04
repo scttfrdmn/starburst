@@ -40,45 +40,80 @@ main <- function() {
     task <- qs::qread(task_file)
     unlink(task_file)
 
-    message(sprintf("Task loaded with %d items in chunk", length(task$chunk)))
+    # Detect task format (chunk-based or Future-based)
+    if (!is.null(task$chunk)) {
+      # OLD FORMAT: Chunk-based execution
+      message(sprintf("Task loaded with %d items in chunk", length(task$chunk)))
+      message("Executing task...")
 
-    # Execute function on each element of the chunk
-    message("Executing task...")
-
-    chunk_results <- lapply(task$chunk, function(x) {
-      tryCatch({
-        task$fn(x)
-      }, error = function(e) {
-        list(
-          error = TRUE,
-          message = e$message,
-          value = x
-        )
+      chunk_results <- lapply(task$chunk, function(x) {
+        tryCatch({
+          task$fn(x)
+        }, error = function(e) {
+          list(
+            error = TRUE,
+            message = e$message,
+            value = x
+          )
+        })
       })
-    })
 
-    # Check for any errors
-    errors <- sapply(chunk_results, function(r) {
-      is.list(r) && !is.null(r$error) && r$error
-    })
+      # Check for any errors
+      errors <- sapply(chunk_results, function(r) {
+        is.list(r) && !is.null(r$error) && r$error
+      })
 
-    if (any(errors)) {
-      # Return error information
-      first_error <- which(errors)[1]
-      result <- list(
-        error = TRUE,
-        message = sprintf("Error in chunk item %d: %s",
-                         first_error,
-                         chunk_results[[first_error]]$message),
-        chunk_index = task$chunk_index
-      )
-    } else {
-      # Return successful results
+      if (any(errors)) {
+        first_error <- which(errors)[1]
+        result <- list(
+          error = TRUE,
+          message = sprintf("Error in chunk item %d: %s",
+                           first_error,
+                           chunk_results[[first_error]]$message),
+          chunk_index = task$chunk_index
+        )
+      } else {
+        result <- list(
+          error = FALSE,
+          value = chunk_results,
+          chunk_index = task$chunk_index
+        )
+      }
+
+    } else if (!is.null(task$expr)) {
+      # NEW FORMAT: Future-based execution
+      message("Task loaded (Future format)")
+      message("Executing task...")
+
+      # Set up environment with globals
+      exec_env <- new.env(parent = globalenv())
+
+      # Load globals into environment
+      if (!is.null(task$globals) && length(task$globals) > 0) {
+        for (name in names(task$globals)) {
+          assign(name, task$globals[[name]], envir = exec_env)
+        }
+      }
+
+      # Load packages
+      if (!is.null(task$packages)) {
+        for (pkg in task$packages) {
+          library(pkg, character.only = TRUE)
+        }
+      }
+
+      # Evaluate expression
+      result_value <- eval(task$expr, envir = exec_env)
+
       result <- list(
         error = FALSE,
-        value = chunk_results,
-        chunk_index = task$chunk_index
+        value = result_value,
+        stdout = "",
+        conditions = list()
       )
+
+    } else {
+      stop("Unknown task format - neither chunk nor expr found")
     }
 
     message("Task completed, uploading result...")

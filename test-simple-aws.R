@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Simple AWS test for starburst_map
 
-library(starburst)
+devtools::load_all()
 
 cat("================================\n")
 cat("Simple AWS Test\n")
