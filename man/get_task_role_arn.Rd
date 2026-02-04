@@ -2,11 +2,11 @@
 % Please edit documentation in R/utils.R
 \name{get_task_role_arn}
 \alias{get_task_role_arn}
-\title{Get or create IAM task role}
+\title{Get IAM task role ARN}
 \usage{
 get_task_role_arn(region)
 }
 \description{
-Get or create IAM task role
+Returns the ARN for the ECS task role (should be created during setup)
 }
 \keyword{internal}

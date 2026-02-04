@@ -4,16 +4,7 @@
 \alias{starburst}
 \title{staRburst Future Strategy}
 \usage{
-starburst(
-  ...,
-  workers = 10,
-  cpu = 4,
-  memory = "8GB",
-  region = NULL,
-  timeout = 3600,
-  auto_quota_request = interactive(),
-  envir = parent.frame()
-)
+starburst(...)
 }
 \arguments{
 \item{...}{Additional arguments}
@@ -44,4 +35,5 @@ library(furrr)
 plan(starburst, workers = 50)
 results <- future_map(1:1000, expensive_function)
 }
+Starburst strategy marker
 }

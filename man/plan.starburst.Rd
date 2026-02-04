@@ -4,7 +4,8 @@
 \alias{plan.starburst}
 \title{staRburst Future Backend}
 \usage{
-plan.starburst(
+\method{plan}{starburst}(
+  strategy,
   workers = 10,
   cpu = 4,
   memory = "8GB",
@@ -15,6 +16,8 @@ plan.starburst(
 )
 }
 \arguments{
+\item{strategy}{The starburst strategy marker (ignored, for S3 dispatch)}
+
 \item{workers}{Number of parallel workers}
 
 \item{cpu}{vCPUs per worker (1, 2, 4, 8, or 16)}
@@ -38,7 +41,7 @@ A future backend for running parallel R workloads on AWS Fargate
 \examples{
 \dontrun{
 library(furrr)
-plan(future_starburst, workers = 50)
+plan(starburst, workers = 50)
 results <- future_map(1:1000, expensive_function)
 }
 }

@@ -2,11 +2,11 @@
 % Please edit documentation in R/utils.R
 \name{get_execution_role_arn}
 \alias{get_execution_role_arn}
-\title{Get or create IAM execution role}
+\title{Get IAM execution role ARN}
 \usage{
 get_execution_role_arn(region)
 }
 \description{
-Get or create IAM execution role
+Returns the ARN for the ECS execution role (should be created during setup)
 }
 \keyword{internal}

@@ -48,20 +48,23 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 
   start_time <- Sys.time()
 
-  # Set up the Future plan
+  # Set up the Future plan by calling plan.starburst directly
+  # (bypasses Future package dispatch issues)
   old_plan <- future::plan()
   on.exit({
     future::plan(old_plan)
   }, add = TRUE)
 
-  future::plan(
-    starburst,
+  strategy <- plan.starburst(
+    strategy = starburst,
     workers = workers,
     cpu = cpu,
     memory = memory,
     region = region,
     timeout = timeout
   )
+
+  future::plan(strategy)
 
   # Execute using furrr
   tryCatch({
@@ -130,9 +133,9 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
   config <- get_starburst_config()
   region <- region %||% config$region %||% "us-east-1"
 
-  # Setup the Future plan (this does quota checking internally)
-  evaluator <- future::plan(
-    starburst,
+  # Setup the Future plan by calling plan.starburst directly
+  strategy <- plan.starburst(
+    strategy = starburst,
     workers = workers,
     cpu = cpu,
     memory = memory,
@@ -140,8 +143,10 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
     timeout = timeout
   )
 
-  # Get backend from evaluator
-  backend <- attr(evaluator, "backend")
+  future::plan(strategy)
+
+  # Get backend from options (set by plan.starburst)
+  backend <- getOption("starburst.current_backend")
 
   # Create cluster object
   cluster <- list(

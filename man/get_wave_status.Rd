@@ -4,7 +4,10 @@
 \alias{get_wave_status}
 \title{Get wave queue status}
 \usage{
-get_wave_status(plan)
+get_wave_status(backend)
+}
+\arguments{
+\item{backend}{Backend environment}
 }
 \description{
 Get wave queue status

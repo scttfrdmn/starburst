@@ -1,7 +1,11 @@
+# Package environment for storing the current backend
+.starburst_state <- new.env(parent = emptyenv())
+
 #' staRburst Future Backend
 #'
 #' A future backend for running parallel R workloads on AWS Fargate
 #'
+#' @param strategy The starburst strategy marker (ignored, for S3 dispatch)
 #' @param workers Number of parallel workers
 #' @param cpu vCPUs per worker (1, 2, 4, 8, or 16)
 #' @param memory Memory per worker (supports GB notation, e.g., "8GB")
@@ -11,22 +15,25 @@
 #' @param ... Additional arguments passed to future backend
 #'
 #' @return A future plan object
+#' @importFrom future plan
+#' @method plan starburst
 #' @export
 #'
 #' @examples
 #' \dontrun{
 #' library(furrr)
-#' plan(future_starburst, workers = 50)
+#' plan(starburst, workers = 50)
 #' results <- future_map(1:1000, expensive_function)
 #' }
-plan.starburst <- function(workers = 10,
+plan.starburst <- function(strategy,
+                           workers = 10,
                            cpu = 4,
                            memory = "8GB",
                            region = NULL,
                            timeout = 3600,
                            auto_quota_request = interactive(),
                            ...) {
-  
+
   # Validate inputs
   validate_workers(workers)
   validate_cpu(cpu)
@@ -163,21 +170,40 @@ plan.starburst <- function(workers = 10,
     )
   }
 
-  # Attach backend as attribute
-  attr(evaluator, "backend") <- backend_env
-  attr(evaluator, "init") <- TRUE
+  # Store backend in option so StarburstFuture can access it
+  options(starburst.current_backend = backend_env)
+  options(starburst.current_cluster_id = cluster_id)
 
-  # Set proper class
-  class(evaluator) <- c("StarburstEvaluator", "FutureEvaluator", "function")
-
-  evaluator
+  # Attach backend as attribute to strategy (for potential direct access)
+  attr(strategy, "backend") <- backend_env
+  attr(strategy, "init") <- TRUE
+  attr(strategy, "cluster_id") <- cluster_id
 
   # Register cleanup on exit
-  register_cleanup(evaluator)
+  if (!is.null(backend_env)) {
+    cleanup_handler <- function() {
+      cleanup_cluster(backend_env)
+    }
+    cleanup_handlers <- getOption("starburst.cleanup_handlers", list())
+    cleanup_handlers[[backend_env$cluster_id]] <- cleanup_handler
+    options(starburst.cleanup_handlers = cleanup_handlers)
+  }
 
   cat_success(sprintf("✓ Cluster ready: %s\n", cluster_id))
 
-  evaluator
+  # Create a tweaked strategy that knows about our backend
+  # This tells future() to call future.starburst() when creating futures
+  tweaked_strategy <- future::tweak(
+    starburst,
+    backend = backend_env,
+    workers = workers,
+    cpu = cpu,
+    memory = memory,
+    region = region,
+    timeout = timeout
+  )
+
+  tweaked_strategy
 }
 
 #' Get wave queue status

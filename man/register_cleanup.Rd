@@ -4,7 +4,7 @@
 \alias{register_cleanup}
 \title{Register cleanup handler}
 \usage{
-register_cleanup(plan)
+register_cleanup(evaluator)
 }
 \description{
 Register cleanup handler

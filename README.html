@@ -613,21 +613,19 @@ padding-top: 0px;
 <blockquote>
 <p>Seamless AWS cloud bursting for parallel R workloads</p>
 </blockquote>
-<p>staRburst is a <a href="https://future.futureverse.org/">future</a>
-backend that lets you run parallel R code on AWS with zero
-infrastructure management. Change one line of code to scale from your
-laptop to 100+ cloud workers.</p>
+<p>staRburst lets you run parallel R code on AWS Fargate with zero
+infrastructure management. Scale from your laptop to 100+ cloud workers
+with a simple function call.</p>
 <h2 id="features">Features</h2>
 <ul>
-<li><strong>Simple Setup</strong>: One-time configuration, then seamless
-operation</li>
-<li><strong>future Ecosystem</strong>: Works with furrr, future.apply,
-targets, and all future-based packages</li>
+<li><strong>Simple Setup</strong>: One-time configuration (~2 minutes),
+then seamless operation</li>
+<li><strong>Simple API</strong>: Direct <code>starburst_map()</code>
+function - no new concepts to learn</li>
 <li><strong>Automatic Environment Sync</strong>: Your packages and
 dependencies automatically available on workers</li>
-<li><strong>Smart Quota Management</strong>: Automatically splits work
-into sequential batches when hitting AWS quota limits, with automatic
-quota increase requests</li>
+<li><strong>Smart Quota Management</strong>: Automatically handles AWS
+quota limits with wave execution</li>
 <li><strong>Cost Transparent</strong>: See estimated and actual costs
 for every run</li>
 <li><strong>Auto Cleanup</strong>: Workers shut down automatically when
@@ -640,94 +638,157 @@ done</li>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="sc">&gt;</span> remotes<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;scttfrdmn/starburst&quot;</span>)</span></code></pre></div>
 <h2 id="quick-start">Quick Start</h2>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(starburst)</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">library</span>(furrr)</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co"># One-time setup (2 minutes)</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="fu">starburst_setup</span>()</span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co"># Use with furrr - change one line to scale to AWS</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="fu">plan</span>(starburst, <span class="at">workers =</span> <span class="dv">50</span>)</span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; ✓ 50 workers ready</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; 💰 Estimated cost: ~$2.80/hour</span></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a></span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">future_map</span>(samples, expensive_analysis)</span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; ✓ Cluster runtime: 18 minutes</span></span>
-<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; ✓ Total cost: $0.84</span></span></code></pre></div>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co"># One-time setup (2 minutes)</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">starburst_setup</span>()</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co"># Run parallel computation on AWS</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">starburst_map</span>(</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="dv">1</span><span class="sc">:</span><span class="dv">1000</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  <span class="cf">function</span>(x) <span class="fu">expensive_computation</span>(x),</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  <span class="at">workers =</span> <span class="dv">50</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>)</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; 🚀 Starting starburst cluster with 50 workers</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; 💰 Estimated cost: ~$2.80/hour</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; 📊 Processing 1000 items with 50 workers</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; 📦 Created 50 chunks (avg 20 items per chunk)</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; 🚀 Submitting tasks...</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; ✓ Submitted 50 tasks</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; ⏳ Progress: 50/50 tasks (3.2 minutes elapsed)</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt;</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt; ✓ Completed in 3.2 minutes</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; 💰 Estimated cost: $0.15</span></span></code></pre></div>
 <h2 id="example-monte-carlo-simulation">Example: Monte Carlo
 Simulation</h2>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">library</span>(starburst)</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">library</span>(furrr)</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co"># Define simulation</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>simulate_portfolio <span class="ot">&lt;-</span> <span class="cf">function</span>(seed) {</span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="fu">set.seed</span>(seed)</span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  returns <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">252</span>, <span class="at">mean =</span> <span class="fl">0.0003</span>, <span class="at">sd =</span> <span class="fl">0.02</span>)</span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>  prices <span class="ot">&lt;-</span> <span class="fu">cumprod</span>(<span class="dv">1</span> <span class="sc">+</span> returns)</span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a></span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>  <span class="fu">list</span>(</span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>    <span class="at">final_value =</span> prices[<span class="dv">252</span>],</span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>    <span class="at">sharpe_ratio =</span> <span class="fu">mean</span>(returns) <span class="sc">/</span> <span class="fu">sd</span>(returns) <span class="sc">*</span> <span class="fu">sqrt</span>(<span class="dv">252</span>)</span>
-<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>  )</span>
-<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>}</span>
-<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a></span>
-<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co"># Run 10,000 simulations on 100 AWS workers</span></span>
-<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="fu">plan</span>(starburst, <span class="at">workers =</span> <span class="dv">100</span>)</span>
-<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt; ✓ 100 workers ready</span></span>
-<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co">#&gt; 💰 Estimated cost: ~$5.60/hour</span></span>
-<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a></span>
-<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">future_map</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">10000</span>, simulate_portfolio, <span class="at">.options =</span> <span class="fu">furrr_options</span>(<span class="at">seed =</span> <span class="cn">TRUE</span>))</span>
-<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="co">#&gt; ✓ Cluster runtime: 3 minutes</span></span>
-<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="co">#&gt; ✓ Total cost: $0.28</span></span>
-<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a></span>
-<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a><span class="co"># Comparison:</span></span>
-<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a><span class="co"># Local (single core): ~4 hours</span></span>
-<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="co"># Cloud (100 workers): 3 minutes, $0.28</span></span></code></pre></div>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># Define simulation</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>simulate_portfolio <span class="ot">&lt;-</span> <span class="cf">function</span>(seed) {</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="fu">set.seed</span>(seed)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  returns <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">252</span>, <span class="at">mean =</span> <span class="fl">0.0003</span>, <span class="at">sd =</span> <span class="fl">0.02</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  prices <span class="ot">&lt;-</span> <span class="fu">cumprod</span>(<span class="dv">1</span> <span class="sc">+</span> returns)</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>    <span class="at">final_value =</span> prices[<span class="dv">252</span>],</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>    <span class="at">sharpe_ratio =</span> <span class="fu">mean</span>(returns) <span class="sc">/</span> <span class="fu">sd</span>(returns) <span class="sc">*</span> <span class="fu">sqrt</span>(<span class="dv">252</span>)</span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>  )</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>}</span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co"># Run 10,000 simulations on 100 AWS workers</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">starburst_map</span>(</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>  <span class="dv">1</span><span class="sc">:</span><span class="dv">10000</span>,</span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>  simulate_portfolio,</span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>  <span class="at">workers =</span> <span class="dv">100</span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>)</span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="co">#&gt; 🚀 Starting starburst cluster with 100 workers</span></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="co">#&gt; 💰 Estimated cost: ~$5.60/hour</span></span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="co">#&gt; 📊 Processing 10000 items with 100 workers</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="co">#&gt; ⏳ Progress: 100/100 tasks (3.1 minutes elapsed)</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a><span class="co">#&gt;</span></span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a><span class="co">#&gt; ✓ Completed in 3.1 minutes</span></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="co">#&gt; 💰 Estimated cost: $0.29</span></span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a></span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a><span class="co"># Extract results</span></span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>final_values <span class="ot">&lt;-</span> <span class="fu">sapply</span>(results, <span class="cf">function</span>(x) x<span class="sc">$</span>final_value)</span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>sharpe_ratios <span class="ot">&lt;-</span> <span class="fu">sapply</span>(results, <span class="cf">function</span>(x) x<span class="sc">$</span>sharpe_ratio)</span>
+<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a></span>
+<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a><span class="co"># Summary</span></span>
+<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a><span class="fu">mean</span>(final_values)    <span class="co"># Average portfolio outcome</span></span>
+<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a><span class="fu">quantile</span>(final_values, <span class="fu">c</span>(<span class="fl">0.05</span>, <span class="fl">0.95</span>))  <span class="co"># Risk range</span></span>
+<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a></span>
+<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a><span class="co"># Comparison:</span></span>
+<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a><span class="co"># Local (single core): ~4 hours</span></span>
+<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a><span class="co"># Cloud (100 workers): 3 minutes, $0.29</span></span></code></pre></div>
+<h2 id="advanced-usage">Advanced Usage</h2>
+<h3 id="reuse-cluster-for-multiple-operations">Reuse Cluster for
+Multiple Operations</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Create cluster once</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>cluster <span class="ot">&lt;-</span> <span class="fu">starburst_cluster</span>(<span class="at">workers =</span> <span class="dv">50</span>, <span class="at">cpu =</span> <span class="dv">4</span>, <span class="at">memory =</span> <span class="st">&quot;8GB&quot;</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co"># Run multiple analyses</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>results1 <span class="ot">&lt;-</span> cluster<span class="sc">$</span><span class="fu">map</span>(dataset1, analysis_function)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>results2 <span class="ot">&lt;-</span> cluster<span class="sc">$</span><span class="fu">map</span>(dataset2, processing_function)</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>results3 <span class="ot">&lt;-</span> cluster<span class="sc">$</span><span class="fu">map</span>(dataset3, modeling_function)</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co"># All use the same Docker image and configuration</span></span></code></pre></div>
+<h3 id="custom-worker-configuration">Custom Worker Configuration</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># For memory-intensive workloads</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">starburst_map</span>(</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  large_datasets,</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  memory_intensive_function,</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="at">workers =</span> <span class="dv">20</span>,</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  <span class="at">cpu =</span> <span class="dv">8</span>,</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="at">memory =</span> <span class="st">&quot;16GB&quot;</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>)</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co"># For CPU-intensive workloads</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">starburst_map</span>(</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>  cpu_tasks,</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>  cpu_intensive_function,</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>  <span class="at">workers =</span> <span class="dv">50</span>,</span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>  <span class="at">cpu =</span> <span class="dv">4</span>,</span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>  <span class="at">memory =</span> <span class="st">&quot;8GB&quot;</span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a>)</span></code></pre></div>
 <h2 id="how-it-works">How It Works</h2>
 <ol style="list-style-type: decimal">
 <li><strong>Environment Snapshot</strong>: Captures your R packages
 using renv</li>
 <li><strong>Container Build</strong>: Creates Docker image with your
 environment, cached in ECR</li>
+<li><strong>Task Distribution</strong>: Splits data into chunks across
+workers</li>
 <li><strong>Task Submission</strong>: Launches Fargate tasks (or
 sequential batches if quota-limited)</li>
-<li><strong>Data Transfer</strong>: Serializes dependencies to S3 using
-optimized methods</li>
-<li><strong>Execution</strong>: Workers pull data, execute, push results
-to S3</li>
-<li><strong>Result Collection</strong>: Downloads and deserializes
-results</li>
+<li><strong>Data Transfer</strong>: Serializes task data to S3 using
+fast qs format</li>
+<li><strong>Execution</strong>: Workers pull data, execute function on
+chunk items, push results</li>
+<li><strong>Result Collection</strong>: Downloads and combines results
+in correct order</li>
 <li><strong>Cleanup</strong>: Automatically shuts down workers</li>
 </ol>
 <h2 id="cost-management">Cost Management</h2>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Set cost limits</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="fu">starburst_config</span>(</span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">max_cost_per_job =</span> <span class="dv">10</span>,      <span class="co"># Hard limit</span></span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">cost_alert_threshold =</span> <span class="dv">5</span>     <span class="co"># Warning at $5</span></span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>)</span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a></span>
-<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co"># Costs shown transparently</span></span>
-<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="fu">plan</span>(starburst, <span class="at">workers =</span> <span class="dv">100</span>)</span>
-<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; Estimated cost: ~$3.50/hour</span></span>
-<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a></span>
-<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">future_map</span>(samples, analysis)</span>
-<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; Cluster runtime: 23 minutes</span></span>
-<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; Total cost: $1.34</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Set cost limits</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">starburst_config</span>(</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="at">max_cost_per_job =</span> <span class="dv">10</span>,      <span class="co"># Hard limit</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">cost_alert_threshold =</span> <span class="dv">5</span>     <span class="co"># Warning at $5</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>)</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co"># Costs shown transparently</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">starburst_map</span>(data, fn, <span class="at">workers =</span> <span class="dv">100</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; 💰 Estimated cost: ~$3.50/hour</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; ✓ Completed in 23 minutes</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt; 💰 Estimated cost: $1.34</span></span></code></pre></div>
 <h2 id="quota-management">Quota Management</h2>
 <p>staRburst automatically handles AWS Fargate quota limitations:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">plan</span>(starburst, <span class="at">workers =</span> <span class="dv">100</span>, <span class="at">cpu =</span> <span class="dv">4</span>)</span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; ⚠ Requested: 100 workers (400 vCPUs)</span></span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; ⚠ Current quota: 100 vCPUs (allows 25 workers max)</span></span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; 📋 Running in 4 batches of 25 workers each</span></span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; 💡 Request quota increase to 500 vCPUs? [y/n]: y</span></span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; ✓ Quota increase requested (Case ID: 12345)</span></span></code></pre></div>
-<p>All your work completes, just takes slightly longer. After quota
-increase, full parallelism is available.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">starburst_map</span>(data, fn, <span class="at">workers =</span> <span class="dv">100</span>, <span class="at">cpu =</span> <span class="dv">4</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#&gt; ⚠ Requested 100 workers (400 vCPUs) but quota allows 25 workers (100 vCPUs)</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; ⚠ Using 25 workers instead</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; 💰 Estimated cost: ~$1.40/hour</span></span></code></pre></div>
+<p>Your work still completes, just with fewer workers. You can request
+quota increases through AWS Service Quotas.</p>
+<h2 id="api-reference">API Reference</h2>
+<h3 id="main-functions">Main Functions</h3>
+<ul>
+<li><code>starburst_map(.x, .f, workers, ...)</code> - Parallel map over
+data</li>
+<li><code>starburst_cluster(workers, cpu, memory)</code> - Create
+reusable cluster</li>
+<li><code>starburst_setup()</code> - Initial AWS configuration</li>
+<li><code>starburst_config(...)</code> - Update configuration</li>
+<li><code>starburst_status()</code> - Check cluster status</li>
+</ul>
+<h3 id="configuration-options">Configuration Options</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">starburst_config</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="at">region =</span> <span class="st">&quot;us-east-1&quot;</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">max_cost_per_job =</span> <span class="dv">10</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">cost_alert_threshold =</span> <span class="dv">5</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>)</span></code></pre></div>
 <h2 id="documentation">Documentation</h2>
 <ul>
 <li><a href="vignettes/getting-started.Rmd">Getting Started</a></li>
-<li><a href="ARCHITECTURE.md">Architecture</a></li>
-<li><a href="ROADMAP.md">Roadmap</a></li>
-<li><a href="TESTING_GUIDE.md">Testing Guide</a></li>
+<li><a href="IMPLEMENTATION_STATUS.md">Implementation Status</a></li>
+<li><a href="examples/">Examples</a></li>
 </ul>
 <h2 id="comparison">Comparison</h2>
 <table>
@@ -753,10 +814,10 @@ increase, full parallelism is available.</p>
 <td>Zero</td>
 </tr>
 <tr>
-<td>Works with existing code</td>
-<td>Yes (future)</td>
-<td>Yes</td>
-<td>Yes (Dask)</td>
+<td>Learning curve</td>
+<td>Minimal</td>
+<td>Medium</td>
+<td>Medium</td>
 </tr>
 <tr>
 <td>Auto scaling</td>
@@ -778,23 +839,58 @@ increase, full parallelism is available.</p>
 </tr>
 </tbody>
 </table>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>R &gt;= 4.0</li>
+<li>AWS account with:
+<ul>
+<li>AWS CLI configured or <code>AWS_PROFILE</code> set</li>
+<li>IAM permissions for ECS, ECR, S3, VPC</li>
+<li>Two IAM roles (created during setup):
+<ul>
+<li><code>starburstECSExecutionRole</code> - for ECS/ECR access</li>
+<li><code>starburstECSTaskRole</code> - for S3 access</li>
+</ul></li>
+</ul></li>
+</ul>
+<p>See <a href="IMPLEMENTATION_STATUS.md">IMPLEMENTATION_STATUS.md</a>
+for detailed setup instructions.</p>
+<h2 id="roadmap">Roadmap</h2>
+<h3 id="v010-current">v0.1.0 (Current)</h3>
+<ul>
+<li>✅ Direct API (<code>starburst_map</code>,
+<code>starburst_cluster</code>)</li>
+<li>✅ AWS Fargate integration</li>
+<li>✅ Automatic environment management</li>
+<li>✅ Cost tracking and quota handling</li>
+</ul>
+<h3 id="v020-planned">v0.2.0 (Planned)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox"></input>Full <code>future</code> backend for
+furrr compatibility</label></li>
+<li><label><input type="checkbox"></input>Support for
+<code>future.apply</code>, <code>targets</code>, etc.</label></li>
+<li><label><input type="checkbox"></input>Enhanced retry logic</label></li>
+<li><label><input type="checkbox"></input>Spot instance support</label></li>
+</ul>
 <h2 id="contributing">Contributing</h2>
 <p>Contributions welcome! See <a href="CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
 <h2 id="license">License</h2>
 <p>Apache License 2.0 - see <a href="LICENSE">LICENSE</a></p>
 <p>Copyright 2026 Scott Friedman</p>
 <h2 id="citation">Citation</h2>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co">@software{starburst,</span></span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">  title = {staRburst: Seamless AWS Cloud Bursting for R},</span></span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">  author = {Scott Friedman},</span></span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">  version = {0.1.0},</span></span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">  url = {https://github.com/scttfrdmn/starburst},</span></span>
-<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">  license = {Apache-2.0}</span></span>
-<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co">@software{starburst,</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">  title = {staRburst: Seamless AWS Cloud Bursting for R},</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">  author = {Scott Friedman},</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">  version = {0.1.0},</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">  url = {https://github.com/scttfrdmn/starburst},</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">  license = {Apache-2.0}</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
 <h2 id="credits">Credits</h2>
-<p>Built on the excellent <a href="https://future.futureverse.org/">future</a> framework by Henrik
-Bengtsson.</p>
+<p>Built using the <a href="https://github.com/paws-r/paws">paws</a> AWS
+SDK for R.</p>
+<p>Container management with <a href="https://rstudio.github.io/renv/">renv</a> and <a href="https://rocker-project.org/">rocker</a>.</p>
 <p>Inspired by <a href="https://www.coiled.io/">Coiled</a> for
 Python/Dask.</p>
 

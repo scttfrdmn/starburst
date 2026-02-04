@@ -1,3 +1,35 @@
+#' Create a Future using Starburst Backend
+#'
+#' This is the entry point called by the Future package when a plan(starburst) is active
+#'
+#' @param expr Expression to evaluate
+#' @param envir Environment for evaluation
+#' @param substitute Whether to substitute the expression
+#' @param globals Globals to export (TRUE for auto-detection, list for manual)
+#' @param packages Packages to load
+#' @param lazy Whether to lazily evaluate (always FALSE for remote)
+#' @param seed Random seed
+#' @param ... Additional arguments
+#'
+#' @return A StarburstFuture object
+#' @importFrom future future
+#' @method future starburst
+#' @export
+future.starburst <- function(expr, envir = parent.frame(), substitute = TRUE,
+                             globals = TRUE, packages = NULL, lazy = FALSE,
+                             seed = FALSE, ...) {
+  StarburstFuture(
+    expr = expr,
+    envir = envir,
+    substitute = substitute,
+    globals = globals,
+    packages = packages,
+    lazy = lazy,
+    seed = FALSE,
+    ...
+  )
+}
+
 #' StarburstFuture Constructor
 #'
 #' Creates a Future object for evaluation on AWS Fargate
@@ -23,16 +55,15 @@ StarburstFuture <- function(expr, envir = parent.frame(), substitute = TRUE,
     expr <- substitute(expr)
   }
 
-  # Get current plan/evaluator
-  evaluator <- future::plan("next")
+  # Get current plan
+  plan_obj <- future::plan("next")
 
-  # Get backend from evaluator
-  if (is.function(evaluator)) {
-    backend <- attr(evaluator, "backend")
-  } else if (is.environment(evaluator)) {
-    backend <- evaluator
-  } else {
-    backend <- NULL
+  # Get backend from plan attributes or options
+  backend <- attr(plan_obj, "backend")
+
+  if (is.null(backend)) {
+    # Try to get from options
+    backend <- getOption("starburst.current_backend")
   }
 
   if (is.null(backend)) {
@@ -40,9 +71,7 @@ StarburstFuture <- function(expr, envir = parent.frame(), substitute = TRUE,
   }
 
   if (!inherits(backend, "StarburstBackend")) {
-    backend_env <- backend
-    class(backend_env) <- c("StarburstBackend", "FutureBackend", "environment")
-    backend <- backend_env
+    class(backend) <- c("StarburstBackend", "FutureBackend", class(backend))
   }
 
   # Auto-detect globals and packages

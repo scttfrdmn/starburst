@@ -4,7 +4,7 @@
 \alias{cleanup_cluster}
 \title{Clean up cluster resources}
 \usage{
-cleanup_cluster(plan)
+cleanup_cluster(backend)
 }
 \description{
 Clean up cluster resources
