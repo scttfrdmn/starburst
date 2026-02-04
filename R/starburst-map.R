@@ -66,46 +66,89 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 
   future::plan(strategy)
 
-  # Execute using furrr
-  tryCatch({
-    # Pass extra arguments via purrr-style partial function
-    if (length(list(...)) > 0) {
-      extra_args <- list(...)
-      .f_wrapped <- function(x) {
-        do.call(.f, c(list(x), extra_args))
-      }
-    } else {
-      .f_wrapped <- .f
+  # Execute by creating StarburstFuture objects directly
+  # Pass extra arguments via wrapper function
+  if (length(list(...)) > 0) {
+    extra_args <- list(...)
+    .f_wrapped <- function(x) {
+      do.call(.f, c(list(x), extra_args))
     }
+  } else {
+    .f_wrapped <- .f
+  }
 
-    results <- furrr::future_map(
-      .x,
-      .f_wrapped,
-      .options = furrr::furrr_options(
-        seed = TRUE,
-        scheduling = 1.0  # Send all tasks immediately
-      )
+  # Create futures for each item
+  n <- length(.x)
+  futures <- vector("list", n)
+
+  for (i in seq_along(.x)) {
+    item <- .x[[i]]
+    futures[[i]] <- StarburstFuture(
+      expr = quote(.f_wrapped(.item)),
+      envir = list2env(list(.f_wrapped = .f_wrapped, .item = item), parent = parent.frame()),
+      substitute = FALSE,
+      globals = FALSE,
+      packages = NULL
     )
+  }
 
-    if (.progress) {
-      elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
-      cat_success(sprintf("\n✓ Completed in %.1f seconds\n", elapsed))
+  # Run all futures
+  if (.progress) {
+    cat_info(sprintf("🚀 Submitting %d tasks...\n", n))
+  }
 
-      # Get backend for cost estimate
-      evaluator <- future::plan("next")
-      backend <- attr(evaluator, "backend")
-      if (!is.null(backend)) {
-        cost_est <- estimate_cost(workers, cpu, memory)
-        hours <- elapsed / 3600
-        actual_cost <- cost_est$per_hour * hours
-        cat_info(sprintf("💰 Estimated cost: $%.2f\n", actual_cost))
+  for (future in futures) {
+    run(future)
+  }
+
+  # Wait for results
+  if (.progress) {
+    cat_info("⏳ Waiting for results...\n")
+  }
+
+  results <- vector("list", n)
+  completed <- 0
+  last_update <- Sys.time()
+
+  while (completed < n) {
+    for (i in seq_along(futures)) {
+      if (!is.null(results[[i]])) next
+
+      if (resolved(futures[[i]])) {
+        result_obj <- result(futures[[i]])
+
+        if (length(result_obj$conditions) > 0) {
+          stop(sprintf("Task %d failed: %s", i, result_obj$conditions[[1]]$message))
+        }
+
+        results[[i]] <- result_obj$value
+        completed <- completed + 1
+
+        if (.progress && (completed == n || difftime(Sys.time(), last_update, units = "secs") >= 2)) {
+          elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+          cat_info(sprintf("\r⏳ Progress: %d/%d (%.1fs)   ", completed, n, elapsed))
+          last_update <- Sys.time()
+        }
       }
     }
 
-    results
-  }, error = function(e) {
-    stop(sprintf("starburst_map failed: %s", e$message))
-  })
+    if (completed < n) {
+      Sys.sleep(1)
+    }
+  }
+
+  if (.progress) {
+    elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+    cat_success(sprintf("\n✓ Completed in %.1f seconds\n", elapsed))
+
+    # Cost estimate
+    cost_est <- estimate_cost(workers, cpu, memory)
+    hours <- elapsed / 3600
+    actual_cost <- cost_est$per_hour * hours
+    cat_info(sprintf("💰 Estimated cost: $%.2f\n", actual_cost))
+  }
+
+  results
 }
 
 #' Create a Starburst Cluster
@@ -183,7 +226,7 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
 
 #' Execute Map on Starburst Cluster
 #'
-#' Internal function to execute parallel map using Future backend
+#' Internal function to execute parallel map by creating StarburstFuture objects directly
 #'
 #' @keywords internal
 starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
@@ -196,19 +239,71 @@ starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
 
   start_time <- Sys.time()
 
-  # Execute using furrr with the cluster's Future plan
-  results <- furrr::future_map(
-    .x,
-    .f,
-    .options = furrr::furrr_options(
-      seed = TRUE,
-      scheduling = 1.0  # Send all tasks immediately
+  # Create StarburstFuture objects directly for each item
+  # This bypasses the Future dispatch issues
+  futures <- vector("list", n)
+
+  for (i in seq_along(.x)) {
+    # Create a future for this item
+    item <- .x[[i]]
+    futures[[i]] <- StarburstFuture(
+      expr = quote(.f(.item)),
+      envir = list2env(list(.f = .f, .item = item), parent = parent.frame()),
+      substitute = FALSE,
+      globals = FALSE,  # Already captured in envir
+      packages = NULL
     )
-  )
+  }
+
+  # Run all futures (submits to AWS)
+  if (.progress) {
+    cat_info(sprintf("🚀 Submitting %d tasks to AWS Fargate...\n", n))
+  }
+
+  for (future in futures) {
+    run(future)
+  }
+
+  # Wait for all futures to resolve and collect results
+  if (.progress) {
+    cat_info("⏳ Waiting for results...\n")
+  }
+
+  results <- vector("list", n)
+  completed <- 0
+  last_update <- Sys.time()
+
+  while (completed < n) {
+    for (i in seq_along(futures)) {
+      if (!is.null(results[[i]])) next  # Already got result
+
+      if (resolved(futures[[i]])) {
+        result_obj <- result(futures[[i]])
+
+        # Check for errors
+        if (length(result_obj$conditions) > 0) {
+          stop(sprintf("Task %d failed: %s", i, result_obj$conditions[[1]]$message))
+        }
+
+        results[[i]] <- result_obj$value
+        completed <- completed + 1
+
+        if (.progress && (completed == n || difftime(Sys.time(), last_update, units = "secs") >= 2)) {
+          elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+          cat_info(sprintf("\r⏳ Progress: %d/%d tasks (%.1fs elapsed)   ", completed, n, elapsed))
+          last_update <- Sys.time()
+        }
+      }
+    }
+
+    if (completed < n) {
+      Sys.sleep(1)
+    }
+  }
 
   if (.progress) {
     elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
-    cat_success(sprintf("✓ Completed %d items in %.1f seconds\n", n, elapsed))
+    cat_success(sprintf("\n✓ Completed %d items in %.1f seconds\n", n, elapsed))
   }
 
   results
