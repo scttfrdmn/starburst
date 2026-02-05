@@ -21,7 +21,7 @@ get_ec2_client <- function(region) {
 #' @return Auto Scaling client
 #' @keywords internal
 get_autoscaling_client <- function(region) {
-  paws.compute::autoscaling(config = list(region = region))
+  paws.management::autoscaling(config = list(region = region))
 }
 
 #' Get ECS-optimized AMI ID for region and architecture
@@ -101,7 +101,7 @@ setup_ec2_capacity_provider <- function(backend) {
 
   user_data <- sprintf("#!/bin/bash\necho ECS_CLUSTER=%s >> /etc/ecs/ecs.config\necho ECS_ENABLE_TASK_IAM_ROLE=true >> /etc/ecs/ecs.config\necho ECS_ENABLE_CONTAINER_METADATA=true >> /etc/ecs/ecs.config",
                        cluster_name)
-  user_data_encoded <- base64enc::base64encode(charToRaw(user_data))
+  user_data_encoded <- as.character(base64enc::base64encode(charToRaw(user_data)))
 
   # Delete existing launch template if it exists
   tryCatch({
@@ -140,8 +140,14 @@ setup_ec2_capacity_provider <- function(backend) {
     )
   }
 
-  lt_response <- ec2$create_launch_template(!!!lt_params)
-  cat_success(sprintf("✓ Launch Template created: %s\n", lt_name))
+  tryCatch({
+    lt_response <- do.call(ec2$create_launch_template, lt_params)
+    cat_success(sprintf("✓ Launch Template created: %s\n", lt_name))
+  }, error = function(e) {
+    cat_error(sprintf("✗ Launch Template creation failed: %s\n", e$message))
+    cat_error(sprintf("  Full error: %s\n", paste(capture.output(print(e)), collapse = "\n")))
+    stop(e)
+  })
 
   # Create Auto-Scaling Group
   cat_info(sprintf("   • Creating Auto-Scaling Group: %s...\n", asg_name))
@@ -160,13 +166,34 @@ setup_ec2_capacity_provider <- function(backend) {
     stop("No subnets found in default VPC")
   }
 
-  # Delete existing ASG if it exists
+  # Delete existing ASG if it exists and wait for deletion to complete
   tryCatch({
     autoscaling$delete_auto_scaling_group(
       AutoScalingGroupName = asg_name,
       ForceDelete = TRUE
     )
-    Sys.sleep(5) # Wait for deletion
+    cat_info("   • Waiting for ASG deletion to complete...\n")
+
+    # Wait for deletion (max 60 seconds)
+    for (i in 1:12) {
+      Sys.sleep(5)
+      asg_exists <- tryCatch({
+        autoscaling$describe_auto_scaling_groups(
+          AutoScalingGroupNames = list(asg_name)
+        )
+        TRUE
+      }, error = function(e) {
+        FALSE
+      })
+
+      if (!asg_exists) {
+        break
+      }
+
+      if (i == 12) {
+        cat_warning("⚠ ASG deletion taking longer than expected, continuing anyway...\n")
+      }
+    }
   }, error = function(e) {
     # ASG doesn't exist, continue
   })
@@ -197,8 +224,20 @@ setup_ec2_capacity_provider <- function(backend) {
     )
   )
 
-  autoscaling$create_auto_scaling_group(!!!asg_params)
-  cat_success(sprintf("✓ Auto-Scaling Group created: %s\n", asg_name))
+  tryCatch({
+    do.call(autoscaling$create_auto_scaling_group, asg_params)
+    cat_success(sprintf("✓ Auto-Scaling Group created: %s\n", asg_name))
+  }, error = function(e) {
+    cat_error(sprintf("✗ ASG creation failed: %s\n", e$message))
+    cat_error(sprintf("  Full error: %s\n", paste(capture.output(print(e)), collapse = "\n")))
+    stop(e)
+  })
+
+  # Get the actual ASG ARN
+  asg_describe <- autoscaling$describe_auto_scaling_groups(
+    AutoScalingGroupNames = list(asg_name)
+  )
+  asg_arn <- asg_describe$AutoScalingGroups[[1]]$AutoScalingGroupARN
 
   # Create ECS Capacity Provider
   cat_info(sprintf("   • Creating ECS Capacity Provider: %s...\n", capacity_provider_name))
@@ -206,8 +245,7 @@ setup_ec2_capacity_provider <- function(backend) {
   cp_params <- list(
     name = capacity_provider_name,
     autoScalingGroupProvider = list(
-      autoScalingGroupArn = sprintf("arn:aws:autoscaling:%s:%s:autoScalingGroup:*:autoScalingGroupName/%s",
-                                    region, backend$aws_account_id, asg_name),
+      autoScalingGroupArn = asg_arn,
       managedScaling = list(
         status = "ENABLED",
         targetCapacity = 100,
@@ -221,8 +259,27 @@ setup_ec2_capacity_provider <- function(backend) {
     )
   )
 
-  ecs$create_capacity_provider(!!!cp_params)
-  cat_success(sprintf("✓ Capacity Provider created: %s\n", capacity_provider_name))
+  tryCatch({
+    do.call(ecs$create_capacity_provider, cp_params)
+    cat_success(sprintf("✓ Capacity Provider created: %s\n", capacity_provider_name))
+  }, error = function(e) {
+    cat_error(sprintf("✗ Capacity Provider creation failed: %s\n", e$message))
+    stop(e)
+  })
+
+  # Ensure cluster exists
+  cluster_exists <- tryCatch({
+    cluster_response <- ecs$describe_clusters(clusters = list(cluster_name))
+    length(cluster_response$clusters) > 0 && cluster_response$clusters[[1]]$status == "ACTIVE"
+  }, error = function(e) {
+    FALSE
+  })
+
+  if (!cluster_exists) {
+    cat_info(sprintf("   • Creating ECS cluster: %s...\n", cluster_name))
+    ecs$create_cluster(clusterName = cluster_name)
+    cat_success(sprintf("✓ Cluster created: %s\n", cluster_name))
+  }
 
   # Associate capacity provider with cluster
   cat_info(sprintf("   • Associating with cluster: %s...\n", cluster_name))
@@ -397,7 +454,7 @@ get_pool_status <- function(backend) {
 #' @return Instance profile ARN
 #' @keywords internal
 ensure_ecs_instance_profile <- function(region) {
-  iam <- paws.management::iam()
+  iam <- paws.security.identity::iam()
 
   role_name <- "starburstECSInstanceRole"
   profile_name <- "starburstECSInstanceProfile"
@@ -533,15 +590,23 @@ ensure_ecs_security_group <- function(region) {
   sg_id <- sg$GroupId
 
   # Add egress rule (allow all outbound)
-  ec2$authorize_security_group_egress(
-    GroupId = sg_id,
-    IpPermissions = list(
-      list(
-        IpProtocol = "-1",
-        IpRanges = list(list(CidrIp = "0.0.0.0/0"))
+  # Ignore if rule already exists (security groups have default egress rules)
+  tryCatch({
+    ec2$authorize_security_group_egress(
+      GroupId = sg_id,
+      IpPermissions = list(
+        list(
+          IpProtocol = "-1",
+          IpRanges = list(list(CidrIp = "0.0.0.0/0"))
+        )
       )
     )
-  )
+  }, error = function(e) {
+    # Ignore duplicate rule errors
+    if (!grepl("InvalidPermission.Duplicate", e$message, ignore.case = TRUE)) {
+      stop(e)
+    }
+  })
 
   cat_success(sprintf("✓ Security group created: %s\n", sg_id))
 
