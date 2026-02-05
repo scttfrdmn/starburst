@@ -411,7 +411,7 @@ stop_warm_pool <- function(backend) {
 #' @keywords internal
 get_pool_status <- function(backend) {
   region <- backend$region
-  cluster_name <- backend$cluster
+  cluster_name <- backend$cluster_name
   asg_name <- backend$asg_name
 
   autoscaling <- get_autoscaling_client(region)
@@ -425,14 +425,26 @@ get_pool_status <- function(backend) {
   if (length(asg_response$AutoScalingGroups) == 0) {
     return(list(
       exists = FALSE,
-      instances = 0,
-      desired = 0,
+      running_instances = 0,
+      in_service_instances = 0,
+      desired_capacity = 0,
       ecs_instances = 0
     ))
   }
 
   asg <- asg_response$AutoScalingGroups[[1]]
-  in_service <- sum(sapply(asg$Instances, function(i) i$LifecycleState == "InService"))
+
+  # Count in-service instances
+  in_service <- 0
+  if (length(asg$Instances) > 0) {
+    in_service <- sum(sapply(asg$Instances, function(i) {
+      if (!is.null(i$LifecycleState)) {
+        i$LifecycleState == "InService"
+      } else {
+        FALSE
+      }
+    }))
+  }
 
   # Get ECS container instances
   container_instances <- ecs$list_container_instances(cluster = cluster_name)
@@ -440,8 +452,9 @@ get_pool_status <- function(backend) {
 
   list(
     exists = TRUE,
-    instances = in_service,
-    desired = asg$DesiredCapacity,
+    running_instances = length(asg$Instances),
+    in_service_instances = in_service,
+    desired_capacity = asg$DesiredCapacity,
     ecs_instances = ecs_count,
     min_size = asg$MinSize,
     max_size = asg$MaxSize
