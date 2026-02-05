@@ -263,28 +263,97 @@ get_ec2_instance_price <- function(instance_type, use_spot = FALSE) {
   # Simplified pricing table for common instance types (us-east-1, 2026)
   # In production, this could query AWS Pricing API
   pricing <- list(
-    # Graviton3 (ARM64)
+    # Graviton3 (ARM64) - 7th gen
     "c7g.large" = 0.0725,
     "c7g.xlarge" = 0.145,
     "c7g.2xlarge" = 0.29,
     "c7g.4xlarge" = 0.58,
+    "c7g.8xlarge" = 1.16,
+    "c7g.12xlarge" = 1.74,
+    "c7g.16xlarge" = 2.32,
     "r7g.large" = 0.1008,
     "r7g.xlarge" = 0.2016,
     "r7g.2xlarge" = 0.4032,
+    "r7g.4xlarge" = 0.8064,
+    "m7g.large" = 0.0816,
+    "m7g.xlarge" = 0.1632,
+    "m7g.2xlarge" = 0.3264,
     "t4g.small" = 0.0168,
     "t4g.medium" = 0.0336,
     "t4g.large" = 0.0672,
-    # Intel (x86_64)
+
+    # Graviton4 (ARM64) - 8th gen - Best performance/price
+    "c8g.large" = 0.076,
+    "c8g.xlarge" = 0.152,
+    "c8g.2xlarge" = 0.304,
+    "c8g.4xlarge" = 0.608,
+    "c8g.8xlarge" = 1.216,
+    "c8g.12xlarge" = 1.824,
+    "c8g.16xlarge" = 2.432,
+    "r8g.large" = 0.1058,
+    "r8g.xlarge" = 0.2116,
+    "r8g.2xlarge" = 0.4232,
+    "r8g.4xlarge" = 0.8464,
+    "m8g.large" = 0.0856,
+    "m8g.xlarge" = 0.1712,
+    "m8g.2xlarge" = 0.3424,
+
+    # Intel 7th gen (x86_64) - Ice Lake
     "c7i.large" = 0.0893,
     "c7i.xlarge" = 0.1785,
     "c7i.2xlarge" = 0.357,
     "c7i.4xlarge" = 0.714,
+    "c7i.8xlarge" = 1.428,
+    "c7i.12xlarge" = 2.142,
+    "c7i.16xlarge" = 2.856,
     "c6i.large" = 0.085,
     "c6i.xlarge" = 0.17,
     "c6i.2xlarge" = 0.34,
+    "c6i.4xlarge" = 0.68,
     "r6i.large" = 0.126,
     "r6i.xlarge" = 0.252,
-    "r6i.2xlarge" = 0.504
+    "r6i.2xlarge" = 0.504,
+    "r6i.4xlarge" = 1.008,
+    "m6i.large" = 0.096,
+    "m6i.xlarge" = 0.192,
+    "m6i.2xlarge" = 0.384,
+
+    # Intel 8th gen (x86_64) - Sapphire Rapids - Highest single-thread performance
+    "c8i.large" = 0.0935,
+    "c8i.xlarge" = 0.187,
+    "c8i.2xlarge" = 0.374,
+    "c8i.4xlarge" = 0.748,
+    "c8i.8xlarge" = 1.496,
+    "c8i.12xlarge" = 2.244,
+    "c8i.16xlarge" = 2.992,
+
+    # AMD 7th gen (x86_64) - Best price/performance for x86
+    "c7a.large" = 0.0765,
+    "c7a.xlarge" = 0.153,
+    "c7a.2xlarge" = 0.306,
+    "c7a.4xlarge" = 0.612,
+    "c7a.8xlarge" = 1.224,
+    "c7a.12xlarge" = 1.836,
+    "c7a.16xlarge" = 2.448,
+    "r7a.large" = 0.1134,
+    "r7a.xlarge" = 0.2268,
+    "r7a.2xlarge" = 0.4536,
+    "r7a.4xlarge" = 0.9072,
+    "m7a.large" = 0.0864,
+    "m7a.xlarge" = 0.1728,
+    "m7a.2xlarge" = 0.3456,
+
+    # AMD 6th gen (x86_64) - Good budget option
+    "c6a.large" = 0.0765,
+    "c6a.xlarge" = 0.153,
+    "c6a.2xlarge" = 0.306,
+    "c6a.4xlarge" = 0.612,
+    "r6a.large" = 0.1134,
+    "r6a.xlarge" = 0.2268,
+    "r6a.2xlarge" = 0.4536,
+    "m6a.large" = 0.0864,
+    "m6a.xlarge" = 0.1728,
+    "m6a.2xlarge" = 0.3456
   )
 
   on_demand_price <- pricing[[instance_type]]
@@ -567,12 +636,17 @@ get_base_image_uri <- function(region) {
 
 #' Get CPU architecture from instance type
 #'
-#' @param instance_type EC2 instance type (e.g., "c7g.xlarge", "c7i.xlarge")
+#' @param instance_type EC2 instance type (e.g., "c7g.xlarge", "c7i.xlarge", "c7a.xlarge")
 #' @return CPU architecture ("ARM64" or "X86_64")
 #' @keywords internal
 get_architecture_from_instance_type <- function(instance_type) {
-  # Graviton instances end with 'g' in the instance family (e.g., c7g, t4g, r7g)
-  # Intel/AMD instances use 'i', 'a', 'n', etc.
+  # Graviton instances end with 'g' in the instance family
+  # Examples: c7g/c8g (Graviton3/4), t4g, r7g/r8g, m7g/m8g
+  #
+  # Intel/AMD instances use other suffixes:
+  # - 'i' = Intel (c7i, c8i)
+  # - 'a' = AMD (c7a, c6a, r7a, r6a, m7a, m6a)
+  # - 'n' = Network optimized
   if (grepl("^[cmrt][0-9]+g\\.", instance_type)) {
     return("ARM64")
   } else {
