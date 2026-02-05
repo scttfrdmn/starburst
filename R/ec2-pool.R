@@ -328,7 +328,7 @@ start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
   cat_info(sprintf("🚀 Starting warm pool: %d instances of %s...\n", capacity, backend$instance_type))
 
   region <- backend$region
-  cluster_name <- backend$cluster
+  cluster_name <- backend$cluster_name
   asg_name <- backend$asg_name
 
   autoscaling <- get_autoscaling_client(region)
@@ -337,7 +337,7 @@ start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
   # Scale ASG to desired capacity
   autoscaling$set_desired_capacity(
     AutoScalingGroupName = asg_name,
-    DesiredCapacity = capacity
+    DesiredCapacity = as.integer(capacity)
   )
 
   cat_info(sprintf("   • Waiting for instances to join cluster (timeout: %ds)...\n", timeout_seconds))
@@ -357,7 +357,18 @@ start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
 
     if (length(asg_response$AutoScalingGroups) > 0) {
       asg <- asg_response$AutoScalingGroups[[1]]
-      in_service <- sum(sapply(asg$Instances, function(i) i$LifecycleState == "InService"))
+
+      # Count in-service instances
+      in_service <- 0
+      if (length(asg$Instances) > 0) {
+        in_service <- sum(sapply(asg$Instances, function(i) {
+          if (!is.null(i$LifecycleState)) {
+            i$LifecycleState == "InService"
+          } else {
+            FALSE
+          }
+        }))
+      }
 
       cat_info(sprintf("   • Instances in service: %d/%d (%.0fs elapsed)\n",
                       in_service, capacity, elapsed))

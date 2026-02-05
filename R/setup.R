@@ -96,17 +96,22 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
   vpc_resources <- setup_vpc_resources(region)
   cat_success("✓ VPC resources created\n")
   
+  # Get AWS account ID for config
+  account_id <- get_aws_account_id()
+
   # Save configuration
   config <- list(
     region = region,
     bucket = bucket,
     ecr_repository = repo$repositoryUri,
     ecs_cluster = cluster$clusterName,
+    cluster_name = cluster$clusterName,  # Add for EC2 compatibility
     vpc_id = vpc_resources$vpc_id,
     subnets = vpc_resources$subnets,
     security_groups = vpc_resources$security_groups,
     use_public_base = use_public_base,
     ecr_image_ttl_days = ecr_image_ttl_days,
+    aws_account_id = account_id,
     setup_at = Sys.time()
   )
   
@@ -299,7 +304,20 @@ starburst_status <- function() {
 #' @keywords internal
 create_starburst_bucket <- function(bucket_name, region) {
   s3 <- get_s3_client(region)
-  
+
+  # Check if bucket already exists
+  bucket_exists <- tryCatch({
+    s3$head_bucket(Bucket = bucket_name)
+    TRUE
+  }, error = function(e) {
+    FALSE
+  })
+
+  if (bucket_exists) {
+    cat_info(sprintf("   • Bucket already exists: %s\n", bucket_name))
+    return(bucket_name)
+  }
+
   # Create bucket
   tryCatch({
     if (region == "us-east-1") {
@@ -312,38 +330,46 @@ create_starburst_bucket <- function(bucket_name, region) {
         )
       )
     }
-    
+
     # Enable encryption
-    s3$put_bucket_encryption(
-      Bucket = bucket_name,
-      ServerSideEncryptionConfiguration = list(
-        Rules = list(
-          list(
-            ApplyServerSideEncryptionByDefault = list(
-              SSEAlgorithm = "AES256"
+    tryCatch({
+      s3$put_bucket_encryption(
+        Bucket = bucket_name,
+        ServerSideEncryptionConfiguration = list(
+          Rules = list(
+            list(
+              ApplyServerSideEncryptionByDefault = list(
+                SSEAlgorithm = "AES256"
+              )
             )
           )
         )
       )
-    )
-    
+    }, error = function(e) {
+      cat_warn(sprintf("⚠ Could not enable bucket encryption: %s\n", e$message))
+    })
+
     # Set lifecycle policy (delete after 7 days)
-    s3$put_bucket_lifecycle_configuration(
-      Bucket = bucket_name,
-      LifecycleConfiguration = list(
-        Rules = list(
-          list(
-            Id = "cleanup-old-files",
-            Status = "Enabled",
-            Expiration = list(Days = 7),
-            Filter = list(Prefix = "")
+    tryCatch({
+      s3$put_bucket_lifecycle_configuration(
+        Bucket = bucket_name,
+        LifecycleConfiguration = list(
+          Rules = list(
+            list(
+              ID = "cleanup-old-files",
+              Status = "Enabled",
+              Expiration = list(Days = as.integer(7)),
+              Filter = list()
+            )
           )
         )
       )
-    )
-    
+    }, error = function(e) {
+      cat_warn(sprintf("⚠ Could not set lifecycle policy: %s\n", e$message))
+    })
+
     bucket_name
-    
+
   }, error = function(e) {
     stop(sprintf("Failed to create S3 bucket: %s", e$message))
   })
@@ -383,7 +409,21 @@ create_ecr_repository <- function(repo_name, region) {
 #' @keywords internal
 create_ecs_cluster <- function(cluster_name, region) {
   ecs <- get_ecs_client(region)
-  
+
+  # Check if cluster already exists
+  cluster_exists <- tryCatch({
+    response <- ecs$describe_clusters(clusters = list(cluster_name))
+    length(response$clusters) > 0 && response$clusters[[1]]$status == "ACTIVE"
+  }, error = function(e) {
+    FALSE
+  })
+
+  if (cluster_exists) {
+    cat_info(sprintf("   • Cluster already exists: %s\n", cluster_name))
+    response <- ecs$describe_clusters(clusters = list(cluster_name))
+    return(response$clusters[[1]])
+  }
+
   tryCatch({
     response <- ecs$create_cluster(
       clusterName = cluster_name,
@@ -396,9 +436,9 @@ create_ecs_cluster <- function(cluster_name, region) {
         )
       )
     )
-    
+
     response$cluster
-    
+
   }, error = function(e) {
     stop(sprintf("Failed to create ECS cluster: %s", e$message))
   })
