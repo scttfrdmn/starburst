@@ -32,30 +32,48 @@ plan.starburst <- function(strategy,
                            region = NULL,
                            timeout = 3600,
                            auto_quota_request = interactive(),
+                           launch_type = "FARGATE",
+                           instance_type = "c7g.xlarge",
+                           use_spot = FALSE,
+                           warm_pool_timeout = 3600,
                            ...) {
 
   # Validate inputs
   validate_workers(workers)
   validate_cpu(cpu)
   validate_memory(memory)
-  
+  validate_launch_type(launch_type)
+
   # Get configuration
   config <- get_starburst_config()
   region <- region %||% config$region %||% "us-east-1"
-  
+
   # Check AWS credentials
   check_aws_credentials()
+
+  # Validate instance type for EC2
+  if (launch_type == "EC2") {
+    validate_instance_type(instance_type)
+  }
+
+  # Get architecture from instance type
+  architecture <- if (launch_type == "EC2") {
+    get_architecture_from_instance_type(instance_type)
+  } else {
+    "X86_64"  # Fargate default
+  }
   
-  # Check quota
-  quota_info <- check_fargate_quota(region)
-  vcpus_needed <- workers * cpu
-  vcpus_available <- quota_info$limit
-  
+  # Check quota (only for Fargate)
   quota_limited <- FALSE
   workers_per_wave <- workers
   num_waves <- 1
-  
-  if (vcpus_needed > vcpus_available) {
+
+  if (launch_type == "FARGATE") {
+    quota_info <- check_fargate_quota(region)
+    vcpus_needed <- workers * cpu
+    vcpus_available <- quota_info$limit
+
+    if (vcpus_needed > vcpus_available) {
     # Calculate wave-based execution
     workers_per_wave <- floor(vcpus_available / cpu)
     num_waves <- ceiling(workers / workers_per_wave)
@@ -98,11 +116,24 @@ plan.starburst <- function(strategy,
         }
       }
     }
+    }
   }
-  
+
   # Estimate cost
-  cost_est <- estimate_cost(workers, cpu, memory)
-  cat_info(sprintf("\n💰 Estimated cost: ~$%.2f/hour\n", cost_est$per_hour))
+  cost_est <- estimate_cost(workers, cpu, memory,
+                           launch_type = launch_type,
+                           instance_type = instance_type,
+                           use_spot = use_spot)
+
+  if (launch_type == "FARGATE") {
+    cat_info(sprintf("\n💰 Estimated cost: ~$%.2f/hour\n", cost_est$per_hour))
+  } else {
+    cat_info(sprintf("\n💰 Estimated cost: ~$%.2f/hour (%d x %s%s)\n",
+                    cost_est$total_per_hour,
+                    cost_est$instances_needed,
+                    instance_type,
+                    if (use_spot) " spot" else ""))
+  }
   
   # Check cost limits
   if (!is.null(config$max_cost_per_job) && cost_est$per_hour > config$max_cost_per_job) {
@@ -124,6 +155,7 @@ plan.starburst <- function(strategy,
   # Create backend object (mutable environment)
   backend <- list(
     cluster_id = cluster_id,
+    cluster = env_info$cluster,
     workers = workers,
     workers_per_wave = workers_per_wave,
     num_waves = num_waves,
@@ -148,7 +180,17 @@ plan.starburst <- function(strategy,
     ),
     worker_cpu = cpu,
     worker_memory = as.numeric(gsub("[^0-9.]", "", memory)),
-    task_definition_arn = NULL  # Will be set during first task submission
+    task_definition_arn = NULL,  # Will be set during first task submission
+    # EC2-specific fields
+    launch_type = launch_type,
+    instance_type = instance_type,
+    use_spot = use_spot,
+    architecture = architecture,
+    warm_pool_timeout = warm_pool_timeout,
+    capacity_provider_name = sprintf("starburst-%s", gsub("\\.", "-", instance_type)),
+    pool_started_at = NULL,
+    asg_name = sprintf("starburst-asg-%s", gsub("\\.", "-", instance_type)),
+    aws_account_id = config$aws_account_id
   )
 
   # Convert backend list to environment for mutability
@@ -250,6 +292,20 @@ cleanup_cluster <- function(backend) {
     cleanup_s3_files(backend)
   }
 
+  # Handle EC2 warm pool cleanup
+  if (backend$launch_type == "EC2" && !is.null(backend$pool_started_at)) {
+    idle_time <- difftime(Sys.time(), backend$pool_started_at, units = "secs")
+
+    if (idle_time > backend$warm_pool_timeout) {
+      cat_info("🧹 Pool timeout reached, scaling down...\n")
+      stop_warm_pool(backend)
+    } else {
+      remaining_mins <- (backend$warm_pool_timeout - as.numeric(idle_time)) / 60
+      cat_info(sprintf("⏱  Pool will remain warm for %.1f more minutes\n", remaining_mins))
+      cat_info(sprintf("   Set warm_pool_timeout=0 to scale down immediately\n"))
+    }
+  }
+
   invisible(NULL)
 }
 
@@ -295,11 +351,32 @@ validate_cpu <- function(cpu) {
 validate_memory <- function(memory) {
   # Parse memory string (e.g., "8GB")
   memory_gb <- parse_memory(memory)
-  
+
   # Fargate memory ranges depend on CPU
   # This is simplified - actual validation would check CPU/memory compatibility
   if (memory_gb < 0.5 || memory_gb > 120) {
     stop("memory must be between 0.5GB and 120GB")
+  }
+}
+
+validate_platform <- function(platform) {
+  valid_platforms <- c("X86_64", "ARM64")
+  if (!platform %in% valid_platforms) {
+    stop(sprintf("platform must be one of: %s", paste(valid_platforms, collapse = ", ")))
+  }
+}
+
+validate_launch_type <- function(launch_type) {
+  valid_launch_types <- c("FARGATE", "EC2")
+  if (!launch_type %in% valid_launch_types) {
+    stop(sprintf("launch_type must be one of: %s", paste(valid_launch_types, collapse = ", ")))
+  }
+}
+
+validate_instance_type <- function(instance_type) {
+  # Validate instance type format (e.g., c7g.xlarge)
+  if (!grepl("^[a-z][0-9]+[a-z]*\\.(nano|micro|small|medium|large|xlarge|[0-9]+xlarge)$", instance_type)) {
+    stop(sprintf("Invalid instance_type: %s. Example valid types: c7g.xlarge, c7i.2xlarge, r7g.large", instance_type))
   }
 }
 

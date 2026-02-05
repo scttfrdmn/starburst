@@ -438,3 +438,103 @@ cat_warn <- function(...) {
 cat_error <- function(...) {
   cat(crayon::red(...))
 }
+
+#' Setup EC2 capacity providers for staRburst
+#'
+#' One-time setup for EC2 launch type. Creates IAM roles, instance profiles,
+#' and capacity providers for specified instance types.
+#'
+#' @param region AWS region (default: "us-east-1")
+#' @param instance_types Character vector of instance types to setup (default: c("c7g.xlarge", "c7i.xlarge"))
+#' @param force Force re-setup even if already configured
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Setup with default instance types (Graviton and Intel)
+#' starburst_setup_ec2()
+#'
+#' # Setup with custom instance types
+#' starburst_setup_ec2(instance_types = c("c7g.2xlarge", "r7g.xlarge"))
+#' }
+starburst_setup_ec2 <- function(region = "us-east-1",
+                                instance_types = c("c7g.xlarge", "c7i.xlarge"),
+                                force = FALSE) {
+
+  cat_header("⚡ staRburst EC2 Setup\n")
+
+  # First ensure basic setup is complete
+  if (!is_setup_complete()) {
+    cat_error("✗ Basic staRburst setup not complete\n")
+    cat_info("  Run starburst_setup() first\n")
+    return(invisible(FALSE))
+  }
+
+  # Check AWS credentials
+  if (!check_aws_credentials()) {
+    cat_error("✗ AWS credentials not found\n")
+    return(invisible(FALSE))
+  }
+
+  cat_info("\nThis will configure EC2 resources for staRburst:\n")
+  cat_info("  • IAM instance role and profile\n")
+  cat_info("  • Security groups for ECS workers\n")
+  cat_info(sprintf("  • Capacity providers for %d instance types\n", length(instance_types)))
+  cat_info(sprintf("  • Instance types: %s\n", paste(instance_types, collapse = ", ")))
+
+  if (interactive() && !force) {
+    response <- readline("\nContinue? [y/n]: ")
+    if (tolower(response) != "y") {
+      cat_info("Setup cancelled\n")
+      return(invisible(FALSE))
+    }
+  }
+
+  # Get configuration
+  config <- get_starburst_config()
+
+  # Create backend-like object for each instance type
+  cat_info("\n[1/2] Setting up IAM roles and security groups...\n")
+
+  # This will be called once per instance type, but the functions are idempotent
+  ensure_ecs_instance_profile(region)
+  ensure_ecs_security_group(region)
+
+  cat_success("✓ IAM roles and security groups ready\n")
+
+  # Setup capacity providers for each instance type
+  cat_info(sprintf("\n[2/2] Setting up capacity providers for %d instance types...\n", length(instance_types)))
+
+  for (instance_type in instance_types) {
+    cat_info(sprintf("\n  Setting up %s...\n", instance_type))
+
+    architecture <- get_architecture_from_instance_type(instance_type)
+
+    # Create mock backend for setup
+    backend <- list(
+      region = region,
+      cluster = config$cluster %||% "starburst-cluster",
+      instance_type = instance_type,
+      architecture = architecture,
+      use_spot = FALSE,  # Default to on-demand for setup
+      capacity_provider_name = sprintf("starburst-%s", gsub("\\.", "-", instance_type)),
+      asg_name = sprintf("starburst-asg-%s", gsub("\\.", "-", instance_type)),
+      aws_account_id = config$aws_account_id
+    )
+
+    tryCatch({
+      setup_ec2_capacity_provider(backend)
+      cat_success(sprintf("  ✓ %s ready\n", instance_type))
+    }, error = function(e) {
+      cat_error(sprintf("  ✗ Failed to setup %s: %s\n", instance_type, e$message))
+    })
+  }
+
+  cat_success("\n✓ EC2 setup complete!\n")
+  cat_info("\nYou can now use EC2 launch type:\n")
+  cat_info("  plan(starburst, workers = 100, launch_type = \"EC2\",\n")
+  cat_info("       instance_type = \"c7g.xlarge\", use_spot = TRUE)\n")
+
+  invisible(TRUE)
+}

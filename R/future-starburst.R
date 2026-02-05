@@ -170,7 +170,7 @@ run.StarburstFuture <- function(future, ...) {
     check_and_submit_wave(backend)
   } else {
     # Submit immediately
-    submit_fargate_task(future, backend)
+    submit_task(future, backend)
   }
 
   invisible(future)
@@ -307,18 +307,25 @@ result.StarburstFuture <- function(future, ...) {
   result_obj
 }
 
-#' Submit Fargate Task
+#' Submit Task to ECS
 #'
-#' Internal function to submit a task to ECS Fargate
+#' Internal function to submit a task to ECS (Fargate or EC2)
 #'
 #' @param future StarburstFuture object
 #' @param backend Backend/plan object
 #' @keywords internal
-submit_fargate_task <- function(future, backend) {
+submit_task <- function(future, backend) {
 
   # Ensure task definition exists
   if (is.null(backend$task_definition_arn)) {
     backend$task_definition_arn <- get_or_create_task_definition(backend)
+  }
+
+  # Handle EC2 pool warmup if needed
+  if (backend$launch_type == "EC2" && is.null(backend$pool_started_at)) {
+    cat_info("🔧 Starting warm EC2 pool (~2 min first time)...\n")
+    start_warm_pool(backend, backend$workers)
+    backend$pool_started_at <- Sys.time()
   }
 
   # Get ECS client
@@ -327,11 +334,10 @@ submit_fargate_task <- function(future, backend) {
   # Get network configuration
   vpc_config <- get_vpc_config(backend$region)
 
-  # Submit task
-  response <- ecs$run_task(
-    cluster = "default",
+  # Build base run_task parameters
+  run_task_params <- list(
+    cluster = backend$cluster,
     taskDefinition = backend$task_definition_arn,
-    launchType = "FARGATE",
     networkConfiguration = list(
       awsvpcConfiguration = list(
         subnets = vpc_config$subnets,
@@ -353,6 +359,28 @@ submit_fargate_task <- function(future, backend) {
       )
     )
   )
+
+  # Add launch-type specific parameters
+  if (backend$launch_type == "EC2") {
+    run_task_params$capacityProviderStrategy <- list(
+      list(
+        capacityProvider = backend$capacity_provider_name,
+        weight = 1
+      )
+    )
+    run_task_params$placementConstraints <- list(
+      list(
+        type = "memberOf",
+        expression = sprintf("attribute:ecs.instance-type == %s",
+                           backend$instance_type)
+      )
+    )
+  } else {
+    run_task_params$launchType <- "FARGATE"
+  }
+
+  # Submit task
+  response <- do.call(ecs$run_task, run_task_params)
 
   if (length(response$tasks) > 0) {
     future$task_arn <- response$tasks[[1]]$taskArn
@@ -426,7 +454,7 @@ check_and_submit_wave <- function(backend) {
       pending_futures <- backend$wave_queue$pending
 
       # Submit the future to Fargate
-      submit_fargate_task(future_obj, backend)
+      submit_task(future_obj, backend)
 
       # Add to wave_futures for tracking
       backend$wave_queue$wave_futures <- append(

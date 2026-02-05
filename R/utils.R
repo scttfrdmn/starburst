@@ -212,22 +212,135 @@ poll_for_result <- function(future, timeout = 3600) {
 #' Estimate cost
 #'
 #' @keywords internal
-estimate_cost <- function(workers, cpu, memory, estimated_runtime_hours = 1) {
-  # Fargate pricing (us-east-1, 2026)
-  vcpu_price_per_hour <- 0.04048
-  gb_price_per_hour <- 0.004445
+estimate_cost <- function(workers, cpu, memory, estimated_runtime_hours = 1,
+                         launch_type = "FARGATE", instance_type = NULL, use_spot = FALSE) {
 
-  memory_gb <- parse_memory(memory)
+  if (launch_type == "FARGATE") {
+    # Fargate pricing (us-east-1, 2026)
+    vcpu_price_per_hour <- 0.04048
+    gb_price_per_hour <- 0.004445
 
-  cost_per_worker_per_hour <-
-    (cpu * vcpu_price_per_hour) +
-    (memory_gb * gb_price_per_hour)
+    memory_gb <- parse_memory(memory)
 
-  list(
-    per_worker = cost_per_worker_per_hour,
-    per_hour = cost_per_worker_per_hour * workers,
-    total_estimated = cost_per_worker_per_hour * workers * estimated_runtime_hours
+    cost_per_worker_per_hour <-
+      (cpu * vcpu_price_per_hour) +
+      (memory_gb * gb_price_per_hour)
+
+    list(
+      per_worker = cost_per_worker_per_hour,
+      per_hour = cost_per_worker_per_hour * workers,
+      total_estimated = cost_per_worker_per_hour * workers * estimated_runtime_hours
+    )
+  } else {
+    # EC2 pricing
+    instance_price <- get_ec2_instance_price(instance_type, use_spot)
+    instance_vcpus <- get_instance_vcpus(instance_type)
+
+    # Calculate number of instances needed
+    total_vcpus_needed <- workers * cpu
+    instances_needed <- ceiling(total_vcpus_needed / instance_vcpus)
+
+    total_cost_per_hour <- instances_needed * instance_price
+
+    list(
+      per_instance = instance_price,
+      instances_needed = instances_needed,
+      total_per_hour = total_cost_per_hour,
+      total_estimated = total_cost_per_hour * estimated_runtime_hours,
+      spot_discount = if (use_spot) "~70%" else "N/A",
+      launch_type = "EC2"
+    )
+  }
+}
+
+#' Get EC2 instance pricing
+#'
+#' @param instance_type EC2 instance type (e.g., "c7g.xlarge")
+#' @param use_spot Whether to use spot pricing
+#' @return Price per hour in USD
+#' @keywords internal
+get_ec2_instance_price <- function(instance_type, use_spot = FALSE) {
+  # Simplified pricing table for common instance types (us-east-1, 2026)
+  # In production, this could query AWS Pricing API
+  pricing <- list(
+    # Graviton3 (ARM64)
+    "c7g.large" = 0.0725,
+    "c7g.xlarge" = 0.145,
+    "c7g.2xlarge" = 0.29,
+    "c7g.4xlarge" = 0.58,
+    "r7g.large" = 0.1008,
+    "r7g.xlarge" = 0.2016,
+    "r7g.2xlarge" = 0.4032,
+    "t4g.small" = 0.0168,
+    "t4g.medium" = 0.0336,
+    "t4g.large" = 0.0672,
+    # Intel (x86_64)
+    "c7i.large" = 0.0893,
+    "c7i.xlarge" = 0.1785,
+    "c7i.2xlarge" = 0.357,
+    "c7i.4xlarge" = 0.714,
+    "c6i.large" = 0.085,
+    "c6i.xlarge" = 0.17,
+    "c6i.2xlarge" = 0.34,
+    "r6i.large" = 0.126,
+    "r6i.xlarge" = 0.252,
+    "r6i.2xlarge" = 0.504
   )
+
+  on_demand_price <- pricing[[instance_type]]
+
+  if (is.null(on_demand_price)) {
+    # Default estimate if instance type not in table
+    cat_warn(sprintf("Warning: No pricing data for %s, using estimate\n", instance_type))
+    on_demand_price <- 0.15  # Conservative estimate
+  }
+
+  if (use_spot) {
+    # Spot instances typically 70% cheaper
+    return(on_demand_price * 0.3)
+  } else {
+    return(on_demand_price)
+  }
+}
+
+#' Get vCPU count for instance type
+#'
+#' @param instance_type EC2 instance type
+#' @return Number of vCPUs
+#' @keywords internal
+get_instance_vcpus <- function(instance_type) {
+  # Parse instance size to determine vCPUs
+  # Format: family + generation + size (e.g., c7g.xlarge)
+  size_mapping <- list(
+    "nano" = 0.25,
+    "micro" = 0.5,
+    "small" = 1,
+    "medium" = 2,
+    "large" = 2,
+    "xlarge" = 4,
+    "2xlarge" = 8,
+    "4xlarge" = 16,
+    "8xlarge" = 32,
+    "12xlarge" = 48,
+    "16xlarge" = 64,
+    "24xlarge" = 96,
+    "32xlarge" = 128
+  )
+
+  # Extract size from instance type
+  parts <- strsplit(instance_type, "\\.")[[1]]
+  if (length(parts) < 2) {
+    stop(sprintf("Invalid instance type format: %s", instance_type))
+  }
+
+  size <- parts[2]
+  vcpus <- size_mapping[[size]]
+
+  if (is.null(vcpus)) {
+    stop(sprintf("Unknown instance size: %s", size))
+  }
+
+  return(vcpus)
 }
 
 #' Calculate task cost
@@ -407,10 +520,14 @@ ensure_environment <- function(region) {
     build_environment_image(env_hash, region)
   }
 
-  # Return both hash and image URI
+  # Get cluster name from config
+  cluster <- config$cluster %||% "starburst-cluster"
+
+  # Return environment info
   list(
     hash = env_hash,
-    image_uri = image_uri
+    image_uri = image_uri,
+    cluster = cluster
   )
 }
 
@@ -446,6 +563,21 @@ get_base_image_uri <- function(region) {
 
   sprintf("%s.dkr.ecr.%s.amazonaws.com/starburst-worker:%s",
           account_id, region, base_tag)
+}
+
+#' Get CPU architecture from instance type
+#'
+#' @param instance_type EC2 instance type (e.g., "c7g.xlarge", "c7i.xlarge")
+#' @return CPU architecture ("ARM64" or "X86_64")
+#' @keywords internal
+get_architecture_from_instance_type <- function(instance_type) {
+  # Graviton instances end with 'g' in the instance family (e.g., c7g, t4g, r7g)
+  # Intel/AMD instances use 'i', 'a', 'n', etc.
+  if (grepl("^[cmrt][0-9]+g\\.", instance_type)) {
+    return("ARM64")
+  } else {
+    return("X86_64")
+  }
 }
 
 #' Build base Docker image with common dependencies
@@ -517,26 +649,23 @@ build_base_image <- function(region) {
       stop("Failed to authenticate with ECR")
     }
 
-    # Build base image
+    # Build multi-platform base image
     ecr_uri <- sprintf("%s.dkr.ecr.%s.amazonaws.com/starburst-worker", account_id, region)
     image_tag <- sprintf("%s:%s", ecr_uri, base_tag)
-    cat_info(sprintf("   • Building base image: %s\n", image_tag))
+    cat_info(sprintf("   • Building multi-platform base image: %s\n", image_tag))
+    cat_info("   • Platforms: linux/amd64, linux/arm64\n")
 
-    build_cmd <- sprintf("docker build --platform linux/amd64 -t %s %s",
+    # Ensure buildx builder exists
+    buildx_setup_cmd <- "docker buildx create --name starburst-builder --use 2>/dev/null || docker buildx use starburst-builder"
+    system(buildx_setup_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
+
+    # Build and push multi-platform image
+    build_cmd <- sprintf("docker buildx build --platform linux/amd64,linux/arm64 -t %s --push %s",
                         shQuote(image_tag), shQuote(build_dir))
     build_result <- system(build_cmd)
 
     if (build_result != 0) {
-      stop("Docker build failed")
-    }
-
-    # Push base image
-    cat_info("   • Pushing base image to ECR...\n")
-    push_cmd <- sprintf("docker push %s", shQuote(image_tag))
-    push_result <- system(push_cmd)
-
-    if (push_result != 0) {
-      stop("Failed to push base image to ECR")
+      stop("Docker buildx build failed")
     }
 
     cat_success(sprintf("✓ Base image built and pushed: %s\n", image_tag))
@@ -695,24 +824,22 @@ build_environment_image <- function(tag, region, use_public = NULL) {
       stop("Failed to authenticate with ECR")
     }
 
-    # Build image
+    # Build multi-platform image
     image_tag <- sprintf("%s:%s", ecr_uri, tag)
-    cat_info(sprintf("   • Building image: %s\n", image_tag))
+    cat_info(sprintf("   • Building multi-platform image: %s\n", image_tag))
+    cat_info("   • Platforms: linux/amd64, linux/arm64\n")
 
-    build_cmd <- sprintf("docker build --platform linux/amd64 -t %s %s", shQuote(image_tag), shQuote(build_dir))
+    # Ensure buildx builder exists
+    buildx_setup_cmd <- "docker buildx create --name starburst-builder --use 2>/dev/null || docker buildx use starburst-builder"
+    system(buildx_setup_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
+
+    # Build and push multi-platform image
+    build_cmd <- sprintf("docker buildx build --platform linux/amd64,linux/arm64 -t %s --push %s",
+                        shQuote(image_tag), shQuote(build_dir))
     build_result <- system(build_cmd)
 
     if (build_result != 0) {
-      stop("Docker build failed")
-    }
-
-    # Push image
-    cat_info("   • Pushing image to ECR...\n")
-    push_cmd <- sprintf("docker push %s", shQuote(image_tag))
-    push_result <- system(push_cmd)
-
-    if (push_result != 0) {
-      stop("Failed to push image to ECR")
+      stop("Docker buildx build failed")
     }
 
     cat_success(sprintf("✓ Image built and pushed: %s\n", image_tag))
@@ -894,16 +1021,31 @@ get_or_create_task_definition <- function(plan) {
 
   cat_info(sprintf("     Container memory: %d MB\n", container_memory))
 
-  response <- ecs$register_task_definition(
+  # Build task definition parameters
+  task_def_params <- list(
     family = family_name,
     networkMode = "awsvpc",
-    requiresCompatibilities = list("FARGATE"),
     cpu = cpu_units,
     memory = memory_mb,
     executionRoleArn = execution_role_arn,
     taskRoleArn = task_role_arn,
     containerDefinitions = list(container_def)
   )
+
+  # Add launch type specific parameters
+  if (!is.null(plan$launch_type) && plan$launch_type == "EC2") {
+    task_def_params$requiresCompatibilities <- list("EC2")
+    task_def_params$runtimePlatform <- list(
+      cpuArchitecture = plan$architecture,
+      operatingSystemFamily = "LINUX"
+    )
+    cat_info(sprintf("     Launch type: EC2, Architecture: %s\n", plan$architecture))
+  } else {
+    task_def_params$requiresCompatibilities <- list("FARGATE")
+    cat_info("     Launch type: FARGATE\n")
+  }
+
+  response <- do.call(ecs$register_task_definition, task_def_params)
 
   task_def_arn <- response$taskDefinition$taskDefinitionArn
   cat_success(sprintf("✓ Task definition registered: %s\n", task_def_arn))
