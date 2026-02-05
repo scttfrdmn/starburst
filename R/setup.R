@@ -6,18 +6,26 @@
 #' @param force Force re-setup even if already configured
 #' @param use_public_base Use public base Docker images (default: TRUE).
 #'   Set to FALSE to build private base images in your ECR.
+#' @param ecr_image_ttl_days Number of days to keep Docker images in ECR (default: NULL = never delete).
+#'   AWS will automatically delete images older than this many days.
+#'   This prevents surprise costs if you stop using staRburst.
+#'   Recommended: 30 days for regular users, 7 days for occasional users.
+#'   When images are deleted, they will be rebuilt on next use (adds 3-5 min).
 #'
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' # Default: use public base images (faster setup)
+#' # Default: keep images forever (~$0.50/month idle cost)
 #' starburst_setup()
 #'
-#' # Use private base images
-#' starburst_setup(use_public_base = FALSE)
+#' # Auto-delete images after 30 days (saves money if you stop using it)
+#' starburst_setup(ecr_image_ttl_days = 30)
+#'
+#' # Use private base images with 7-day cleanup
+#' starburst_setup(use_public_base = FALSE, ecr_image_ttl_days = 7)
 #' }
-starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base = TRUE) {
+starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base = TRUE, ecr_image_ttl_days = NULL) {
   
   cat_header("⚡ staRburst Setup\n")
   
@@ -67,6 +75,16 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
   cat_info("\n[3/5] Setting up ECR repository...\n")
   repo <- create_ecr_repository("starburst-worker", region)
   cat_success(sprintf("✓ ECR repository created: %s\n", repo$repositoryUri))
+
+  # Set up ECR lifecycle policy for auto-cleanup
+  if (!is.null(ecr_image_ttl_days)) {
+    cat_info(sprintf("   • Setting ECR auto-cleanup policy (TTL: %d days)...\n", ecr_image_ttl_days))
+    create_ecr_lifecycle_policy(region, "starburst-worker", ecr_image_ttl_days)
+  } else {
+    cat_info("   • ECR auto-cleanup disabled (images kept indefinitely)\n")
+    cat_info("     Idle cost: ~$0.50/month for stored images\n")
+    cat_info("     To enable: starburst_setup(ecr_image_ttl_days = 30)\n")
+  }
   
   # Step 4: ECS Cluster
   cat_info("\n[4/5] Setting up ECS cluster...\n")
@@ -88,6 +106,7 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
     subnets = vpc_resources$subnets,
     security_groups = vpc_resources$security_groups,
     use_public_base = use_public_base,
+    ecr_image_ttl_days = ecr_image_ttl_days,
     setup_at = Sys.time()
   )
   
@@ -537,4 +556,106 @@ starburst_setup_ec2 <- function(region = "us-east-1",
   cat_info("       instance_type = \"c7g.xlarge\", use_spot = TRUE)\n")
 
   invisible(TRUE)
+}
+
+#' Clean up staRburst ECR images
+#'
+#' Manually delete Docker images from ECR to save storage costs.
+#' Images will be rebuilt on next use (adds 3-5 min delay).
+#'
+#' @param force Delete all images immediately, ignoring TTL
+#' @param region AWS region (default: from config)
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Delete images past TTL
+#' starburst_cleanup_ecr()
+#'
+#' # Delete all images immediately (save $0.50/month)
+#' starburst_cleanup_ecr(force = TRUE)
+#' }
+starburst_cleanup_ecr <- function(force = FALSE, region = NULL) {
+  if (!is_setup_complete()) {
+    cat_error("✗ staRburst not configured. Run starburst_setup() first.\n")
+    return(invisible(FALSE))
+  }
+
+  config <- get_starburst_config()
+  if (is.null(region)) {
+    region <- config$region
+  }
+
+  ecr <- get_ecr_client(region)
+  repo_name <- "starburst-worker"
+
+  cat_header("🧹 staRburst ECR Cleanup\n")
+
+  # List all images
+  tryCatch({
+    images <- ecr$list_images(repositoryName = repo_name)
+
+    if (length(images$imageIds) == 0) {
+      cat_info("✓ No images to clean up\n")
+      return(invisible(TRUE))
+    }
+
+    cat_info(sprintf("Found %d images in ECR\n", length(images$imageIds)))
+
+    # Get detailed info for each image
+    image_details <- ecr$describe_images(repositoryName = repo_name)$imageDetails
+
+    images_to_delete <- list()
+
+    for (img in image_details) {
+      image_tag <- if (length(img$imageTags) > 0) img$imageTags[[1]] else "untagged"
+      push_time <- img$imagePushedAt
+      age_days <- as.numeric(difftime(Sys.time(), push_time, units = "days"))
+      size_mb <- img$imageSizeInBytes / 1024 / 1024
+
+      if (force) {
+        cat_info(sprintf("  • %s (%.0f days old, %.1f MB) - WILL DELETE\n",
+                        image_tag, age_days, size_mb))
+        images_to_delete <- c(images_to_delete, list(list(imageTag = image_tag)))
+      } else if (!is.null(config$ecr_image_ttl_days) && age_days > config$ecr_image_ttl_days) {
+        cat_info(sprintf("  • %s (%.0f days old, %.1f MB) - EXPIRED\n",
+                        image_tag, age_days, size_mb))
+        images_to_delete <- c(images_to_delete, list(list(imageTag = image_tag)))
+      } else {
+        cat_info(sprintf("  • %s (%.0f days old, %.1f MB) - keeping\n",
+                        image_tag, age_days, size_mb))
+      }
+    }
+
+    if (length(images_to_delete) == 0) {
+      cat_success("\n✓ No images need cleanup\n")
+      return(invisible(TRUE))
+    }
+
+    # Confirm deletion
+    if (interactive() && !force) {
+      response <- readline(sprintf("\nDelete %d images? [y/n]: ", length(images_to_delete)))
+      if (tolower(response) != "y") {
+        cat_info("Cleanup cancelled\n")
+        return(invisible(FALSE))
+      }
+    }
+
+    # Delete images
+    cat_info(sprintf("\nDeleting %d images...\n", length(images_to_delete)))
+    ecr$batch_delete_image(
+      repositoryName = repo_name,
+      imageIds = images_to_delete
+    )
+
+    cat_success(sprintf("✓ Deleted %d images\n", length(images_to_delete)))
+    cat_info("  Images will be rebuilt on next use (adds 3-5 min)\n")
+
+    invisible(TRUE)
+
+  }, error = function(e) {
+    cat_error(sprintf("✗ Cleanup failed: %s\n", e$message))
+    invisible(FALSE)
+  })
 }

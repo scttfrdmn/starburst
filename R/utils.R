@@ -63,6 +63,110 @@ get_ec2_client <- function(region) {
   paws.compute::ec2(config = list(region = region))
 }
 
+#' Create ECR lifecycle policy to auto-delete old images
+#'
+#' @param region AWS region
+#' @param repository_name ECR repository name
+#' @param ttl_days Number of days to keep images (NULL = no auto-delete)
+#' @keywords internal
+create_ecr_lifecycle_policy <- function(region, repository_name, ttl_days = NULL) {
+  if (is.null(ttl_days)) {
+    return(invisible(NULL))
+  }
+
+  ecr <- get_ecr_client(region)
+
+  # Create lifecycle policy that deletes images older than ttl_days
+  # This runs automatically in AWS - no starburst needed
+  policy <- list(
+    rules = list(
+      list(
+        rulePriority = 1L,
+        description = sprintf("Auto-delete starburst images after %d days of no use", ttl_days),
+        selection = list(
+          tagStatus = "any",
+          countType = "sinceImagePushed",
+          countUnit = "days",
+          countNumber = as.integer(ttl_days)
+        ),
+        action = list(
+          type = "expire"
+        )
+      )
+    )
+  )
+
+  tryCatch({
+    ecr$put_lifecycle_policy(
+      repositoryName = repository_name,
+      lifecyclePolicyText = jsonlite::toJSON(policy, auto_unbox = TRUE)
+    )
+    cat_success(sprintf("✓ ECR auto-cleanup enabled: Images deleted after %d days\n", ttl_days))
+  }, error = function(e) {
+    cat_warning(sprintf("⚠ Failed to set ECR lifecycle policy: %s\n", e$message))
+  })
+}
+
+#' Check ECR image age and suggest/force rebuild
+#'
+#' @param region AWS region
+#' @param image_tag Image tag to check
+#' @param ttl_days TTL setting (NULL = no check)
+#' @param force_rebuild Force rebuild if past TTL
+#' @return TRUE if image is fresh or doesn't exist, FALSE if stale
+#' @keywords internal
+check_ecr_image_age <- function(region, image_tag, ttl_days = NULL, force_rebuild = FALSE) {
+  if (is.null(ttl_days)) {
+    return(TRUE)  # No TTL, always consider fresh
+  }
+
+  ecr <- get_ecr_client(region)
+  config <- get_starburst_config()
+  repo_name <- "starburst-worker"
+
+  # Get image details
+  image_exists <- tryCatch({
+    result <- ecr$describe_images(
+      repositoryName = repo_name,
+      imageIds = list(list(imageTag = image_tag))
+    )
+    length(result$imageDetails) > 0
+  }, error = function(e) {
+    FALSE
+  })
+
+  if (!image_exists) {
+    return(TRUE)  # Image doesn't exist, will be built
+  }
+
+  # Get image push timestamp
+  image_details <- ecr$describe_images(
+    repositoryName = repo_name,
+    imageIds = list(list(imageTag = image_tag))
+  )$imageDetails[[1]]
+
+  push_time <- image_details$imagePushedAt
+  age_days <- as.numeric(difftime(Sys.time(), push_time, units = "days"))
+
+  # Check if image is stale
+  if (age_days > ttl_days) {
+    if (force_rebuild) {
+      cat_warning(sprintf("⚠ Image is %.0f days old (TTL: %d days), rebuilding...\n",
+                         age_days, ttl_days))
+      return(FALSE)  # Signal rebuild needed
+    } else {
+      cat_warning(sprintf("⚠ Image is %.0f days old (TTL: %d days)\n", age_days, ttl_days))
+      cat_info("  AWS will auto-delete soon. Consider running a job to refresh.\n")
+      return(TRUE)  # Use existing but warn
+    }
+  } else {
+    days_remaining <- ttl_days - age_days
+    cat_info(sprintf("✓ Image age: %.0f days (%.0f days until auto-delete)\n",
+                    age_days, days_remaining))
+    return(TRUE)
+  }
+}
+
 #' Get Service Quotas client
 #'
 #' @param region AWS region
@@ -695,8 +799,22 @@ build_base_image <- function(region) {
   # Check if base image already exists
   if (check_ecr_image_exists(base_tag, region)) {
     base_uri <- get_base_image_uri(region)
-    cat_success(sprintf("✓ Base image already exists: %s\n", base_uri))
-    return(base_uri)
+
+    # Check image age if TTL is configured
+    ttl_days <- config$ecr_image_ttl_days
+    if (!is.null(ttl_days)) {
+      image_fresh <- check_ecr_image_age(region, base_tag, ttl_days, force_rebuild = FALSE)
+      if (!image_fresh) {
+        cat_info("   • Image expired, rebuilding...\n")
+        # Continue to rebuild below
+      } else {
+        cat_success(sprintf("✓ Base image already exists: %s\n", base_uri))
+        return(base_uri)
+      }
+    } else {
+      cat_success(sprintf("✓ Base image already exists: %s\n", base_uri))
+      return(base_uri)
+    }
   }
 
   # Create temporary build directory
