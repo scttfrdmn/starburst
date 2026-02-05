@@ -23,6 +23,7 @@ Imports:
     paws.storage,
     paws.management,
     paws.networking,
+    paws.security.identity,
     qs,
     uuid,
     renv,

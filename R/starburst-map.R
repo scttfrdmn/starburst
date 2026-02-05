@@ -7,6 +7,7 @@
 #' @param workers Number of parallel workers (default: 10)
 #' @param cpu CPU units per worker (1, 2, 4, 8, or 16)
 #' @param memory Memory per worker (e.g., "8GB")
+#' @param platform CPU architecture: "X86_64" (default) or "ARM64" (Graviton3, ~40% faster)
 #' @param region AWS region
 #' @param timeout Maximum runtime in seconds per task
 #' @param .progress Show progress bar (default: TRUE)
@@ -30,12 +31,14 @@
 #' )
 #' }
 starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
-                          region = NULL, timeout = 3600, .progress = TRUE, ...) {
+                          platform = "X86_64", region = NULL, timeout = 3600,
+                          .progress = TRUE, ...) {
 
   # Validate inputs
   validate_workers(workers)
   validate_cpu(cpu)
   validate_memory(memory)
+  validate_platform(platform)
 
   # Get configuration
   config <- get_starburst_config()
@@ -60,6 +63,7 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
     workers = workers,
     cpu = cpu,
     memory = memory,
+    platform = platform,
     region = region,
     timeout = timeout
   )
@@ -189,6 +193,7 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
     workers = workers,
     cpu = cpu,
     memory = memory,
+    platform = platform,
     region = region,
     timeout = timeout
   )

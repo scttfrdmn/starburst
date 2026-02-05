@@ -10,6 +10,7 @@ starburst_map(
   workers = 10,
   cpu = 4,
   memory = "8GB",
+  platform = "X86_64",
   region = NULL,
   timeout = 3600,
   .progress = TRUE,
@@ -26,6 +27,8 @@ starburst_map(
 \item{cpu}{CPU units per worker (1, 2, 4, 8, or 16)}
 
 \item{memory}{Memory per worker (e.g., "8GB")}
+
+\item{platform}{CPU architecture: "X86_64" (default) or "ARM64" (Graviton3, ~40% faster)}
 
 \item{region}{AWS region}
 

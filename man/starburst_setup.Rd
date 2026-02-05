@@ -4,18 +4,25 @@
 \alias{starburst_setup}
 \title{Setup staRburst}
 \usage{
-starburst_setup(region = "us-east-1", force = FALSE)
+starburst_setup(region = "us-east-1", force = FALSE, use_public_base = TRUE)
 }
 \arguments{
 \item{region}{AWS region (default: "us-east-1")}
 
 \item{force}{Force re-setup even if already configured}
+
+\item{use_public_base}{Use public base Docker images (default: TRUE).
+Set to FALSE to build private base images in your ECR.}
 }
 \description{
 One-time configuration to set up AWS resources for staRburst
 }
 \examples{
 \dontrun{
+# Default: use public base images (faster setup)
 starburst_setup()
+
+# Use private base images
+starburst_setup(use_public_base = FALSE)
 }
 }

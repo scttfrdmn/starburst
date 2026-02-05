@@ -4,7 +4,14 @@
 \alias{build_environment_image}
 \title{Build environment image}
 \usage{
-build_environment_image(tag, region)
+build_environment_image(tag, region, use_public = NULL)
+}
+\arguments{
+\item{tag}{Image tag}
+
+\item{region}{AWS region}
+
+\item{use_public}{Logical, use public ECR base image (default NULL = from config)}
 }
 \description{
 Build environment image
