@@ -869,12 +869,19 @@ get_or_create_task_definition <- function(plan) {
 
   # Create new task definition
   cat_info("   • Registering new task definition...\n")
+  cat_info(sprintf("     CPU: %s units, Memory: %s MB\n", cpu_units, memory_mb))
+
+  # For Fargate, container-level memory can be omitted if task-level memory is set
+  # But we'll include it to ensure proper resource allocation
+  container_memory <- as.integer(memory_mb)
 
   container_def <- list(
     name = "starburst-worker",
     image = plan$image_uri,
-    memory = as.integer(memory_mb),
+    cpu = 0,  # Not specifying container-level CPU for Fargate
+    memory = container_memory,
     essential = TRUE,
+    environment = list(),  # Empty environment variables
     logConfiguration = list(
       logDriver = "awslogs",
       options = list(
@@ -882,9 +889,10 @@ get_or_create_task_definition <- function(plan) {
         "awslogs-region" = plan$region,
         "awslogs-stream-prefix" = "starburst"
       )
-    ),
-    environment = list()  # Will be set per task
+    )
   )
+
+  cat_info(sprintf("     Container memory: %d MB\n", container_memory))
 
   response <- ecs$register_task_definition(
     family = family_name,
