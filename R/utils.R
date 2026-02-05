@@ -749,12 +749,15 @@ build_base_image <- function(region) {
     cat_info(sprintf("   • Building multi-platform base image: %s\n", image_tag))
     cat_info("   • Platforms: linux/amd64, linux/arm64\n")
 
-    # Ensure buildx builder exists
-    buildx_setup_cmd <- "docker buildx create --name starburst-builder --use 2>/dev/null || docker buildx use starburst-builder"
+    # Ensure buildx builder exists with docker-container driver (required for multi-platform)
+    buildx_setup_cmd <- "docker buildx create --name starburst-builder --driver docker-container --use 2>/dev/null || docker buildx use starburst-builder"
     system(buildx_setup_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
 
-    # Build and push multi-platform image
-    build_cmd <- sprintf("docker buildx build --platform linux/amd64,linux/arm64 -t %s --push %s",
+    # Bootstrap the builder
+    system("docker buildx inspect --bootstrap starburst-builder", ignore.stdout = TRUE, ignore.stderr = TRUE)
+
+    # Build and push multi-platform image with explicit builder (no cache for clean multi-platform build)
+    build_cmd <- sprintf("docker buildx build --builder starburst-builder --platform linux/amd64,linux/arm64 --no-cache -t %s --push %s",
                         shQuote(image_tag), shQuote(build_dir))
     build_result <- system(build_cmd)
 
@@ -923,12 +926,15 @@ build_environment_image <- function(tag, region, use_public = NULL) {
     cat_info(sprintf("   • Building multi-platform image: %s\n", image_tag))
     cat_info("   • Platforms: linux/amd64, linux/arm64\n")
 
-    # Ensure buildx builder exists
-    buildx_setup_cmd <- "docker buildx create --name starburst-builder --use 2>/dev/null || docker buildx use starburst-builder"
+    # Ensure buildx builder exists with docker-container driver (required for multi-platform)
+    buildx_setup_cmd <- "docker buildx create --name starburst-builder --driver docker-container --use 2>/dev/null || docker buildx use starburst-builder"
     system(buildx_setup_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
 
-    # Build and push multi-platform image
-    build_cmd <- sprintf("docker buildx build --platform linux/amd64,linux/arm64 -t %s --push %s",
+    # Bootstrap the builder
+    system("docker buildx inspect --bootstrap starburst-builder", ignore.stdout = TRUE, ignore.stderr = TRUE)
+
+    # Build and push multi-platform image with explicit builder (no cache for clean multi-platform build)
+    build_cmd <- sprintf("docker buildx build --builder starburst-builder --platform linux/amd64,linux/arm64 --no-cache -t %s --push %s",
                         shQuote(image_tag), shQuote(build_dir))
     build_result <- system(build_cmd)
 
