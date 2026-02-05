@@ -282,7 +282,25 @@ get_ec2_instance_price <- function(instance_type, use_spot = FALSE) {
     "t4g.medium" = 0.0336,
     "t4g.large" = 0.0672,
 
-    # Graviton4 (ARM64) - 8th gen - Best performance/price
+    # AMD 8th gen (x86_64) - BEST OVERALL PRICE/PERFORMANCE (Feb 2026)
+    "c8a.large" = 0.072,
+    "c8a.xlarge" = 0.144,
+    "c8a.2xlarge" = 0.288,
+    "c8a.4xlarge" = 0.576,
+    "c8a.8xlarge" = 1.152,
+    "c8a.12xlarge" = 1.728,
+    "c8a.16xlarge" = 2.304,
+    "c8a.24xlarge" = 3.456,
+    "c8a.32xlarge" = 4.608,
+    "r8a.large" = 0.1008,
+    "r8a.xlarge" = 0.2016,
+    "r8a.2xlarge" = 0.4032,
+    "r8a.4xlarge" = 0.8064,
+    "m8a.large" = 0.0816,
+    "m8a.xlarge" = 0.1632,
+    "m8a.2xlarge" = 0.3264,
+
+    # Graviton4 (ARM64) - 8th gen - Second best price/performance
     "c8g.large" = 0.076,
     "c8g.xlarge" = 0.152,
     "c8g.2xlarge" = 0.304,
@@ -645,8 +663,10 @@ get_architecture_from_instance_type <- function(instance_type) {
   #
   # Intel/AMD instances use other suffixes:
   # - 'i' = Intel (c7i, c8i)
-  # - 'a' = AMD (c7a, c6a, r7a, r6a, m7a, m6a)
+  # - 'a' = AMD (c8a, c7a, c6a - 8th/7th/6th gen)
   # - 'n' = Network optimized
+  #
+  # Best price/performance (Feb 2026): c8a > c8g > c7a
   if (grepl("^[cmrt][0-9]+g\\.", instance_type)) {
     return("ARM64")
   } else {
