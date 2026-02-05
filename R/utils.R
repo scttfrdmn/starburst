@@ -873,8 +873,8 @@ build_base_image <- function(region) {
     system(buildx_setup_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
 
     # Build and push multi-platform image (no cache for clean multi-platform build)
-    # Use BUILDX_BUILDER env var to force using the correct builder
-    build_cmd <- sprintf("BUILDX_BUILDER=starburst-builder docker buildx build --platform linux/amd64,linux/arm64 --no-cache -t %s --push %s",
+    # Use --builder flag to explicitly specify the builder (works from R's system())
+    build_cmd <- sprintf("docker buildx build --builder starburst-builder --platform linux/amd64,linux/arm64 --no-cache -t %s --push %s",
                         shQuote(image_tag), shQuote(build_dir))
     build_result <- system(build_cmd)
 
@@ -1049,8 +1049,8 @@ build_environment_image <- function(tag, region, use_public = NULL) {
     system(buildx_setup_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
 
     # Build and push multi-platform image (no cache for clean multi-platform build)
-    # Use BUILDX_BUILDER env var to force using the correct builder
-    build_cmd <- sprintf("BUILDX_BUILDER=starburst-builder docker buildx build --platform linux/amd64,linux/arm64 --no-cache -t %s --push %s",
+    # Use --builder flag to explicitly specify the builder (works from R's system())
+    build_cmd <- sprintf("docker buildx build --builder starburst-builder --platform linux/amd64,linux/arm64 --no-cache -t %s --push %s",
                         shQuote(image_tag), shQuote(build_dir))
     build_result <- system(build_cmd)
 
