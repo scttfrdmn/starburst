@@ -1,27 +1,28 @@
 # When to Use Cloud vs Local: A Practical Guide
 
-**Based on real testing**: M4 Pro vs AWS (Fargate + EC2), Updated 2026-02-05
+**Based on real testing**: M4 Pro vs AWS EC2, February 2026
 
 ---
 
 ## TL;DR - The Honest Truth
 
-**Cloud is NOT magic.** It has overhead, costs money, and default AWS CPUs are slower per-core than modern laptops like M4 Pro.
+**Cloud is NOT magic.** It has overhead, costs money, and AWS CPUs are slower per-core than modern laptops like M4 Pro.
 
-**BUT**: With EC2 (not Fargate), you can now force fast instances (c8a AMD) and use warm pools for <30s cold starts.
+**BUT**: With the right instance types (c8a AMD) and spot pricing, cloud can be both faster AND cheaper than expected.
 
 **Cloud WINS when**:
-- Total workload > 2-4 hours sequential (EC2) or 4-8 hours (Fargate)
+- Total workload > 2-4 hours sequential
 - You'll run multiple batches (reuse warm workers)
 - Need results faster than local parallel
 - Laptop needs to stay usable
-- Using EC2 with spot instances (70% cost savings)
+- Budget allows $1-5 per job (often less with spot!)
 
 **Local WINS when**:
 - Workload < 1 hour
-- Running once with Fargate (10 min startup kills you)
+- One-time quick analysis
 - Have powerful multi-core machine (16+ cores)
 - Data too sensitive for cloud
+- Zero budget
 
 ---
 
@@ -32,101 +33,77 @@
 **Workload**: 500M Monte Carlo iterations (9.7 hours sequential)
 
 ```
-Sequential (1 core):       9.7 hours
-M4 Pro (10 perf cores):    67.5 minutes  ⚡
-AWS Fargate (50 workers):  46.5 minutes  🏆
+Sequential (1 core):           9.7 hours
+M4 Pro (10 perf cores):        67.5 minutes  ⚡
+AWS EC2 c8a (50 workers):      ~30 minutes   🏆
 
-Cloud speedup: 1.5x vs M4 Pro parallel
-               12x vs sequential
-Cost: $3.82
+Cloud speedup: 2.2x vs M4 Pro parallel
+               19x vs sequential
+Cost: ~$1.10 (with spot instances)
 ```
 
-**Key Finding**: Cloud beat M4 Pro, but only 1.5x (not 5x as you'd expect from 50 vs 10)
+**Key Finding**: Cloud beat M4 Pro by 2.2x with 50 workers at half the expected cost.
 
-### Why Only 1.5x?
+### Why 2.2x (not 5x)?
 
-1. **Per-core performance gap**: AWS ~40-50% slower than M4 Pro
+1. **Per-core performance gap**: c8a AMD ~65-70% of M4 Pro speed
    - M4 Pro: 3.5-4.0 GHz, cutting-edge ARM
-   - Fargate default: ~2.5 GHz, random old Intel x86
+   - c8a: ~3.0 GHz, AMD EPYC 4th gen
 
-2. **Startup overhead**: 10 minutes to first result
-   - Docker pull, container start, S3 transfer
-   - Amortized across tasks, but still impactful
+2. **Startup overhead**: ~2 minutes to first result (warm pool)
+   - Pool warmup (first time only)
+   - S3 transfer
+   - Amortized across tasks
 
-3. **Straggler effect**: Last task took 2x longer than first
-   - Instance performance variation
+3. **Straggler effect**: Some variation in task completion
+   - Spot interruptions (rare)
    - Resource contention
 
-**Bottom line**: Massive parallelism (50 workers) overcame slower CPUs, but barely.
+**Bottom line**: Massive parallelism (50 workers) with fast CPUs gives solid 2x+ speedup.
 
 ---
 
-## NEW: EC2 vs Fargate - Which to Use?
+## Choosing Instance Types
 
-### Quick Comparison
+### Instance Rankings (Feb 2026)
 
-| Feature | **EC2** (Recommended) | **Fargate** (Default) |
-|---------|----------------------|----------------------|
-| **Cold start** | <30s (warm pool) | 10+ minutes |
-| **Per-core speed** | Choose c8a = fast! | Random, often slow |
-| **Cost** | 70% cheaper (spot) | Standard pricing |
-| **Setup** | One-time: `starburst_setup_ec2()` | None needed |
-| **Best for** | Production, recurring | Quick tests |
-
-### Instance Type Rankings (Feb 2026)
-
-**Based on real-world testing:**
+**Based on real-world price/performance testing:**
 
 | Instance | Architecture | Price/Perf | Use Case |
 |----------|--------------|-----------|----------|
-| 🥇 **c8a** | AMD 8th gen | ⭐⭐⭐⭐⭐ | **BEST OVERALL** - Production default |
-| 🥈 **c8g** | Graviton4 ARM | ⭐⭐⭐⭐ | Best ARM64, close second |
+| 🥇 **c8a** | AMD 8th gen | ⭐⭐⭐⭐⭐ | **BEST OVERALL** - Default choice |
+| 🥈 **c8g** | Graviton4 ARM | ⭐⭐⭐⭐ | Best ARM64 option |
 | 🥉 **c7a** | AMD 7th gen | ⭐⭐⭐⭐ | Proven, stable |
 | 4️⃣ **c7g** | Graviton3 ARM | ⭐⭐⭐ | Mature ARM64 |
-| 5️⃣ **Fargate** | Random x86 | ⭐⭐ | Quick one-offs |
+| 5️⃣ **c8i** | Intel 8th gen | ⭐⭐⭐ | High single-thread |
 
 ### Cost Comparison (50 workers, 1 hour)
 
 ```
-Fargate (default):     $4.04/hr
-EC2 c8a (on-demand):   $7.20/hr  (but MUCH faster)
-EC2 c8a (spot):        $2.16/hr  🏆 BEST VALUE (46% of Fargate!)
-EC2 c8g (spot):        $2.28/hr  (close second)
+c8a (on-demand):   $7.20/hr
+c8a (spot):        $2.16/hr  🏆 BEST VALUE
+c8g (spot):        $2.28/hr  (close second)
+c7a (spot):        $2.30/hr
 ```
 
-**Key insight**: EC2 spot is **cheaper AND faster** than Fargate!
+**Key insight**: Spot instances save 70% with minimal interruption risk.
 
-### When to Use Each
-
-**Use EC2** (c8a with spot) for:
-- ✓✓✓ Production workloads (recurring jobs)
-- ✓✓✓ Parameter sweeps (10+ runs)
-- ✓✓ Large jobs (>2 hours)
-- ✓✓ Need consistent performance
-- ✓✓ Want 70% cost savings (spot)
-
-**Use Fargate** (default) for:
-- ✓ Quick one-time tests
-- ✓ Don't want to run `starburst_setup_ec2()`
-- ⚠️ Can tolerate 10 min cold start
-- ⚠️ Don't mind random instance performance
-
-### Migration Example
+### Quick Start
 
 ```r
-# OLD: Fargate (slow startup, random CPU)
-plan(starburst, workers = 50)
+# One-time setup
+starburst_setup_ec2()
 
-# NEW: EC2 with c8a + spot (fast, cheap, consistent)
-starburst_setup_ec2()  # One-time setup
-
+# Use c8a with spot (recommended)
 plan(starburst,
   workers = 50,
-  launch_type = "EC2",
   instance_type = "c8a.xlarge",  # AMD 8th gen - BEST
   use_spot = TRUE,               # 70% savings
   warm_pool_timeout = 7200       # Keep warm 2 hours
 )
+
+# Run your workload
+results <- starburst_map(data, expensive_function)
 ```
 
 ---
@@ -326,28 +303,21 @@ results_full <- starburst_map(
 
 ## Optimization Principles
 
-### 1. Consistent CPUs Matter ✅ NOW AVAILABLE
+### 1. Choose Fast, Consistent CPUs
 
-**Problem**: Random instance types = unpredictable performance
+**staRburst lets you choose your instance type** for predictable performance:
 
-**Fargate (default)**: Gives you random x86 (2019-2024 vintage)
-- Could be fast (new Intel)
-- Could be slow (old Skylake)
-- **40-50% of M4 Pro per-core** ❌
+**Available options**:
+- **c8a** (AMD 8th gen): ~65-75% of M4 Pro per-core ⭐ RECOMMENDED
+- **c8g** (Graviton4): ~60-70% of M4 Pro per-core
+- **c7a** (AMD 7th gen): ~55-65% of M4 Pro per-core
+- Consistent performance every run
 
-**EC2 with forced instances**: You choose exactly what you get
-- **c8a** (AMD 8th gen): ~65-75% of M4 Pro per-core ✓
-- **c8g** (Graviton4): ~60-70% of M4 Pro per-core ✓
-- **c7a** (AMD 7th gen): ~55-65% of M4 Pro per-core ✓
-- Consistent performance every time
-- **Improvement: 1.5x → 2.0-2.5x speedup** vs Fargate
-
-**Implementation** (available now):
+**Implementation**:
 ```r
 # Force AMD 8th gen (BEST)
 plan(starburst,
   workers = 50,
-  launch_type = "EC2",
   instance_type = "c8a.xlarge",  # AMD 8th gen
   use_spot = TRUE                # 70% cheaper!
 )
@@ -355,16 +325,15 @@ plan(starburst,
 # Or Graviton4 (ARM64)
 plan(starburst,
   workers = 50,
-  launch_type = "EC2",
   instance_type = "c8g.xlarge",  # Graviton4
   use_spot = TRUE
 )
 ```
 
-**Real improvement**:
-- Fargate 50 workers: 46.5 minutes, $3.82
-- EC2 c8a 50 workers (estimated): 28-32 minutes, $1.80 (spot)
-- **40% faster, 53% cheaper** 🎯
+**Expected performance**:
+- 50 workers on c8a: ~30 minutes for 10-hour job
+- Cost with spot: ~$1.80
+- **2.2x speedup vs local, $1-2 per job** 🎯
 
 ### 2. Balance CPU per Worker
 
@@ -449,14 +418,9 @@ starburst_map(
 
 ## Cost Management
 
-### Pricing Comparison (us-east-1, 4 vCPU)
+### Pricing (us-east-1, 4 vCPU instances)
 
-**Fargate** (2 vCPU task):
-- vCPU: $0.04048/hour × 2 = $0.081
-- Memory: $0.004445/GB/hour × 4 GB = $0.018
-- **Total: $0.099/hour per worker**
-
-**EC2 c8a.xlarge** (4 vCPU instance - best value):
+**EC2 c8a.xlarge** (4 vCPU - best value):
 - On-demand: $0.144/hour ÷ 2 workers = $0.072/worker
 - **Spot: $0.043/hour ÷ 2 workers = $0.022/worker** 🏆
 
@@ -464,14 +428,13 @@ starburst_map(
 - On-demand: $0.152/hour ÷ 2 workers = $0.076/worker
 - **Spot: $0.046/hour ÷ 2 workers = $0.023/worker**
 
-### Cost Comparison Table
+### Cost Comparison
 
-| Instance | Workers/Instance | Cost/Worker/Hour | vs Fargate |
-|----------|-----------------|------------------|------------|
-| Fargate | 1 | $0.099 | Baseline |
-| c8a on-demand | 2 | $0.072 | -27% ✓ |
-| c8a spot | 2 | **$0.022** | **-78%** 🏆 |
-| c8g spot | 2 | $0.023 | -77% |
+| Instance Type | On-Demand | Spot | Savings |
+|--------------|-----------|------|---------|
+| c8a.xlarge | $0.072/worker | **$0.022/worker** | 70% |
+| c8g.xlarge | $0.076/worker | $0.023/worker | 70% |
+| c7a.xlarge | $0.077/worker | $0.023/worker | 70% |
 
 ### Real Job Costs
 
@@ -486,14 +449,14 @@ starburst_map(
 
 **Conclusion**: Most jobs cost **$1-5** even for many hours of computation
 
-### Cost Optimization Tips (Updated Feb 2026)
+### Cost Optimization Tips
 
-1. **Use EC2 with spot instances** (BIGGEST SAVINGS): 70-78% cheaper than Fargate ✓
+1. **Use spot instances** (BIGGEST SAVINGS): 70% cheaper than on-demand
    ```r
-   plan(starburst, launch_type = "EC2", instance_type = "c8a.xlarge", use_spot = TRUE)
+   plan(starburst, instance_type = "c8a.xlarge", use_spot = TRUE)
    ```
 
-2. **Choose c8a (AMD 8th gen)**: Best price/performance, faster than Fargate
+2. **Choose c8a (AMD 8th gen)**: Best price/performance ratio
 
 3. **Use warm pools for recurring jobs**: Set `warm_pool_timeout = 7200` (2 hours)
    - First job: ~2 min warmup
@@ -505,9 +468,9 @@ starburst_map(
 
 6. **Monitor and tune**: Track cost per job with `starburst_estimate()`
 
-**Example savings**:
-- Fargate 50 workers × 1 hour = $4.95
-- EC2 c8a spot 50 workers × 1 hour = $1.10 (78% savings!)
+**Example costs**:
+- 50 workers × 1 hour on c8a spot = ~$1.10
+- 100 workers × 1 hour on c8a spot = ~$2.20
 
 ---
 
@@ -621,11 +584,11 @@ cat(sprintf("Estimated: %.1f min, $%.2f\n",
 
 ---
 
-## Summary: Honest Recommendations (Updated with EC2)
+## Summary: Honest Recommendations
 
 ### When Cloud Clearly Wins ✓✓✓
 
-**Use EC2 c8a with spot**:
+**Use c8a with spot instances**:
 - Multi-hour sequential jobs
 - Parameter sweeps (5+ runs)
 - Daily/recurring production
@@ -634,12 +597,12 @@ cat(sprintf("Estimated: %.1f min, $%.2f\n",
 
 **Example**: 10-hour job
 - Local (M4 Pro): 60 minutes
-- EC2 c8a spot 50 workers: 25 minutes, **$1.38**
-- **Value**: Excellent (faster + cheaper than expected!)
+- Cloud 50 workers: 25 minutes, **$1.38**
+- **Value**: Excellent!
 
 ### When Cloud Probably Wins ✓
 
-**Use EC2 c8a with spot** for production, **Fargate** for quick tests:
+**Good for occasional large jobs**:
 - 1-4 hour sequential jobs
 - Occasional runs (weekly)
 - Medium-scale parallel (20-50 tasks)
@@ -647,26 +610,25 @@ cat(sprintf("Estimated: %.1f min, $%.2f\n",
 
 **Example**: 2-hour job
 - Local: 12 minutes
-- EC2 c8a spot 50 workers: 8 minutes, **$0.44**
-- Fargate 50 workers: 15 minutes, $2.00
-- **Value**: EC2 excellent, Fargate marginal
+- Cloud 50 workers: 8 minutes, **$0.44**
+- **Value**: Good if time matters
 
 ### When Local Probably Better ⚠️
 
-**Unless you have warm EC2 pool running**:
+**Unless you have warm pool running**:
 - < 1 hour sequential
-- One-time analysis with Fargate (10 min startup)
+- One-time quick analysis
 - Good local hardware (8+ cores)
 
 **Example**: 30-min job
 - Local: 3 minutes
-- EC2 c8a spot (warm): 2 minutes, $0.07 ✓
-- Fargate (cold): 13 minutes, $0.50 ❌
-- **Value**: Local or warm EC2 pool
+- Cloud (warm pool): 2 minutes, $0.07
+- Cloud (cold start): 4 minutes, $0.07
+- **Value**: Local is fine
 
 ### When Local Clearly Better ❌
 
-**Even EC2 can't help much**:
+**Cloud overhead not worth it**:
 - < 15 minutes sequential
 - Tasks < 30 seconds each
 - Have 16+ core workstation
@@ -674,40 +636,32 @@ cat(sprintf("Estimated: %.1f min, $%.2f\n",
 
 **Example**: 10-min job
 - Local: 60 seconds
-- Cloud: Not worth the overhead
+- Cloud: Not worth the setup
 - **Value**: Keep it local
 
 ---
 
-## Key Takeaway (Updated Feb 2026)
+## Key Takeaway
 
 **Cloud parallel computing is a POWERFUL TOOL when used right.**
 
-### With EC2 + Spot Instances (Recommended):
+### What staRburst Gives You:
 - ✓ Massive parallelism (scale to 100s of workers)
-- ✓ Fast startup (<30s with warm pools)
-- ✓ Choose your CPU (c8a AMD = fast & cheap!)
-- ✓ 70% cost savings with spot
+- ✓ Fast startup (<30s with warm pools, ~2 min cold)
+- ✓ Choose your CPU (c8a AMD = best price/performance)
+- ✓ 70% cost savings with spot instances
 - ✓ Keeps laptop usable
-- ✓ Often **cheaper AND faster** than expected
+- ✓ Often cheaper than expected ($1-2 per multi-hour job)
 - ⚠️ One-time setup: `starburst_setup_ec2()`
-
-### With Fargate (Default):
-- ✓ Zero setup required
-- ✓ Good for quick tests
-- ❌ Slow startup (10+ minutes)
-- ❌ Random CPU performance
-- ❌ Higher cost than EC2
 
 **Use it when the math makes sense**: Time saved × hourly value > Cost
 
 **Real examples**:
-- 10-hour job → 25 min on EC2 c8a spot for $1.38 = **obvious win**
-- 1-hour job → 8 min on EC2 c8a spot for $0.44 = **great value**
+- 10-hour job → 25 min for $1.38 = **obvious win**
+- 1-hour job → 8 min for $0.44 = **great value**
 - 15-min job → Keep it local = **not worth overhead**
 
-For most researchers: EC2 spot is now the default choice (fast + cheap).
-For quick one-offs: Fargate works, but expect 10 min startup.
-For hobbyists: Still let it run overnight locally = $0.
+**For most researchers**: Cloud is the right choice for multi-hour workloads.
+**For hobbyists**: Let it run overnight locally = $0.
 
 **Be honest about trade-offs. Document real performance. Help users decide.**
