@@ -38,6 +38,10 @@ plan.starburst <- function(strategy,
                            warm_pool_timeout = 3600,
                            ...) {
 
+  cat("DEBUG: plan.starburst() CALLED\n")
+  cat(sprintf("  workers=%s, launch_type=%s, instance_type=%s\n",
+              workers, launch_type, instance_type))
+
   # Validate inputs
   validate_workers(workers)
   validate_cpu(cpu)
@@ -212,15 +216,6 @@ plan.starburst <- function(strategy,
     )
   }
 
-  # Store backend in option so StarburstFuture can access it
-  options(starburst.current_backend = backend_env)
-  options(starburst.current_cluster_id = cluster_id)
-
-  # Attach backend as attribute to strategy (for potential direct access)
-  attr(strategy, "backend") <- backend_env
-  attr(strategy, "init") <- TRUE
-  attr(strategy, "cluster_id") <- cluster_id
-
   # Register cleanup on exit
   if (!is.null(backend_env)) {
     cleanup_handler <- function() {
@@ -232,6 +227,7 @@ plan.starburst <- function(strategy,
   }
 
   cat_success(sprintf("✓ Cluster ready: %s\n", cluster_id))
+  cat_info("DEBUG: About to call future::tweak()\n")
 
   # Create a tweaked strategy that knows about our backend
   # This tells future() to call future.starburst() when creating futures
@@ -244,6 +240,25 @@ plan.starburst <- function(strategy,
     region = region,
     timeout = timeout
   )
+
+  cat_info("DEBUG: tweak() returned successfully\n")
+
+  # Store backend in option so StarburstFuture can access it
+  options(starburst.current_backend = backend_env)
+  options(starburst.current_cluster_id = cluster_id)
+
+  # DEBUG
+  cat_info(sprintf("DEBUG: Setting backend in options (is.null: %s)\n",
+                   is.null(getOption("starburst.current_backend"))))
+
+  # Attach backend as attribute to tweaked strategy (for potential direct access)
+  attr(tweaked_strategy, "backend") <- backend_env
+  attr(tweaked_strategy, "init") <- TRUE
+  attr(tweaked_strategy, "cluster_id") <- cluster_id
+
+  # DEBUG
+  cat_info(sprintf("DEBUG: Backend attribute set (is.null: %s)\n",
+                   is.null(attr(tweaked_strategy, "backend"))))
 
   tweaked_strategy
 }
@@ -423,7 +438,4 @@ parse_memory <- function(memory) {
 #' results <- future_map(1:1000, expensive_function)
 #' }
 
-#' Starburst strategy marker
-#' @export
-starburst <- structure(function(...) {},
-                       class = c("starburst", "future", "function"))
+# Starburst marker now defined in StarburstBackend-class.R

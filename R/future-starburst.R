@@ -186,7 +186,6 @@ run.StarburstFuture <- function(future, ...) {
 #' @return Logical indicating if the future is resolved
 #' @export
 resolved.StarburstFuture <- function(future, ...) {
-
   # If already resolved, return TRUE
   if (future$state == "finished") {
     return(TRUE)
@@ -241,7 +240,6 @@ resolved.StarburstFuture <- function(future, ...) {
 #' @return A FutureResult object
 #' @export
 result.StarburstFuture <- function(future, ...) {
-
   # If already have result, return it
   if (!is.null(future$result_value)) {
     return(future$result_value)

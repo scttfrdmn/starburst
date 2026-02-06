@@ -12,6 +12,10 @@
   region = NULL,
   timeout = 3600,
   auto_quota_request = interactive(),
+  launch_type = "FARGATE",
+  instance_type = "c7g.xlarge",
+  use_spot = FALSE,
+  warm_pool_timeout = 3600,
   ...
 )
 }

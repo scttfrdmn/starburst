@@ -778,6 +778,47 @@ get_architecture_from_instance_type <- function(instance_type) {
   }
 }
 
+#' Get instance specifications (vCPUs, memory)
+#'
+#' @keywords internal
+get_instance_specs <- function(instance_type) {
+  # Common instance type specs
+  # Format: "family.size" -> c(vcpus, memory_gb)
+  specs_map <- list(
+    # C6a (AMD, 3rd gen EPYC)
+    "c6a.large" = c(2, 4),
+    "c6a.xlarge" = c(4, 8),
+    "c6a.2xlarge" = c(8, 16),
+    "c6a.4xlarge" = c(16, 32),
+    # C7a (AMD, 4th gen EPYC)
+    "c7a.large" = c(2, 4),
+    "c7a.xlarge" = c(4, 8),
+    "c7a.2xlarge" = c(8, 16),
+    "c7a.4xlarge" = c(16, 32),
+    # C7g (Graviton3)
+    "c7g.large" = c(2, 4),
+    "c7g.xlarge" = c(4, 8),
+    "c7g.2xlarge" = c(8, 16),
+    "c7g.4xlarge" = c(16, 32),
+    # C7i (Intel)
+    "c7i.large" = c(2, 4),
+    "c7i.xlarge" = c(4, 8),
+    "c7i.2xlarge" = c(8, 16),
+    "c7i.4xlarge" = c(16, 32)
+  )
+
+  if (!instance_type %in% names(specs_map)) {
+    stop(sprintf("Unknown instance type: %s. Supported types: %s",
+                 instance_type, paste(names(specs_map), collapse=", ")))
+  }
+
+  specs <- specs_map[[instance_type]]
+  list(
+    vcpus = specs[1],
+    memory_gb = specs[2]
+  )
+}
+
 #' Build base Docker image with common dependencies
 #'
 #' @keywords internal
@@ -1194,16 +1235,37 @@ get_or_create_task_definition <- function(plan) {
     for (task_def_arn in task_defs$taskDefinitionArns) {
       task_def <- ecs$describe_task_definition(taskDefinition = task_def_arn)$taskDefinition
 
-      # Check if CPU, memory, and image match
+      # Check if CPU, memory, image, and launch type match
       if (task_def$cpu == cpu_units &&
           task_def$memory == memory_mb &&
           length(task_def$containerDefinitions) > 0) {
 
+        # Check image
         container_def <- task_def$containerDefinitions[[1]]
-        if (container_def$image == plan$image_uri) {
-          cat_success(sprintf("✓ Using existing task definition: %s\n", task_def$taskDefinitionArn))
-          return(task_def$taskDefinitionArn)
+        if (container_def$image != plan$image_uri) {
+          next
         }
+
+        # Check launch type compatibility
+        launch_type <- plan$launch_type %||% "FARGATE"
+        compatibilities <- task_def$requiresCompatibilities %||% list()
+
+        if (!launch_type %in% compatibilities) {
+          next
+        }
+
+        # For EC2, also check runtimePlatform matches
+        if (launch_type == "EC2") {
+          expected_arch <- plan$architecture %||% "X86_64"
+          actual_arch <- task_def$runtimePlatform$cpuArchitecture %||% "X86_64"
+
+          if (actual_arch != expected_arch) {
+            next
+          }
+        }
+
+        cat_success(sprintf("✓ Using existing task definition: %s\n", task_def$taskDefinitionArn))
+        return(task_def$taskDefinitionArn)
       }
     }
   }, error = function(e) {
