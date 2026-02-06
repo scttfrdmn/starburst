@@ -16,6 +16,7 @@
   instance_type = "c7g.xlarge",
   use_spot = FALSE,
   warm_pool_timeout = 3600,
+  detached = FALSE,
   ...
 )
 }

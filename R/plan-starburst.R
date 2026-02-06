@@ -36,11 +36,22 @@ plan.starburst <- function(strategy,
                            instance_type = "c7g.xlarge",
                            use_spot = FALSE,
                            warm_pool_timeout = 3600,
+                           detached = FALSE,
                            ...) {
 
   cat("DEBUG: plan.starburst() CALLED\n")
   cat(sprintf("  workers=%s, launch_type=%s, instance_type=%s\n",
               workers, launch_type, instance_type))
+
+  # Guard against misuse of detached mode
+  if (detached) {
+    stop("Detached mode cannot be used with plan(). Use starburst_session() instead.\n\n",
+         "Example:\n",
+         "  session <- starburst_session(workers = 10)\n",
+         "  session$submit(quote(my_computation()))\n",
+         "  results <- session$collect()\n\n",
+         "See ?starburst_session for details.")
+  }
 
   # Validate inputs
   validate_workers(workers)
