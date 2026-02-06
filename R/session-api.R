@@ -272,7 +272,20 @@ submit_to_session <- function(session, expr, envir, substitute, globals, package
 
   # Substitute expression if needed
   if (substitute) {
-    expr <- substitute(expr)
+    expr_sub <- base::substitute(expr)
+    # If substitute returns a symbol 'expr', it means the argument was already
+    # evaluated (e.g., user passed quote(...)). In that case, use the value.
+    if (is.symbol(expr_sub) && identical(as.character(expr_sub), "expr")) {
+      # expr is already evaluated, check if it's a language object
+      if (!is.language(expr)) {
+        stop("When substitute=TRUE and passing an evaluated expression, ",
+             "it must be a language object (e.g., created with quote())")
+      }
+      # Use the evaluated expression as-is
+    } else {
+      # Use the substituted expression
+      expr <- expr_sub
+    }
   }
 
   # Auto-detect globals and packages
@@ -341,9 +354,9 @@ get_session_status <- function(session) {
     bucket = backend$bucket
   )
 
-  # Count by state
+  # Count by state (excluding bootstrap tasks)
   counts <- list(
-    total = length(statuses),
+    total = 0,
     pending = 0,
     claimed = 0,
     running = 0,
@@ -351,8 +364,17 @@ get_session_status <- function(session) {
     failed = 0
   )
 
-  for (status in statuses) {
+  for (task_id in names(statuses)) {
+    # Skip bootstrap tasks
+    if (grepl("^bootstrap-", task_id)) {
+      next
+    }
+
+    status <- statuses[[task_id]]
     state <- status$state
+
+    counts$total <- counts$total + 1
+
     if (state %in% names(counts)) {
       counts[[state]] <- counts[[state]] + 1
     }
@@ -385,6 +407,11 @@ collect_session_results <- function(session, wait, timeout) {
 
     # Collect completed results that we haven't collected yet
     for (task_id in names(statuses)) {
+      # Skip bootstrap tasks
+      if (grepl("^bootstrap-", task_id)) {
+        next
+      }
+
       status <- statuses[[task_id]]
 
       # Skip if not completed or already collected
