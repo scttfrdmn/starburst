@@ -961,22 +961,27 @@ get_base_image_source <- function(use_public = TRUE) {
 #' @param use_public Logical, use public ECR base image (default TRUE)
 #' @keywords internal
 ensure_base_image <- function(region, use_public = NULL) {
-  # Get preference from config or default to TRUE
+  # Get preference from config or default to FALSE (safer default)
   if (is.null(use_public)) {
     config <- get_starburst_config()
-    use_public <- config$use_public_base %||% TRUE
+    use_public <- config$use_public_base %||% FALSE
   }
 
   r_version <- paste0(R.version$major, ".", R.version$minor)
   base_tag <- sprintf("base-%s", r_version)
 
   if (use_public) {
-    # Use public base image (no build needed)
+    # Try public base image first, fall back to private if not available
     base_uri <- get_base_image_source(use_public = TRUE)
-    cat_info(sprintf("✓ Using public base image: %s\n", base_uri))
-    cat_info("   (Fast setup - no build required!)\n")
-    return(base_uri)
-  } else {
+    cat_info(sprintf("Trying public base image: %s\n", base_uri))
+
+    # For now, public images aren't published yet, so fall back
+    cat_warn("   Public base images not yet available\n")
+    cat_info("   Falling back to private base image build...\n")
+    use_public <- FALSE
+  }
+
+  if (!use_public) {
     # Use private base image (build if needed)
     if (!check_ecr_image_exists(base_tag, region)) {
       cat_info("📦 Base image not found in private ECR, building it now...\n")
