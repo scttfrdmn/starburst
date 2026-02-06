@@ -166,6 +166,20 @@ nbrOfWorkers.StarburstBackend <- function(backend, ...) {
 }
 
 
+#' List futures for StarburstBackend
+#'
+#' @param backend A StarburstBackend object
+#' @param ... Additional arguments
+#' @return List of futures (empty for this backend)
+#' @importFrom future listFutures
+#' @method listFutures StarburstBackend
+#' @export
+listFutures.StarburstBackend <- function(backend, ...) {
+  # We don't track futures in the backend, they're managed by the future package
+  list()
+}
+
+
 #' Launch a future on the Starburst backend
 #'
 #' @param backend A StarburstBackend object
