@@ -2,6 +2,7 @@
 #'
 #' Core S3 operations for managing detached session state
 #'
+#' @name session-state
 #' @keywords internal
 NULL
 

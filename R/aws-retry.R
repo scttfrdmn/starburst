@@ -2,6 +2,7 @@
 #'
 #' Centralized retry logic for AWS operations with exponential backoff
 #'
+#' @name aws-retry
 #' @keywords internal
 NULL
 

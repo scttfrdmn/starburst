@@ -1,5 +1,6 @@
 #' Utility functions for staRburst
 #'
+#' @name utils
 #' @keywords internal
 NULL
 

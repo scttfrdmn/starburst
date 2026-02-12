@@ -1,0 +1,13 @@
+linters: linters_with_defaults(
+    line_length_linter = line_length_linter(120),
+    object_name_linter = NULL,  # Allow different naming styles
+    cyclocomp_linter = NULL,    # Allow complex functions
+    commented_code_linter = NULL # Allow commented examples
+  )
+exclusions: list(
+    "inst/examples",
+    "tests/testthat",
+    "renv",
+    "data-raw"
+  )
+encoding: "UTF-8"

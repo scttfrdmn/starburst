@@ -2,6 +2,7 @@
 #'
 #' Backend initialization for detached session mode
 #'
+#' @name session-backend
 #' @keywords internal
 NULL
 

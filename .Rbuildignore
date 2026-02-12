@@ -16,3 +16,13 @@
 ^extracted$
 ^ARCHITECTURE\.md$
 ^ROADMAP\.md$
+^\.claude$
+^\.githooks$
+^benchmark.*\.R$
+^debug.*\.R$
+^test-.*\.R$
+^run-.*\.sh$
+^.*\.rds$
+^CHANGELOG\.md$
+^CONTRIBUTING\.md$
+^IMPLEMENTATION_SUMMARY\.md$

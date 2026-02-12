@@ -1,7 +1,7 @@
 Package: starburst
 Type: Package
 Title: Seamless AWS Cloud Bursting for Parallel R Workloads
-Version: 0.2.0
+Version: 0.3.0
 Authors@R: c(
     person("Scott", "Friedman", email = "help@starburst.ing", role = c("aut", "cre"))
     )
@@ -18,19 +18,16 @@ Depends:
     R (>= 4.0.0)
 Imports:
     future (>= 1.33.0),
-    furrr (>= 0.3.0),
+    globals,
     paws.compute,
     paws.storage,
     paws.management,
-    paws.networking,
     paws.security.identity,
     qs,
     uuid,
     renv,
     jsonlite,
     crayon,
-    cli,
-    rlang,
     digest,
     base64enc,
     processx

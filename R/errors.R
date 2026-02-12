@@ -2,6 +2,7 @@
 #'
 #' Improved error messages with context and solutions
 #'
+#' @name errors
 #' @keywords internal
 NULL
 
