@@ -21,8 +21,12 @@ main <- function() {
     library(paws.storage)
     library(qs)
 
-    # Create S3 client
-    s3 <- paws.storage::s3(config = list(region = region))
+    # Create S3 client with timeouts to prevent hanging
+    s3 <- paws.storage::s3(config = list(
+      region = region,
+      connect_timeout = 60,    # 60 seconds to establish connection
+      timeout = 300            # 5 minutes for operations
+    ))
 
     # Download task from S3
     task_key <- sprintf("tasks/%s.qs", task_id)
@@ -247,15 +251,29 @@ execute_task_content <- function(task) {
       }
     }
 
-    # Evaluate expression
-    result_value <- eval(task$expr, envir = exec_env)
-
-    result <- list(
-      error = FALSE,
-      value = result_value,
-      stdout = "",
-      conditions = list()
-    )
+    # Evaluate expression with error handling
+    result <- tryCatch({
+      result_value <- eval(task$expr, envir = exec_env)
+      list(
+        error = FALSE,
+        value = result_value,
+        stdout = "",
+        conditions = list()
+      )
+    }, error = function(e) {
+      # Capture error for debugging
+      list(
+        error = TRUE,
+        message = e$message,
+        value = NULL,
+        stdout = "",
+        conditions = list(list(
+          type = "error",
+          message = e$message,
+          call = deparse(e$call)
+        ))
+      )
+    })
 
   } else {
     stop("Unknown task format - neither chunk nor expr found")

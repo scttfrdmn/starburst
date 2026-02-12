@@ -39,7 +39,6 @@ plan.starburst <- function(strategy,
                            detached = FALSE,
                            ...) {
 
-  cat("DEBUG: plan.starburst() CALLED\n")
   cat(sprintf("  workers=%s, launch_type=%s, instance_type=%s\n",
               workers, launch_type, instance_type))
 
@@ -238,7 +237,6 @@ plan.starburst <- function(strategy,
   }
 
   cat_success(sprintf("✓ Cluster ready: %s\n", cluster_id))
-  cat_info("DEBUG: About to call future::tweak()\n")
 
   # Create a tweaked strategy that knows about our backend
   # This tells future() to call future.starburst() when creating futures
@@ -252,24 +250,15 @@ plan.starburst <- function(strategy,
     timeout = timeout
   )
 
-  cat_info("DEBUG: tweak() returned successfully\n")
 
   # Store backend in option so StarburstFuture can access it
   options(starburst.current_backend = backend_env)
   options(starburst.current_cluster_id = cluster_id)
 
-  # DEBUG
-  cat_info(sprintf("DEBUG: Setting backend in options (is.null: %s)\n",
-                   is.null(getOption("starburst.current_backend"))))
-
   # Attach backend as attribute to tweaked strategy (for potential direct access)
   attr(tweaked_strategy, "backend") <- backend_env
   attr(tweaked_strategy, "init") <- TRUE
   attr(tweaked_strategy, "cluster_id") <- cluster_id
-
-  # DEBUG
-  cat_info(sprintf("DEBUG: Backend attribute set (is.null: %s)\n",
-                   is.null(attr(tweaked_strategy, "backend"))))
 
   tweaked_strategy
 }

@@ -893,13 +893,19 @@ build_base_image <- function(region) {
     token_parts <- strsplit(decoded_token, ":")[[1]]
     password <- token_parts[2]
 
-    # Docker login
-    login_cmd <- sprintf("echo %s | docker login --username AWS --password-stdin %s",
-                        shQuote(password), token_data$proxyEndpoint)
-    login_result <- system(login_cmd, ignore.stdout = TRUE, ignore.stderr = FALSE)
+    # Docker login - use temp file to avoid exposing password in process list
+    temp_pw_file <- tempfile(fileext = ".txt")
+    on.exit(unlink(temp_pw_file), add = TRUE)
+    writeLines(password, temp_pw_file)
+
+    # Pass password via stdin from file (more secure than echo)
+    login_cmd <- sprintf("docker login --username AWS --password-stdin %s < %s",
+                        shQuote(token_data$proxyEndpoint), shQuote(temp_pw_file))
+    login_result <- system(login_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
 
     if (login_result != 0) {
-      stop("Failed to authenticate with ECR")
+      stop(sprintf("Failed to authenticate with ECR for account %s in region %s",
+                  account_id, region))
     }
 
     # Build multi-platform base image
@@ -1075,13 +1081,19 @@ build_environment_image <- function(tag, region, use_public = NULL) {
     token_parts <- strsplit(decoded_token, ":")[[1]]
     password <- token_parts[2]
 
-    # Docker login
-    login_cmd <- sprintf("echo %s | docker login --username AWS --password-stdin %s",
-                        shQuote(password), token_data$proxyEndpoint)
-    login_result <- system(login_cmd, ignore.stdout = TRUE, ignore.stderr = FALSE)
+    # Docker login - use temp file to avoid exposing password in process list
+    temp_pw_file <- tempfile(fileext = ".txt")
+    on.exit(unlink(temp_pw_file), add = TRUE)
+    writeLines(password, temp_pw_file)
+
+    # Pass password via stdin from file (more secure than echo)
+    login_cmd <- sprintf("docker login --username AWS --password-stdin %s < %s",
+                        shQuote(token_data$proxyEndpoint), shQuote(temp_pw_file))
+    login_result <- system(login_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
 
     if (login_result != 0) {
-      stop("Failed to authenticate with ECR")
+      stop(sprintf("Failed to authenticate with ECR for account %s in region %s",
+                  account_id, region))
     }
 
     # Build multi-platform image
