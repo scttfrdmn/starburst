@@ -351,8 +351,16 @@ register_cleanup <- function(evaluator) {
 # Helper functions
 
 validate_workers <- function(workers) {
-  if (!is.numeric(workers) || workers < 1 || workers > 10000) {
-    stop("workers must be between 1 and 10000")
+  if (!is.numeric(workers) || workers < 1) {
+    stop("workers must be a positive number")
+  }
+  if (workers > 500) {
+    stop(sprintf(
+      paste0("Workers must be <= 500 (requested: %d)\n",
+             "For higher limits, contact AWS support for quota increases.\n",
+             "See: https://docs.aws.amazon.com/servicequotas/"),
+      workers
+    ))
   }
 }
 

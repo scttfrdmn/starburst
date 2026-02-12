@@ -67,55 +67,105 @@ create_session_manifest <- function(session_id, backend) {
   invisible(NULL)
 }
 
-#' Update session manifest
+#' Update session manifest atomically
+#'
+#' Uses S3 ETags for optimistic locking to prevent race conditions.
 #'
 #' @param session_id Session identifier
 #' @param updates Named list of fields to update
 #' @param region AWS region
 #' @param bucket S3 bucket
-#' @return Invisibly returns NULL
+#' @param max_retries Maximum number of retry attempts (default: 3)
+#' @return Invisibly returns updated manifest
 #' @keywords internal
-update_session_manifest <- function(session_id, updates, region, bucket) {
+update_session_manifest <- function(session_id, updates, region, bucket, max_retries = 3) {
   s3 <- get_s3_client(region)
   manifest_key <- sprintf("sessions/%s/manifest.qs", session_id)
 
-  # Download current manifest
-  temp_file <- tempfile(fileext = ".qs")
-  on.exit(unlink(temp_file), add = TRUE)
+  last_error <- NULL
 
-  s3$download_file(
-    Bucket = bucket,
-    Key = manifest_key,
-    Filename = temp_file
-  )
+  for (attempt in seq_len(max_retries)) {
+    tryCatch({
+      # 1. Get current manifest WITH ETag
+      temp_file <- tempfile(fileext = ".qs")
+      on.exit(unlink(temp_file), add = TRUE)
 
-  manifest <- qs::qread(temp_file)
+      # Get object with retry logic
+      response <- with_s3_retry(
+        {
+          s3$get_object(
+            Bucket = bucket,
+            Key = manifest_key
+          )
+        },
+        max_attempts = 3,
+        operation_name = "S3 GetObject (manifest)"
+      )
 
-  # Apply updates
-  for (name in names(updates)) {
-    if (name == "stats") {
-      # Update stats fields
-      for (stat_name in names(updates$stats)) {
-        manifest$stats[[stat_name]] <- updates$stats[[stat_name]]
+      # Extract ETag for conditional write
+      etag <- response$ETag
+
+      # Download object body
+      writeBin(response$Body, temp_file)
+      manifest <- qs::qread(temp_file)
+
+      # 2. Apply updates
+      for (name in names(updates)) {
+        if (name == "stats") {
+          # Update stats fields
+          for (stat_name in names(updates$stats)) {
+            manifest$stats[[stat_name]] <- updates$stats[[stat_name]]
+          }
+        } else {
+          manifest[[name]] <- updates[[name]]
+        }
       }
-    } else {
-      manifest[[name]] <- updates[[name]]
-    }
+
+      # Update last_activity
+      manifest$last_activity <- Sys.time()
+
+      # 3. Save updated manifest
+      qs::qsave(manifest, temp_file)
+
+      # 4. Upload ATOMICALLY with conditional write
+      # This only succeeds if ETag matches (i.e., object hasn't changed)
+      s3$put_object(
+        Bucket = bucket,
+        Key = manifest_key,
+        Body = temp_file,
+        IfMatch = etag  # Conditional write - only if unchanged
+      )
+
+      # Success - return updated manifest
+      return(invisible(manifest))
+
+    }, error = function(e) {
+      last_error <<- e
+
+      # Check if error is due to ETag mismatch (precondition failed)
+      if (grepl("PreconditionFailed|412", e$message, ignore.case = TRUE)) {
+        # Another update happened concurrently, retry
+        if (attempt < max_retries) {
+          # Exponential backoff with jitter
+          delay <- runif(1, 0.1, 0.5) * (2 ^ (attempt - 1))
+          cat_warn(sprintf("  ⚠ Concurrent update detected (attempt %d/%d), retrying in %.2fs...\n",
+                          attempt, max_retries, delay))
+          Sys.sleep(delay)
+          # Continue to next iteration
+        } else {
+          # Exhausted retries
+          stop(sprintf("Failed to update manifest after %d retries due to concurrent modifications",
+                      max_retries))
+        }
+      } else {
+        # Non-retryable error - fail immediately
+        stop(e)
+      }
+    })
   }
 
-  # Update last_activity
-  manifest$last_activity <- Sys.time()
-
-  # Save updated manifest
-  qs::qsave(manifest, temp_file)
-
-  s3$put_object(
-    Bucket = bucket,
-    Key = manifest_key,
-    Body = temp_file
-  )
-
-  invisible(NULL)
+  # Should only reach here if all retries exhausted
+  stop(last_error)
 }
 
 #' Get session manifest from S3

@@ -255,8 +255,8 @@ create_session_object <- function(backend) {
   }
 
   # Cleanup method
-  session$cleanup <- function() {
-    cleanup_session(session)
+  session$cleanup <- function(stop_workers = TRUE, force = FALSE) {
+    cleanup_session(session, stop_workers, force)
   }
 
   class(session) <- c("StarburstSession", "environment")
@@ -493,22 +493,184 @@ extend_session_timeout <- function(session, seconds) {
 
 #' Cleanup session
 #'
+#' @param session Session object
+#' @param stop_workers Stop running ECS tasks (default TRUE)
+#' @param force Delete S3 files (default FALSE)
 #' @keywords internal
-cleanup_session <- function(session) {
+cleanup_session <- function(session, stop_workers = TRUE, force = FALSE) {
   backend <- session$backend
+  session_id <- backend$session_id
 
-  cat_info(sprintf("🧹 Cleaning up session: %s\n", backend$session_id))
+  cat_info(sprintf("🧹 Cleaning up session: %s\n", session_id))
 
-  # Stop any running tasks (optional - they will time out naturally)
-  # For now, just mark session as cleaned up
+  # 1. Stop all running ECS tasks
+  if (stop_workers) {
+    tryCatch({
+      ecs <- get_ecs_client(backend$region)
 
-  # Could delete S3 files if desired
-  # For safety, we'll leave them for manual cleanup
+      # List all tasks in the cluster with our session tag
+      tasks_response <- ecs$list_tasks(
+        cluster = backend$cluster_name,
+        desiredStatus = "RUNNING"
+      )
 
-  cat_success("✓ Session marked for cleanup\n")
-  cat_info("   Workers will self-terminate after idle timeout\n")
-  cat_info("   S3 files remain available for recovery\n")
+      if (length(tasks_response$taskArns) > 0) {
+        # Describe tasks to filter by session ID
+        tasks_detail <- ecs$describe_tasks(
+          cluster = backend$cluster_name,
+          tasks = tasks_response$taskArns
+        )
 
+        stopped_count <- 0
+        for (task in tasks_detail$tasks) {
+          # Check if this task belongs to our session (via environment variables)
+          task_session_id <- NULL
+          if (!is.null(task$overrides) && !is.null(task$overrides$containerOverrides)) {
+            for (container in task$overrides$containerOverrides) {
+              if (!is.null(container$environment)) {
+                for (env_var in container$environment) {
+                  # Check for TASK_ID that matches our session pattern
+                  if (env_var$name == "TASK_ID" && grepl(session_id, env_var$value)) {
+                    task_session_id <- session_id
+                    break
+                  }
+                }
+              }
+              if (!is.null(task_session_id)) break
+            }
+          }
+
+          # Stop tasks belonging to this session
+          if (!is.null(task_session_id)) {
+            tryCatch({
+              ecs$stop_task(
+                cluster = backend$cluster_name,
+                task = task$taskArn,
+                reason = sprintf("Session cleanup: %s", session_id)
+              )
+              stopped_count <- stopped_count + 1
+            }, error = function(e) {
+              cat_warn(sprintf("  ⚠ Failed to stop task: %s\n", e$message))
+            })
+          }
+        }
+
+        if (stopped_count > 0) {
+          cat_success(sprintf("  ✓ Stopped %d workers\n", stopped_count))
+        } else {
+          cat_info("  ℹ No running workers found for this session\n")
+        }
+      } else {
+        cat_info("  ℹ No running workers found\n")
+      }
+    }, error = function(e) {
+      cat_warn(sprintf("  ⚠ Failed to stop workers: %s\n", e$message))
+    })
+  } else {
+    cat_info("  ℹ Workers not stopped (stop_workers = FALSE)\n")
+  }
+
+  # 2. Delete S3 session files (if force = TRUE)
+  if (force) {
+    tryCatch({
+      s3 <- get_s3_client(backend$region)
+      prefix <- sprintf("sessions/%s/", session_id)
+
+      # List all objects under session prefix
+      result <- s3$list_objects_v2(
+        Bucket = backend$bucket,
+        Prefix = prefix
+      )
+
+      if (length(result$Contents) > 0) {
+        # Delete in batches of 1000 (S3 limit)
+        object_keys <- sapply(result$Contents, function(x) x$Key)
+
+        total_deleted <- 0
+        for (i in seq(1, length(object_keys), by = 1000)) {
+          batch <- object_keys[i:min(i + 999, length(object_keys))]
+
+          s3$delete_objects(
+            Bucket = backend$bucket,
+            Delete = list(
+              Objects = lapply(batch, function(k) list(Key = k))
+            )
+          )
+          total_deleted <- total_deleted + length(batch)
+        }
+
+        # Verify deletion
+        Sys.sleep(2)  # S3 eventual consistency
+        verify_result <- s3$list_objects_v2(
+          Bucket = backend$bucket,
+          Prefix = prefix
+        )
+
+        remaining <- length(verify_result$Contents)
+        if (remaining > 0) {
+          cat_warn(sprintf("  ⚠ Warning: %d objects remain after cleanup\n", remaining))
+        } else {
+          cat_success(sprintf("  ✓ Deleted %d S3 objects\n", total_deleted))
+        }
+      } else {
+        cat_info("  ℹ No S3 files found to delete\n")
+      }
+
+      # Also delete task files
+      tasks_prefix <- "tasks/"
+      tasks_result <- s3$list_objects_v2(
+        Bucket = backend$bucket,
+        Prefix = tasks_prefix
+      )
+
+      if (length(tasks_result$Contents) > 0) {
+        # Filter task files for this session
+        session_task_keys <- sapply(tasks_result$Contents, function(obj) {
+          # Task files are named with session ID in the task ID
+          if (grepl(session_id, obj$Key)) {
+            obj$Key
+          } else {
+            NULL
+          }
+        })
+        session_task_keys <- Filter(Negate(is.null), session_task_keys)
+
+        if (length(session_task_keys) > 0) {
+          s3$delete_objects(
+            Bucket = backend$bucket,
+            Delete = list(
+              Objects = lapply(session_task_keys, function(k) list(Key = k))
+            )
+          )
+          cat_success(sprintf("  ✓ Deleted %d task files\n", length(session_task_keys)))
+        }
+      }
+    }, error = function(e) {
+      cat_warn(sprintf("  ⚠ S3 cleanup failed: %s\n", e$message))
+    })
+  } else {
+    cat_info("  ℹ S3 files preserved (use force = TRUE to delete)\n")
+  }
+
+  # 3. Mark session as terminated in manifest (if not force deleting)
+  if (!force) {
+    tryCatch({
+      update_session_manifest(
+        session_id,
+        list(
+          state = "terminated",
+          terminated_at = Sys.time()
+        ),
+        backend$region,
+        backend$bucket
+      )
+      cat_success("  ✓ Session marked as terminated\n")
+    }, error = function(e) {
+      # Silently fail if manifest already deleted or inaccessible
+    })
+  }
+
+  cat_success("✓ Cleanup complete\n")
   invisible(NULL)
 }
 

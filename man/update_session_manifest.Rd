@@ -2,9 +2,9 @@
 % Please edit documentation in R/session-state.R
 \name{update_session_manifest}
 \alias{update_session_manifest}
-\title{Update session manifest}
+\title{Update session manifest atomically}
 \usage{
-update_session_manifest(session_id, updates, region, bucket)
+update_session_manifest(session_id, updates, region, bucket, max_retries = 3)
 }
 \arguments{
 \item{session_id}{Session identifier}
@@ -14,11 +14,13 @@ update_session_manifest(session_id, updates, region, bucket)
 \item{region}{AWS region}
 
 \item{bucket}{S3 bucket}
+
+\item{max_retries}{Maximum number of retry attempts (default: 3)}
 }
 \value{
-Invisibly returns NULL
+Invisibly returns updated manifest
 }
 \description{
-Update session manifest
+Uses S3 ETags for optimistic locking to prevent race conditions.
 }
 \keyword{internal}

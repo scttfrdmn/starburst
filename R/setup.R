@@ -382,14 +382,20 @@ create_ecr_repository <- function(repo_name, region) {
   ecr <- get_ecr_client(region)
   
   tryCatch({
-    response <- ecr$create_repository(
-      repositoryName = repo_name,
-      imageTagMutability = "MUTABLE",
-      imageScanningConfiguration = list(
-        scanOnPush = TRUE
-      )
+    response <- with_ecr_retry(
+      {
+        ecr$create_repository(
+          repositoryName = repo_name,
+          imageTagMutability = "MUTABLE",
+          imageScanningConfiguration = list(
+            scanOnPush = TRUE
+          )
+        )
+      },
+      max_attempts = 3,
+      operation_name = "ECR CreateRepository"
     )
-    
+
     response$repository
     
   }, error = function(e) {

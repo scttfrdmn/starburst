@@ -4,7 +4,14 @@
 \alias{cleanup_session}
 \title{Cleanup session}
 \usage{
-cleanup_session(session)
+cleanup_session(session, stop_workers = TRUE, force = FALSE)
+}
+\arguments{
+\item{session}{Session object}
+
+\item{stop_workers}{Stop running ECS tasks (default TRUE)}
+
+\item{force}{Delete S3 files (default FALSE)}
 }
 \description{
 Cleanup session

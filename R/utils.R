@@ -3,6 +3,44 @@
 #' @keywords internal
 NULL
 
+#' Execute system command safely (no shell injection)
+#'
+#' @param command Command to execute (must be in whitelist)
+#' @param args Character vector of arguments
+#' @param allowed_commands Commands allowed to be executed
+#' @param stdin Optional input to pass to stdin
+#' @param ... Additional arguments passed to processx::run()
+#' @return Result from processx::run()
+#' @keywords internal
+safe_system <- function(command,
+                       args = character(),
+                       allowed_commands = c("docker", "aws", "uname", "sysctl", "cat", "nproc"),
+                       stdin = NULL,
+                       ...) {
+  # Validate command whitelist
+  if (!command %in% allowed_commands) {
+    stop(sprintf("Command not in whitelist: %s. Allowed: %s",
+                 command, paste(allowed_commands, collapse = ", ")))
+  }
+
+  # Use processx - automatically escapes, no shell
+  result <- processx::run(
+    command = command,
+    args = args,
+    stdin = stdin,
+    error_on_status = FALSE,
+    ...
+  )
+
+  if (result$status != 0) {
+    stop(sprintf("Command '%s %s' failed (exit code %d):\n%s",
+                 command, paste(args, collapse = " "),
+                 result$status, result$stderr))
+  }
+
+  result
+}
+
 #' Check AWS credentials
 #'
 #' @return Logical indicating if credentials are valid
@@ -826,10 +864,11 @@ build_base_image <- function(region) {
   cat_info("🐳 Building staRburst base image...\n")
 
   # Validate Docker is installed
-  docker_check <- system2("docker", "--version", stdout = TRUE, stderr = TRUE)
-  if (attr(docker_check, "status") != 0 && !is.null(attr(docker_check, "status"))) {
+  tryCatch({
+    safe_system("docker", c("--version"), stdout = TRUE, stderr = TRUE)
+  }, error = function(e) {
     stop("Docker is not installed or not accessible. Please install Docker: https://docs.docker.com/get-docker/")
-  }
+  })
 
   # Get configuration
   config <- get_starburst_config()
@@ -893,20 +932,18 @@ build_base_image <- function(region) {
     token_parts <- strsplit(decoded_token, ":")[[1]]
     password <- token_parts[2]
 
-    # Docker login - use temp file to avoid exposing password in process list
-    temp_pw_file <- tempfile(fileext = ".txt")
-    on.exit(unlink(temp_pw_file), add = TRUE)
-    writeLines(password, temp_pw_file)
-
-    # Pass password via stdin from file (more secure than echo)
-    login_cmd <- sprintf("docker login --username AWS --password-stdin %s < %s",
-                        shQuote(token_data$proxyEndpoint), shQuote(temp_pw_file))
-    login_result <- system(login_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
-
-    if (login_result != 0) {
-      stop(sprintf("Failed to authenticate with ECR for account %s in region %s",
-                  account_id, region))
-    }
+    # Docker login - pass password via stdin (secure, no shell exposure)
+    login_result <- tryCatch({
+      safe_system(
+        "docker",
+        c("login", "--username", "AWS", "--password-stdin", token_data$proxyEndpoint),
+        stdin = password
+      )
+      TRUE
+    }, error = function(e) {
+      stop(sprintf("Failed to authenticate with ECR for account %s in region %s: %s",
+                  account_id, region, e$message))
+    })
 
     # Build multi-platform base image
     ecr_uri <- sprintf("%s.dkr.ecr.%s.amazonaws.com/starburst-worker", account_id, region)
@@ -916,18 +953,35 @@ build_base_image <- function(region) {
 
     # Ensure buildx builder exists with docker-container driver (required for multi-platform)
     # Per Docker docs: use --bootstrap flag and set as default with --use
-    buildx_setup_cmd <- "docker buildx create --name starburst-builder --driver docker-container --bootstrap --use 2>/dev/null || docker buildx use starburst-builder"
-    system(buildx_setup_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
+    # Try to create builder, if it exists, use it
+    tryCatch({
+      safe_system(
+        "docker",
+        c("buildx", "create", "--name", "starburst-builder",
+          "--driver", "docker-container", "--bootstrap", "--use"),
+        stdout = FALSE, stderr = FALSE
+      )
+    }, error = function(e) {
+      # Builder might already exist, try to use it
+      tryCatch({
+        safe_system("docker", c("buildx", "use", "starburst-builder"),
+                   stdout = FALSE, stderr = FALSE)
+      }, error = function(e2) {
+        cat_warn("Warning: Failed to setup buildx builder, will try default\n")
+      })
+    })
 
     # Build and push multi-platform image (no cache for clean multi-platform build)
-    # Use --builder flag to explicitly specify the builder (works from R's system())
-    build_cmd <- sprintf("docker buildx build --builder starburst-builder --platform linux/amd64,linux/arm64 --no-cache -t %s --push %s",
-                        shQuote(image_tag), shQuote(build_dir))
-    build_result <- system(build_cmd)
-
-    if (build_result != 0) {
-      stop("Docker buildx build failed")
-    }
+    safe_system(
+      "docker",
+      c("buildx", "build",
+        "--builder", "starburst-builder",
+        "--platform", "linux/amd64,linux/arm64",
+        "--no-cache",
+        "-t", image_tag,
+        "--push",
+        build_dir)
+    )
 
     cat_success(sprintf("✓ Base image built and pushed: %s\n", image_tag))
     cat_success("✓ This base image will be reused by all future projects\n")
@@ -1012,10 +1066,11 @@ build_environment_image <- function(tag, region, use_public = NULL) {
   cat_info("🐳 Building project Docker image...\n")
 
   # Validate Docker is installed
-  docker_check <- system2("docker", "--version", stdout = TRUE, stderr = TRUE)
-  if (attr(docker_check, "status") != 0 && !is.null(attr(docker_check, "status"))) {
+  tryCatch({
+    safe_system("docker", c("--version"), stdout = TRUE, stderr = TRUE)
+  }, error = function(e) {
     stop("Docker is not installed or not accessible. Please install Docker: https://docs.docker.com/get-docker/")
-  }
+  })
 
   # Ensure base image exists (will build if needed, or use public)
   base_image_uri <- ensure_base_image(region, use_public = use_public)
@@ -1081,20 +1136,18 @@ build_environment_image <- function(tag, region, use_public = NULL) {
     token_parts <- strsplit(decoded_token, ":")[[1]]
     password <- token_parts[2]
 
-    # Docker login - use temp file to avoid exposing password in process list
-    temp_pw_file <- tempfile(fileext = ".txt")
-    on.exit(unlink(temp_pw_file), add = TRUE)
-    writeLines(password, temp_pw_file)
-
-    # Pass password via stdin from file (more secure than echo)
-    login_cmd <- sprintf("docker login --username AWS --password-stdin %s < %s",
-                        shQuote(token_data$proxyEndpoint), shQuote(temp_pw_file))
-    login_result <- system(login_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
-
-    if (login_result != 0) {
-      stop(sprintf("Failed to authenticate with ECR for account %s in region %s",
-                  account_id, region))
-    }
+    # Docker login - pass password via stdin (secure, no shell exposure)
+    login_result <- tryCatch({
+      safe_system(
+        "docker",
+        c("login", "--username", "AWS", "--password-stdin", token_data$proxyEndpoint),
+        stdin = password
+      )
+      TRUE
+    }, error = function(e) {
+      stop(sprintf("Failed to authenticate with ECR for account %s in region %s: %s",
+                  account_id, region, e$message))
+    })
 
     # Build multi-platform image
     image_tag <- sprintf("%s:%s", ecr_uri, tag)
@@ -1103,18 +1156,35 @@ build_environment_image <- function(tag, region, use_public = NULL) {
 
     # Ensure buildx builder exists with docker-container driver (required for multi-platform)
     # Per Docker docs: use --bootstrap flag and set as default with --use
-    buildx_setup_cmd <- "docker buildx create --name starburst-builder --driver docker-container --bootstrap --use 2>/dev/null || docker buildx use starburst-builder"
-    system(buildx_setup_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
+    # Try to create builder, if it exists, use it
+    tryCatch({
+      safe_system(
+        "docker",
+        c("buildx", "create", "--name", "starburst-builder",
+          "--driver", "docker-container", "--bootstrap", "--use"),
+        stdout = FALSE, stderr = FALSE
+      )
+    }, error = function(e) {
+      # Builder might already exist, try to use it
+      tryCatch({
+        safe_system("docker", c("buildx", "use", "starburst-builder"),
+                   stdout = FALSE, stderr = FALSE)
+      }, error = function(e2) {
+        cat_warn("Warning: Failed to setup buildx builder, will try default\n")
+      })
+    })
 
     # Build and push multi-platform image (no cache for clean multi-platform build)
-    # Use --builder flag to explicitly specify the builder (works from R's system())
-    build_cmd <- sprintf("docker buildx build --builder starburst-builder --platform linux/amd64,linux/arm64 --no-cache -t %s --push %s",
-                        shQuote(image_tag), shQuote(build_dir))
-    build_result <- system(build_cmd)
-
-    if (build_result != 0) {
-      stop("Docker buildx build failed")
-    }
+    safe_system(
+      "docker",
+      c("buildx", "build",
+        "--builder", "starburst-builder",
+        "--platform", "linux/amd64,linux/arm64",
+        "--no-cache",
+        "-t", image_tag,
+        "--push",
+        build_dir)
+    )
 
     cat_success(sprintf("✓ Image built and pushed: %s\n", image_tag))
 

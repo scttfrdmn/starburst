@@ -164,8 +164,35 @@ launch_detached_workers <- function(backend) {
       bucket = backend$bucket
     )
 
-    # Launch worker via ECS
-    submit_detached_worker(backend, bootstrap_task_id)
+    # Launch worker via ECS and track task ARN
+    task_arn <- submit_detached_worker(backend, bootstrap_task_id)
+
+    # Store task ARN in session manifest for cleanup tracking
+    tryCatch({
+      current_manifest <- get_session_manifest(
+        backend$session_id,
+        backend$region,
+        backend$bucket
+      )
+
+      # Initialize ecs_task_arns if not present
+      if (is.null(current_manifest$ecs_task_arns)) {
+        current_manifest$ecs_task_arns <- character(0)
+      }
+
+      # Add new task ARN
+      current_manifest$ecs_task_arns <- c(current_manifest$ecs_task_arns, task_arn)
+
+      # Update manifest
+      update_session_manifest(
+        backend$session_id,
+        list(ecs_task_arns = current_manifest$ecs_task_arns),
+        backend$region,
+        backend$bucket
+      )
+    }, error = function(e) {
+      cat_warn(sprintf("  ⚠ Failed to track task ARN: %s\n", e$message))
+    })
   }
 
   cat_success(sprintf("✓ Launched %d workers for session: %s\n",
@@ -253,8 +280,14 @@ submit_detached_worker <- function(backend, task_id) {
     run_task_params$launchType <- "FARGATE"
   }
 
-  # Submit task
-  response <- do.call(ecs$run_task, run_task_params)
+  # Submit task with retry logic
+  response <- with_ecs_retry(
+    {
+      do.call(ecs$run_task, run_task_params)
+    },
+    max_attempts = 3,
+    operation_name = "ECS RunTask (detached worker)"
+  )
 
   # Check for failures
   if (length(response$failures) > 0) {

@@ -32,7 +32,8 @@ Imports:
     cli,
     rlang,
     digest,
-    base64enc
+    base64enc,
+    processx
 Suggests:
     future.apply,
     testthat (>= 3.0.0),
