@@ -28,7 +28,7 @@ starburst_map(
 
 \item{memory}{Memory per worker (e.g., 8GB)}
 
-\item{platform}{CPU architecture: X86_64 (default) or ARM64 (Graviton3, ~40% faster)}
+\item{platform}{CPU architecture (X86_64 or ARM64)}
 
 \item{region}{AWS region}
 

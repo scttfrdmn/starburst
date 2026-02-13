@@ -7,7 +7,7 @@
 #' @param workers Number of parallel workers (default: 10)
 #' @param cpu CPU units per worker (1, 2, 4, 8, or 16)
 #' @param memory Memory per worker (e.g., 8GB)
-#' @param platform CPU architecture: X86_64 (default) or ARM64 (Graviton3, ~40% faster)
+#' @param platform CPU architecture (X86_64 or ARM64)
 #' @param region AWS region
 #' @param timeout Maximum runtime in seconds per task
 #' @param .progress Show progress bar (default: TRUE)
