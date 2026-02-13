@@ -298,7 +298,13 @@ cleanup_cluster <- function(backend) {
 
   # Report
   cat_success(sprintf(
-    "[OK] Cluster shutdown:\n   • Runtime: %.1f minutes\n   • Tasks completed: %d\n   • Tasks failed: %d\n   • Total cost: $%.2f\n",
+    paste0(
+      "[OK] Cluster shutdown:\n",
+      "   • Runtime: %.1f minutes\n",
+      "   • Tasks completed: %d\n",
+      "   • Tasks failed: %d\n",
+      "   • Total cost: $%.2f\n"
+    ),
     runtime, backend$completed_tasks, backend$failed_tasks, final_cost
   ))
 

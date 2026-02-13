@@ -100,8 +100,13 @@ setup_ec2_capacity_provider <- function(backend) {
   lt_name <- sprintf("starburst-lt-%s", instance_type)
   cat_info(sprintf("   • Creating Launch Template: %s...\n", lt_name))
 
-  user_data <- sprintf("#!/bin/bash\necho ECS_CLUSTER=%s >> /etc/ecs/ecs.config\necho ECS_ENABLE_TASK_IAM_ROLE=true >> /etc/ecs/ecs.config\necho ECS_ENABLE_CONTAINER_METADATA=true >> /etc/ecs/ecs.config",
-                       cluster_name)
+  user_data <- sprintf(
+    paste0("#!/bin/bash\n",
+           "echo ECS_CLUSTER=%s >> /etc/ecs/ecs.config\n",
+           "echo ECS_ENABLE_TASK_IAM_ROLE=true >> /etc/ecs/ecs.config\n",
+           "echo ECS_ENABLE_CONTAINER_METADATA=true >> /etc/ecs/ecs.config"),
+    cluster_name
+  )
   user_data_encoded <- as.character(base64enc::base64encode(charToRaw(user_data)))
 
   # Delete existing launch template if it exists

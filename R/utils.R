@@ -848,7 +848,7 @@ get_instance_specs <- function(instance_type) {
 
   if (!instance_type %in% names(specs_map)) {
     stop(sprintf("Unknown instance type: %s. Supported types: %s",
-                 instance_type, paste(names(specs_map), collapse=", ")))
+                 instance_type, paste(names(specs_map), collapse = ", ")))
   }
 
   specs <- specs_map[[instance_type]]
