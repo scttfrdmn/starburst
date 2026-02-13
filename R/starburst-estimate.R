@@ -40,7 +40,7 @@ starburst_estimate <- function(.x, .f, workers = 10, cpu = 2, memory = "8GB",
     sample_size <- n_total
   }
 
-  cat_info(sprintf("🔍 Running local calibration with %d sample tasks...\n", sample_size))
+  cat_info(sprintf("[Check] Running local calibration with %d sample tasks...\n", sample_size))
 
   # Get local hardware specs
   local_specs <- get_local_hardware_specs()
@@ -265,9 +265,9 @@ get_cloud_performance_ratio <- function(local_specs, platform) {
 #'
 #' @keywords internal
 print_estimate_summary <- function(pred, local_specs) {
-  cat_info("╔══════════════════════════════════════════════════════════╗\n")
-  cat_info("║  EXECUTION TIME & COST ESTIMATES                         ║\n")
-  cat_info("╚══════════════════════════════════════════════════════════╝\n\n")
+  cat_info("============================================================\n")
+  cat_info("|  EXECUTION TIME & COST ESTIMATES                         |\n")
+  cat_info("============================================================\n\n")
 
   # Format times
   format_time <- function(seconds) {
@@ -280,7 +280,7 @@ print_estimate_summary <- function(pred, local_specs) {
     }
   }
 
-  cat(sprintf("📊 Workload: %d tasks, %.2f sec/task average\n\n",
+  cat(sprintf("[Status] Workload: %d tasks, %.2f sec/task average\n\n",
               pred$n_tasks, pred$avg_time_per_task))
 
   cat(sprintf("Local Options:\n"))
@@ -305,11 +305,11 @@ print_estimate_summary <- function(pred, local_specs) {
     cat("\n")
     cat_success("[TIP] Recommendation: Cloud execution is significantly faster\n")
   } else if (pred$speedup_vs_local_parallel > 1.05) {
-    cat(sprintf("  vs Local Parallel:        %.1fx faster [WARNING]️\n", pred$speedup_vs_local_parallel))
+    cat(sprintf("  vs Local Parallel:        %.1fx faster [WARNING]\n", pred$speedup_vs_local_parallel))
     cat("\n")
     cat_info(sprintf("[TIP] Recommendation: Cloud is slightly faster but consider cost ($%.2f)\n", pred$cost))
   } else {
-    cat(sprintf("  vs Local Parallel:        %.2fx (slower!) [WARNING]️\n", pred$speedup_vs_local_parallel))
+    cat(sprintf("  vs Local Parallel:        %.2fx (slower!) [WARNING]\n", pred$speedup_vs_local_parallel))
     cat("\n")
     cat_warn("[TIP] Recommendation: Local parallel execution is better for this workload\n")
     cat_warn(sprintf("   Startup overhead (%.1f min) is too high relative to task duration\n",

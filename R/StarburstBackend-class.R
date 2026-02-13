@@ -45,7 +45,7 @@ StarburstBackend <- function(workers = 10,
     memory_gb <- instance_specs$memory_gb - 0.5
     memory <- sprintf("%dGB", floor(memory_gb))
 
-    cat_info(sprintf("   • Using instance resources: %g vCPUs, %s memory\n", cpu, memory))
+    cat_info(sprintf("   * Using instance resources: %g vCPUs, %s memory\n", cpu, memory))
   }
 
   # Validate after potential adjustment
@@ -155,13 +155,13 @@ attr(starburst, "tweakable") <- c("workers", "cpu", "memory", "region", "timeout
 
 #' Number of workers for StarburstBackend
 #'
-#' @param backend A StarburstBackend object
-#' @param ... Additional arguments
+#' @param evaluator A StarburstBackend object
 #' @return Number of workers
 #' @importFrom future nbrOfWorkers
 #' @method nbrOfWorkers StarburstBackend
 #' @export
-nbrOfWorkers.StarburstBackend <- function(backend, ...) {
+nbrOfWorkers.StarburstBackend <- function(evaluator) {
+  backend <- evaluator  # Match generic signature
   backend$workers
 }
 
@@ -284,7 +284,7 @@ launchFuture.StarburstBackend <- function(backend, future, ...) {
 
     # Start warm pool if not started
     if (is.null(backend_env$pool_started_at)) {
-      cat_info("🔧 Starting warm EC2 pool...\n")
+      cat_info("[Setup] Starting warm EC2 pool...\n")
       start_warm_pool(backend_env, backend_env$workers, timeout_seconds = 120)
       backend_env$pool_started_at <- Sys.time()
     }

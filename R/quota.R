@@ -193,15 +193,15 @@ starburst_quota_status <- function(region = NULL) {
   workers_8cpu <- floor(quota_info$available / 8)
 
   cat_info(sprintf("\nCapacity:\n"))
-  cat_info(sprintf("  • ~%d workers with 4 vCPUs each\n", workers_4cpu))
-  cat_info(sprintf("  • ~%d workers with 8 vCPUs each\n", workers_8cpu))
+  cat_info(sprintf("  * ~%d workers with 4 vCPUs each\n", workers_4cpu))
+  cat_info(sprintf("  * ~%d workers with 8 vCPUs each\n", workers_8cpu))
 
   # Pending requests
   if (quota_info$increase_pending) {
     cat_warn("\nPending Quota Increase Requests:\n")
     for (req in quota_info$pending_requests) {
       cat_info(sprintf(
-        "  • Case ID: %s\n    Requested: %.0f vCPUs\n    Status: %s\n    Created: %s\n",
+        "  * Case ID: %s\n    Requested: %.0f vCPUs\n    Status: %s\n    Created: %s\n",
         req$CaseId,
         req$DesiredValue,
         req$Status,
@@ -225,7 +225,7 @@ starburst_quota_status <- function(region = NULL) {
     cat_info("\nRecent Requests:\n")
     for (h in utils::tail(history, 5)) {
       cat_info(sprintf(
-        "  • %s: Requested %d vCPUs (Case: %s)\n",
+        "  * %s: Requested %d vCPUs (Case: %s)\n",
         format(h$timestamp, "%Y-%m-%d"),
         h$desired_value,
         h$case_id
@@ -414,7 +414,7 @@ starburst_check_quota_request <- function(case_id, region = NULL) {
         cat_info(sprintf("Reason: %s\n", req$DenialReason))
       }
     } else if (req$Status == "PENDING") {
-      cat_warn("\n⏳ Request still pending\n")
+      cat_warn("\n[Wait] Request still pending\n")
       cat_info("AWS typically processes these within 1-24 hours\n")
     }
 

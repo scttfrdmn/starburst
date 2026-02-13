@@ -4,10 +4,10 @@
 \alias{resolved.StarburstFuture}
 \title{Check if StarburstFuture is Resolved}
 \usage{
-\method{resolved}{StarburstFuture}(future, ...)
+\method{resolved}{StarburstFuture}(x, ...)
 }
 \arguments{
-\item{future}{A StarburstFuture object}
+\item{x}{A StarburstFuture object}
 
 \item{...}{Additional arguments}
 }

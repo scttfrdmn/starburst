@@ -12,6 +12,11 @@
 #' @param region AWS region (default: from config or "us-east-1")
 #' @param timeout Maximum runtime in seconds (default: 3600)
 #' @param auto_quota_request Automatically request quota increases (default: interactive())
+#' @param launch_type Launch type: FARGATE or EC2 (default: FARGATE)
+#' @param instance_type EC2 instance type when using EC2 launch type (default: c7g.xlarge)
+#' @param use_spot Use EC2 Spot instances for cost savings (default: FALSE)
+#' @param warm_pool_timeout Timeout for warm pool in seconds (default: 3600)
+#' @param detached Use detached session mode (deprecated, use starburst_session instead)
 #' @param ... Additional arguments passed to future backend
 #'
 #' @return A future plan object
@@ -100,7 +105,7 @@ plan.starburst <- function(strategy,
     ))
 
     cat_info(sprintf(
-      "\n📋 Execution plan:\n   • Running in %d waves of %d workers each\n",
+      "\n[Plan] Execution plan:\n   * Running in %d waves of %d workers each\n",
       num_waves, workers_per_wave
     ))
 
@@ -140,9 +145,9 @@ plan.starburst <- function(strategy,
                            use_spot = use_spot)
 
   if (launch_type == "FARGATE") {
-    cat_info(sprintf("\n💰 Estimated cost: ~$%.2f/hour\n", cost_est$per_hour))
+    cat_info(sprintf("\n[Cost] Estimated cost: ~$%.2f/hour\n", cost_est$per_hour))
   } else {
-    cat_info(sprintf("\n💰 Estimated cost: ~$%.2f/hour (%d x %s%s)\n",
+    cat_info(sprintf("\n[Cost] Estimated cost: ~$%.2f/hour (%d x %s%s)\n",
                     cost_est$total_per_hour,
                     cost_est$instances_needed,
                     instance_type,
@@ -300,10 +305,10 @@ cleanup_cluster <- function(backend) {
   cat_success(sprintf(
     paste0(
       "[OK] Cluster shutdown:\n",
-      "   • Runtime: %.1f minutes\n",
-      "   • Tasks completed: %d\n",
-      "   • Tasks failed: %d\n",
-      "   • Total cost: $%.2f\n"
+      "   * Runtime: %.1f minutes\n",
+      "   * Tasks completed: %d\n",
+      "   * Tasks failed: %d\n",
+      "   * Total cost: $%.2f\n"
     ),
     runtime, backend$completed_tasks, backend$failed_tasks, final_cost
   ))
@@ -322,7 +327,7 @@ cleanup_cluster <- function(backend) {
       stop_warm_pool(backend)
     } else {
       remaining_mins <- (backend$warm_pool_timeout - as.numeric(idle_time)) / 60
-      cat_info(sprintf("⏱  Pool will remain warm for %.1f more minutes\n", remaining_mins))
+      cat_info(sprintf("[Time]  Pool will remain warm for %.1f more minutes\n", remaining_mins))
       cat_info(sprintf("   Set warm_pool_timeout=0 to scale down immediately\n"))
     }
   }

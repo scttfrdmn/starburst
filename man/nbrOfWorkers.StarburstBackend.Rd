@@ -4,12 +4,10 @@
 \alias{nbrOfWorkers.StarburstBackend}
 \title{Number of workers for StarburstBackend}
 \usage{
-\method{nbrOfWorkers}{StarburstBackend}(backend, ...)
+\method{nbrOfWorkers}{StarburstBackend}(evaluator)
 }
 \arguments{
-\item{backend}{A StarburstBackend object}
-
-\item{...}{Additional arguments}
+\item{evaluator}{A StarburstBackend object}
 }
 \value{
 Number of workers

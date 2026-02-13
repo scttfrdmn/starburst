@@ -746,7 +746,7 @@ ensure_environment <- function(region) {
   image_exists <- check_ecr_image_exists(env_hash, region)
 
   if (!image_exists) {
-    cat_info("🔧 Building Docker image for R environment (this may take 5-10 minutes)...\n")
+    cat_info("[Setup] Building Docker image for R environment (this may take 5-10 minutes)...\n")
     build_environment_image(env_hash, region)
   }
 
@@ -862,7 +862,7 @@ get_instance_specs <- function(instance_type) {
 #'
 #' @keywords internal
 build_base_image <- function(region) {
-  cat_info("🐳 Building staRburst base image...\n")
+  cat_info("[Docker] Building staRburst base image...\n")
 
   # Validate Docker is installed
   tryCatch({
@@ -886,7 +886,7 @@ build_base_image <- function(region) {
     if (!is.null(ttl_days)) {
       image_fresh <- check_ecr_image_age(region, base_tag, ttl_days, force_rebuild = FALSE)
       if (!image_fresh) {
-        cat_info("   • Image expired, rebuilding...\n")
+        cat_info("   * Image expired, rebuilding...\n")
         # Continue to rebuild below
       } else {
         cat_success(sprintf("[OK] Base image already exists: %s\n", base_uri))
@@ -914,13 +914,13 @@ build_base_image <- function(region) {
     dockerfile_content <- gsub("\\{\\{R_VERSION\\}\\}", r_version, template_content)
     writeLines(dockerfile_content, file.path(build_dir, "Dockerfile"))
 
-    cat_info(sprintf("   • Build directory: %s\n", build_dir))
-    cat_info(sprintf("   • R version: %s\n", r_version))
-    cat_info("   • This includes system deps + renv + future/globals/qs/paws\n")
-    cat_info("   • This is a one-time build (3-5 min), reused by all projects\n")
+    cat_info(sprintf("   * Build directory: %s\n", build_dir))
+    cat_info(sprintf("   * R version: %s\n", r_version))
+    cat_info("   * This includes system deps + renv + future/globals/qs/paws\n")
+    cat_info("   * This is a one-time build (3-5 min), reused by all projects\n")
 
     # Authenticate with ECR
-    cat_info("   • Authenticating with ECR...\n")
+    cat_info("   * Authenticating with ECR...\n")
     ecr <- get_ecr_client(region)
     auth_token <- ecr$get_authorization_token()
 
@@ -949,8 +949,8 @@ build_base_image <- function(region) {
     # Build multi-platform base image
     ecr_uri <- sprintf("%s.dkr.ecr.%s.amazonaws.com/starburst-worker", account_id, region)
     image_tag <- sprintf("%s:%s", ecr_uri, base_tag)
-    cat_info(sprintf("   • Building multi-platform base image: %s\n", image_tag))
-    cat_info("   • Platforms: linux/amd64, linux/arm64\n")
+    cat_info(sprintf("   * Building multi-platform base image: %s\n", image_tag))
+    cat_info("   * Platforms: linux/amd64, linux/arm64\n")
 
     # Ensure buildx builder exists with docker-container driver (required for multi-platform)
     # Per Docker docs: use --bootstrap flag and set as default with --use
@@ -1045,7 +1045,7 @@ ensure_base_image <- function(region, use_public = NULL) {
   if (!use_public) {
     # Use private base image (build if needed)
     if (!check_ecr_image_exists(base_tag, region)) {
-      cat_info("📦 Base image not found in private ECR, building it now...\n")
+      cat_info("[Package] Base image not found in private ECR, building it now...\n")
       cat_info("   (This will take 3-5 minutes, but only needed once per R version)\n")
       build_base_image(region)
     } else {
@@ -1064,7 +1064,7 @@ ensure_base_image <- function(region, use_public = NULL) {
 #' @param use_public Logical, use public ECR base image (default NULL = from config)
 #' @keywords internal
 build_environment_image <- function(tag, region, use_public = NULL) {
-  cat_info("🐳 Building project Docker image...\n")
+  cat_info("[Docker] Building project Docker image...\n")
 
   # Validate Docker is installed
   tryCatch({
@@ -1119,12 +1119,12 @@ build_environment_image <- function(tag, region, use_public = NULL) {
     dockerfile_content <- gsub("\\{\\{BASE_IMAGE\\}\\}", base_image_uri, template_content)
     writeLines(dockerfile_content, file.path(build_dir, "Dockerfile"))
 
-    cat_info(sprintf("   • Build directory: %s\n", build_dir))
-    cat_info(sprintf("   • Base image: %s\n", base_image_uri))
-    cat_info("   • Building only project-specific packages...\n")
+    cat_info(sprintf("   * Build directory: %s\n", build_dir))
+    cat_info(sprintf("   * Base image: %s\n", base_image_uri))
+    cat_info("   * Building only project-specific packages...\n")
 
     # Authenticate with ECR
-    cat_info("   • Authenticating with ECR...\n")
+    cat_info("   * Authenticating with ECR...\n")
     ecr <- get_ecr_client(region)
     auth_token <- ecr$get_authorization_token()
 
@@ -1152,8 +1152,8 @@ build_environment_image <- function(tag, region, use_public = NULL) {
 
     # Build multi-platform image
     image_tag <- sprintf("%s:%s", ecr_uri, tag)
-    cat_info(sprintf("   • Building multi-platform image: %s\n", image_tag))
-    cat_info("   • Platforms: linux/amd64, linux/arm64\n")
+    cat_info(sprintf("   * Building multi-platform image: %s\n", image_tag))
+    cat_info("   * Platforms: linux/amd64, linux/arm64\n")
 
     # Ensure buildx builder exists with docker-container driver (required for multi-platform)
     # Per Docker docs: use --bootstrap flag and set as default with --use
@@ -1230,7 +1230,7 @@ ensure_log_group <- function(log_group_name, region) {
   # Create log group if it doesn't exist
   tryCatch({
     logs$create_log_group(logGroupName = log_group_name)
-    cat_info(sprintf("   • Created log group: %s\n", log_group_name))
+    cat_info(sprintf("   * Created log group: %s\n", log_group_name))
   }, error = function(e) {
     # Ignore if already exists
     if (!grepl("ResourceAlreadyExistsException", e$message)) {
@@ -1283,7 +1283,7 @@ get_task_role_arn <- function(region) {
 #'
 #' @keywords internal
 get_or_create_task_definition <- function(plan) {
-  cat_info("📋 Preparing task definition...\n")
+  cat_info("[Info] Preparing task definition...\n")
 
   ecs <- get_ecs_client(plan$region)
   config <- get_starburst_config()
@@ -1361,7 +1361,7 @@ get_or_create_task_definition <- function(plan) {
   })
 
   # Create new task definition
-  cat_info("   • Registering new task definition...\n")
+  cat_info("   * Registering new task definition...\n")
   cat_info(sprintf("     CPU: %s units, Memory: %s MB\n", cpu_units, memory_mb))
 
   # For Fargate, container-level memory can be omitted if task-level memory is set
@@ -1573,7 +1573,7 @@ get_or_create_subnets <- function(vpc_id, region) {
   }
 
   # Create subnets in multiple availability zones
-  cat_info("   • Creating subnets for VPC...\n")
+  cat_info("   * Creating subnets for VPC...\n")
 
   # Get available AZs
   azs <- ec2$describe_availability_zones(
@@ -1620,10 +1620,10 @@ get_or_create_subnets <- function(vpc_id, region) {
       )
 
       subnet_ids <- c(subnet_ids, subnet_id)
-      cat_info(sprintf("   • Created subnet: %s in %s\n", subnet_id, az))
+      cat_info(sprintf("   * Created subnet: %s in %s\n", subnet_id, az))
 
     }, error = function(e) {
-      cat_warn(sprintf("   • Failed to create subnet in %s: %s\n", az, e$message))
+      cat_warn(sprintf("   * Failed to create subnet in %s: %s\n", az, e$message))
     })
   }
 

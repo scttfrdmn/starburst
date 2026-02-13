@@ -12,6 +12,9 @@ StarburstFuture(
   packages = NULL,
   lazy = FALSE,
   seed = FALSE,
+  stdout = TRUE,
+  conditions = "condition",
+  label = NULL,
   ...
 )
 }

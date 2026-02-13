@@ -52,7 +52,7 @@ initialize_detached_backend <- function(session_id,
     memory_gb <- instance_specs$memory_gb - 0.5
     memory <- sprintf("%dGB", floor(memory_gb))
 
-    cat_info(sprintf("   • Using instance resources: %g vCPUs, %s memory\n", cpu, memory))
+    cat_info(sprintf("   * Using instance resources: %g vCPUs, %s memory\n", cpu, memory))
   }
 
   validate_cpu(cpu)
@@ -132,7 +132,7 @@ launch_detached_workers <- function(backend) {
 
   # Handle EC2 pool warmup if needed
   if (backend$launch_type == "EC2" && is.null(backend$pool_started_at)) {
-    cat_info("🔧 Starting warm EC2 pool (~2 min first time)...\n")
+    cat_info("[Setup] Starting warm EC2 pool (~2 min first time)...\n")
     start_warm_pool(backend, backend$workers, timeout_seconds = 120)
     backend$pool_started_at <- Sys.time()
   }

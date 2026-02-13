@@ -67,7 +67,7 @@ starburst_session <- function(workers = 10,
   # Generate session ID
   session_id <- sprintf("session-%s", gsub("-", "", uuid::UUIDgenerate()))
 
-  cat_info(sprintf("📦 Creating detached session: %s\n", session_id))
+  cat_info(sprintf("[Package] Creating detached session: %s\n", session_id))
 
   # Initialize backend
   backend <- initialize_detached_backend(
@@ -119,7 +119,7 @@ starburst_session_attach <- function(session_id, region = NULL) {
   region <- region %||% config$region %||% "us-east-1"
   bucket <- config$bucket
 
-  cat_info(sprintf("🔗 Attaching to session: %s\n", session_id))
+  cat_info(sprintf("[Link] Attaching to session: %s\n", session_id))
 
   # Load session manifest from S3
   manifest <- get_session_manifest(session_id, region, bucket)
@@ -675,6 +675,9 @@ cleanup_session <- function(session, stop_workers = TRUE, force = FALSE) {
 }
 
 #' Print method for session status
+#'
+#' @param x A StarburstSessionStatus object
+#' @param ... Additional arguments (ignored)
 #'
 #' @export
 print.StarburstSessionStatus <- function(x, ...) {

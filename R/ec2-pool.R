@@ -58,7 +58,7 @@ get_ecs_optimized_ami <- function(region, architecture = "X86_64") {
 #' @return List with capacity provider details
 #' @keywords internal
 setup_ec2_capacity_provider <- function(backend) {
-  cat_info(sprintf("🔧 Setting up EC2 capacity provider for %s...\n", backend$instance_type))
+  cat_info(sprintf("[Setup] Setting up EC2 capacity provider for %s...\n", backend$instance_type))
 
   region <- backend$region
   cluster_name <- backend$cluster
@@ -86,9 +86,9 @@ setup_ec2_capacity_provider <- function(backend) {
   })
 
   # Get ECS-optimized AMI
-  cat_info(sprintf("   • Finding ECS-optimized AMI for %s...\n", architecture))
+  cat_info(sprintf("   * Finding ECS-optimized AMI for %s...\n", architecture))
   ami_id <- get_ecs_optimized_ami(region, architecture)
-  cat_info(sprintf("   • AMI ID: %s\n", ami_id))
+  cat_info(sprintf("   * AMI ID: %s\n", ami_id))
 
   # Get or create IAM instance profile
   instance_profile_arn <- ensure_ecs_instance_profile(region)
@@ -98,7 +98,7 @@ setup_ec2_capacity_provider <- function(backend) {
 
   # Create Launch Template
   lt_name <- sprintf("starburst-lt-%s", instance_type)
-  cat_info(sprintf("   • Creating Launch Template: %s...\n", lt_name))
+  cat_info(sprintf("   * Creating Launch Template: %s...\n", lt_name))
 
   user_data <- sprintf(
     paste0("#!/bin/bash\n",
@@ -156,7 +156,7 @@ setup_ec2_capacity_provider <- function(backend) {
   })
 
   # Create Auto-Scaling Group
-  cat_info(sprintf("   • Creating Auto-Scaling Group: %s...\n", asg_name))
+  cat_info(sprintf("   * Creating Auto-Scaling Group: %s...\n", asg_name))
 
   # Get default VPC subnets
   vpc_response <- ec2$describe_vpcs(Filters = list(list(Name = "isDefault", Values = list("true"))))
@@ -178,7 +178,7 @@ setup_ec2_capacity_provider <- function(backend) {
       AutoScalingGroupName = asg_name,
       ForceDelete = TRUE
     )
-    cat_info("   • Waiting for ASG deletion to complete...\n")
+    cat_info("   * Waiting for ASG deletion to complete...\n")
 
     # Wait for deletion (max 60 seconds)
     for (i in 1:12) {
@@ -246,7 +246,7 @@ setup_ec2_capacity_provider <- function(backend) {
   asg_arn <- asg_describe$AutoScalingGroups[[1]]$AutoScalingGroupARN
 
   # Create ECS Capacity Provider
-  cat_info(sprintf("   • Creating ECS Capacity Provider: %s...\n", capacity_provider_name))
+  cat_info(sprintf("   * Creating ECS Capacity Provider: %s...\n", capacity_provider_name))
 
   cp_params <- list(
     name = capacity_provider_name,
@@ -282,13 +282,13 @@ setup_ec2_capacity_provider <- function(backend) {
   })
 
   if (!cluster_exists) {
-    cat_info(sprintf("   • Creating ECS cluster: %s...\n", cluster_name))
+    cat_info(sprintf("   * Creating ECS cluster: %s...\n", cluster_name))
     ecs$create_cluster(clusterName = cluster_name)
     cat_success(sprintf("[OK] Cluster created: %s\n", cluster_name))
   }
 
   # Associate capacity provider with cluster
-  cat_info(sprintf("   • Associating with cluster: %s...\n", cluster_name))
+  cat_info(sprintf("   * Associating with cluster: %s...\n", cluster_name))
 
   # Get existing capacity providers
   cluster_response <- ecs$describe_clusters(clusters = list(cluster_name))
@@ -346,7 +346,7 @@ start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
     DesiredCapacity = as.integer(capacity)
   )
 
-  cat_info(sprintf("   • Waiting for instances to join cluster (timeout: %ds)...\n", timeout_seconds))
+  cat_info(sprintf("   * Waiting for instances to join cluster (timeout: %ds)...\n", timeout_seconds))
 
   start_time <- Sys.time()
   while (TRUE) {
@@ -376,7 +376,7 @@ start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
         }, FUN.VALUE = logical(1)))
       }
 
-      cat_info(sprintf("   • Instances in service: %d/%d (%.0fs elapsed)\n",
+      cat_info(sprintf("   * Instances in service: %d/%d (%.0fs elapsed)\n",
                       in_service, capacity, elapsed))
 
       if (in_service >= capacity) {
@@ -402,7 +402,7 @@ start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
 #' @return Invisible NULL
 #' @keywords internal
 stop_warm_pool <- function(backend) {
-  cat_info(sprintf("🛑 Stopping warm pool: %s...\n", backend$asg_name))
+  cat_info(sprintf("[Stop] Stopping warm pool: %s...\n", backend$asg_name))
 
   region <- backend$region
   asg_name <- backend$asg_name
@@ -495,7 +495,7 @@ ensure_ecs_instance_profile <- function(region) {
     role_response$Role$Arn
   }, error = function(e) {
     # Create role
-    cat_info(sprintf("   • Creating IAM role: %s...\n", role_name))
+    cat_info(sprintf("   * Creating IAM role: %s...\n", role_name))
 
     trust_policy <- jsonlite::toJSON(list(
       Version = "2012-10-17",
@@ -553,7 +553,7 @@ ensure_ecs_instance_profile <- function(region) {
     profile_response$InstanceProfile$Arn
   }, error = function(e) {
     # Create instance profile
-    cat_info(sprintf("   • Creating instance profile: %s...\n", profile_name))
+    cat_info(sprintf("   * Creating instance profile: %s...\n", profile_name))
 
     profile_response <- iam$create_instance_profile(
       InstanceProfileName = profile_name
@@ -609,7 +609,7 @@ ensure_ecs_security_group <- function(region) {
   }
 
   # Create security group
-  cat_info(sprintf("   • Creating security group: %s...\n", sg_name))
+  cat_info(sprintf("   * Creating security group: %s...\n", sg_name))
 
   sg <- ec2$create_security_group(
     GroupName = sg_name,

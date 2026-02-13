@@ -9,6 +9,9 @@
 #' @param packages Packages to load
 #' @param lazy Whether to lazily evaluate (always FALSE for remote)
 #' @param seed Random seed
+#' @param stdout Whether to capture stdout (TRUE, FALSE, or NA)
+#' @param conditions Character vector of condition classes to capture
+#' @param label Optional label for the future
 #' @param ... Additional arguments
 #'
 #' @return A StarburstFuture object
@@ -16,8 +19,9 @@
 #' @method future starburst
 #' @export
 future.starburst <- function(expr, envir = parent.frame(), substitute = TRUE,
-                             globals = TRUE, packages = NULL, lazy = FALSE,
-                             seed = FALSE, ...) {
+                             lazy = FALSE, seed = FALSE, globals = TRUE,
+                             packages = NULL, stdout = TRUE, conditions = "condition",
+                             label = NULL, ...) {
   StarburstFuture(
     expr = expr,
     envir = envir,
@@ -25,7 +29,10 @@ future.starburst <- function(expr, envir = parent.frame(), substitute = TRUE,
     globals = globals,
     packages = packages,
     lazy = lazy,
-    seed = FALSE,
+    seed = seed,
+    stdout = stdout,
+    conditions = conditions,
+    label = label,
     ...
   )
 }
@@ -48,7 +55,8 @@ future.starburst <- function(expr, envir = parent.frame(), substitute = TRUE,
 #' @export
 StarburstFuture <- function(expr, envir = parent.frame(), substitute = TRUE,
                             globals = TRUE, packages = NULL, lazy = FALSE,
-                            seed = FALSE, ...) {
+                            seed = FALSE, stdout = TRUE, conditions = "condition",
+                            label = NULL, ...) {
 
   # Substitute expression if needed
   if (substitute) {
@@ -180,12 +188,13 @@ run.StarburstFuture <- function(future, ...) {
 #'
 #' Checks whether the future task has completed execution
 #'
-#' @param future A StarburstFuture object
+#' @param x A StarburstFuture object
 #' @param ... Additional arguments
 #'
 #' @return Logical indicating if the future is resolved
 #' @export
-resolved.StarburstFuture <- function(future, ...) {
+resolved.StarburstFuture <- function(x, ...) {
+  future <- x  # Match generic signature
   # If already resolved, return TRUE
   if (future$state == "finished") {
     return(TRUE)
@@ -321,7 +330,7 @@ submit_task <- function(future, backend) {
 
   # Handle EC2 pool warmup if needed
   if (backend$launch_type == "EC2" && is.null(backend$pool_started_at)) {
-    cat_info("🔧 Starting warm EC2 pool (~2 min first time)...\n")
+    cat_info("[Setup] Starting warm EC2 pool (~2 min first time)...\n")
     start_warm_pool(backend, backend$workers)
     backend$pool_started_at <- Sys.time()
   }
@@ -438,7 +447,7 @@ check_and_submit_wave <- function(backend) {
     tasks_to_submit <- min(backend$workers_per_wave, length(pending_futures))
 
     cat_info(sprintf(
-      "📊 Starting wave %d: submitting %d tasks (%d pending, %d completed)\n",
+      "[Status] Starting wave %d: submitting %d tasks (%d pending, %d completed)\n",
       backend$wave_queue$current_wave,
       tasks_to_submit,
       length(pending_futures),
@@ -468,8 +477,4 @@ check_and_submit_wave <- function(backend) {
   invisible(NULL)
 }
 
-#' Null-coalescing operator
-#' @keywords internal
-`%||%` <- function(x, y) {
-  if (is.null(x)) y else x
-}
+# Note: %||% operator defined in R/utils.R

@@ -35,6 +35,16 @@
 
 \item{auto_quota_request}{Automatically request quota increases (default: interactive())}
 
+\item{launch_type}{Launch type: FARGATE or EC2 (default: FARGATE)}
+
+\item{instance_type}{EC2 instance type when using EC2 launch type (default: c7g.xlarge)}
+
+\item{use_spot}{Use EC2 Spot instances for cost savings (default: FALSE)}
+
+\item{warm_pool_timeout}{Timeout for warm pool in seconds (default: 3600)}
+
+\item{detached}{Use detached session mode (deprecated, use starburst_session instead)}
+
 \item{...}{Additional arguments passed to future backend}
 }
 \value{

@@ -114,7 +114,7 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 
   # Wait for results
   if (.progress) {
-    cat_info("⏳ Waiting for results...\n")
+    cat_info("[Wait] Waiting for results...\n")
   }
 
   results <- vector("list", n)
@@ -137,7 +137,7 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 
         if (.progress && (completed == n || difftime(Sys.time(), last_update, units = "secs") >= 2)) {
           elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
-          cat_info(sprintf("\r⏳ Progress: %d/%d (%.1fs)   ", completed, n, elapsed))
+          cat_info(sprintf("\r[Wait] Progress: %d/%d (%.1fs)   ", completed, n, elapsed))
           last_update <- Sys.time()
         }
       }
@@ -156,7 +156,7 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
     cost_est <- estimate_cost(workers, cpu, memory)
     hours <- elapsed / 3600
     actual_cost <- cost_est$per_hour * hours
-    cat_info(sprintf("💰 Estimated cost: $%.2f\n", actual_cost))
+    cat_info(sprintf("[Cost] Estimated cost: $%.2f\n", actual_cost))
   }
 
   results
@@ -246,7 +246,7 @@ starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
   n <- length(.x)
 
   if (.progress) {
-    cat_info(sprintf("📊 Processing %d items with %d workers\n", n, cluster$workers))
+    cat_info(sprintf("[Status] Processing %d items with %d workers\n", n, cluster$workers))
   }
 
   start_time <- Sys.time()
@@ -285,7 +285,7 @@ starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
 
   # Wait for all futures to resolve and collect results
   if (.progress) {
-    cat_info("⏳ Waiting for results...\n")
+    cat_info("[Wait] Waiting for results...\n")
   }
 
   results <- vector("list", n)
@@ -309,7 +309,7 @@ starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
 
         if (.progress && (completed == n || difftime(Sys.time(), last_update, units = "secs") >= 2)) {
           elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
-          cat_info(sprintf("\r⏳ Progress: %d/%d tasks (%.1fs elapsed)   ", completed, n, elapsed))
+          cat_info(sprintf("\r[Wait] Progress: %d/%d tasks (%.1fs elapsed)   ", completed, n, elapsed))
           last_update <- Sys.time()
         }
       }
@@ -328,8 +328,4 @@ starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
   results
 }
 
-#' Null-coalescing operator
-#' @keywords internal
-`%||%` <- function(x, y) {
-  if (is.null(x)) y else x
-}
+# Note: %||% operator defined in R/utils.R

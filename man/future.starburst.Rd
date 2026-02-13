@@ -8,10 +8,13 @@
   expr,
   envir = parent.frame(),
   substitute = TRUE,
-  globals = TRUE,
-  packages = NULL,
   lazy = FALSE,
   seed = FALSE,
+  globals = TRUE,
+  packages = NULL,
+  stdout = TRUE,
+  conditions = "condition",
+  label = NULL,
   ...
 )
 }
@@ -22,13 +25,19 @@
 
 \item{substitute}{Whether to substitute the expression}
 
+\item{lazy}{Whether to lazily evaluate (always FALSE for remote)}
+
+\item{seed}{Random seed}
+
 \item{globals}{Globals to export (TRUE for auto-detection, list for manual)}
 
 \item{packages}{Packages to load}
 
-\item{lazy}{Whether to lazily evaluate (always FALSE for remote)}
+\item{stdout}{Whether to capture stdout (TRUE, FALSE, or NA)}
 
-\item{seed}{Random seed}
+\item{conditions}{Character vector of condition classes to capture}
+
+\item{label}{Optional label for the future}
 
 \item{...}{Additional arguments}
 }

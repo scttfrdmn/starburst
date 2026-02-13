@@ -99,8 +99,8 @@ quota_error <- function(resource,
     solution <- sprintf(
       paste0(
         "Option 1: Request quota increase\n",
-        "  • Go to AWS Console → Service Quotas → AWS Fargate\n",
-        "  • Request increase to %d %s\n\n",
+        "  * Go to AWS Console --> Service Quotas --> AWS Fargate\n",
+        "  * Request increase to %d %s\n\n",
         "Option 2: Reduce workers to %d\n",
         "  plan(starburst, workers = %d)\n\n",
         "Option 3: Reduce CPU per worker\n",
@@ -112,7 +112,7 @@ quota_error <- function(resource,
     )
   } else {
     solution <- sprintf(
-      "Request quota increase in AWS Console → Service Quotas → AWS Fargate"
+      "Request quota increase in AWS Console --> Service Quotas --> AWS Fargate"
     )
   }
 
@@ -152,8 +152,8 @@ permission_error <- function(service,
   solution <- sprintf(
     paste0(
       "Option 1: Add IAM permissions\n",
-      "  • Go to IAM → Roles → %s\n",
-      "  • Add permission: %s:%s\n\n",
+      "  * Go to IAM --> Roles --> %s\n",
+      "  * Add permission: %s:%s\n\n",
       "Option 2: Run starburst_setup() to create required roles\n",
       "  starburst_setup(bucket = 'your-bucket')\n\n",
       "Option 3: Check AWS credentials\n",
@@ -197,7 +197,7 @@ task_failure_error <- function(task_id,
     solution <- sprintf(
       paste0(
         "%s",
-        "  1. Go to CloudWatch → Log Groups → /aws/ecs/starburst-worker\n",
+        "  1. Go to CloudWatch --> Log Groups --> /aws/ecs/starburst-worker\n",
         "  2. Find log stream: %s\n",
         "  3. Review error messages\n\n",
         "Or use AWS CLI:\n",
@@ -211,7 +211,7 @@ task_failure_error <- function(task_id,
     solution <- sprintf(
       paste0(
         "%s",
-        "  1. Go to CloudWatch → Log Groups → /aws/ecs/starburst-worker\n",
+        "  1. Go to CloudWatch --> Log Groups --> /aws/ecs/starburst-worker\n",
         "  2. Search for task ID: %s\n",
         "  3. Review error messages"
       ),

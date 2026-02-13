@@ -27,7 +27,7 @@
 #' }
 starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base = TRUE, ecr_image_ttl_days = NULL) {
 
-  cat_header("⚡ staRburst Setup\n")
+  cat_header("[Start] staRburst Setup\n")
 
   # Check if already set up
   if (!force && is_setup_complete()) {
@@ -37,10 +37,10 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
   }
 
   cat_info("\nThis will configure AWS resources for staRburst:\n")
-  cat_info("  • S3 bucket for data transfer\n")
-  cat_info("  • ECR repository for Docker images\n")
-  cat_info("  • ECS cluster for Fargate tasks\n")
-  cat_info("  • VPC resources (subnets, security groups)\n")
+  cat_info("  * S3 bucket for data transfer\n")
+  cat_info("  * ECR repository for Docker images\n")
+  cat_info("  * ECS cluster for Fargate tasks\n")
+  cat_info("  * VPC resources (subnets, security groups)\n")
 
   if (interactive()) {
     response <- readline("\nContinue? [y/n]: ")
@@ -78,10 +78,10 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
 
   # Set up ECR lifecycle policy for auto-cleanup
   if (!is.null(ecr_image_ttl_days)) {
-    cat_info(sprintf("   • Setting ECR auto-cleanup policy (TTL: %d days)...\n", ecr_image_ttl_days))
+    cat_info(sprintf("   * Setting ECR auto-cleanup policy (TTL: %d days)...\n", ecr_image_ttl_days))
     create_ecr_lifecycle_policy(region, "starburst-worker", ecr_image_ttl_days)
   } else {
-    cat_info("   • ECR auto-cleanup disabled (images kept indefinitely)\n")
+    cat_info("   * ECR auto-cleanup disabled (images kept indefinitely)\n")
     cat_info("     Idle cost: ~$0.50/month for stored images\n")
     cat_info("     To enable: starburst_setup(ecr_image_ttl_days = 30)\n")
   }
@@ -118,7 +118,7 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
   save_config(config)
 
   # Check quotas proactively
-  cat_info("\n📊 Checking Fargate quotas...\n")
+  cat_info("\n[Status] Checking Fargate quotas...\n")
   quota_info <- check_fargate_quota(region)
 
   cat_info(sprintf("Current Fargate vCPU quota: %d\n", quota_info$limit))
@@ -150,14 +150,14 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
   }
 
   # Build initial environment
-  cat_info("\n🔨 Building initial R environment...\n")
+  cat_info("\n[Build] Building initial R environment...\n")
   cat_info("This may take 5-10 minutes on first run\n")
 
   env_hash <- build_initial_environment(region)
   cat_success("[OK] Environment built and cached\n")
 
   # Final message
-  cat_success("\n✅ staRburst setup complete!\n")
+  cat_success("\n[OK] staRburst setup complete!\n")
   cat_info("\nQuick start:\n")
   cat_info("  library(furrr)\n")
   cat_info("  plan(future_starburst, workers = 50)\n")
@@ -291,7 +291,7 @@ starburst_status <- function() {
     cat_info("  (none)\n")
   } else {
     for (cluster in clusters) {
-      cat_info(sprintf("  • %s: %d tasks running\n",
+      cat_info(sprintf("  * %s: %d tasks running\n",
                       cluster$id, cluster$task_count))
     }
   }
@@ -314,7 +314,7 @@ create_starburst_bucket <- function(bucket_name, region) {
   })
 
   if (bucket_exists) {
-    cat_info(sprintf("   • Bucket already exists: %s\n", bucket_name))
+    cat_info(sprintf("   * Bucket already exists: %s\n", bucket_name))
     return(bucket_name)
   }
 
@@ -425,7 +425,7 @@ create_ecs_cluster <- function(cluster_name, region) {
   })
 
   if (cluster_exists) {
-    cat_info(sprintf("   • Cluster already exists: %s\n", cluster_name))
+    cat_info(sprintf("   * Cluster already exists: %s\n", cluster_name))
     response <- ecs$describe_clusters(clusters = list(cluster_name))
     return(response$clusters[[1]])
   }
@@ -527,7 +527,7 @@ starburst_setup_ec2 <- function(region = "us-east-1",
                                 instance_types = c("c7g.xlarge", "c7i.xlarge"),
                                 force = FALSE) {
 
-  cat_header("⚡ staRburst EC2 Setup\n")
+  cat_header("[Start] staRburst EC2 Setup\n")
 
   # First ensure basic setup is complete
   if (!is_setup_complete()) {
@@ -543,10 +543,10 @@ starburst_setup_ec2 <- function(region = "us-east-1",
   }
 
   cat_info("\nThis will configure EC2 resources for staRburst:\n")
-  cat_info("  • IAM instance role and profile\n")
-  cat_info("  • Security groups for ECS workers\n")
-  cat_info(sprintf("  • Capacity providers for %d instance types\n", length(instance_types)))
-  cat_info(sprintf("  • Instance types: %s\n", paste(instance_types, collapse = ", ")))
+  cat_info("  * IAM instance role and profile\n")
+  cat_info("  * Security groups for ECS workers\n")
+  cat_info(sprintf("  * Capacity providers for %d instance types\n", length(instance_types)))
+  cat_info(sprintf("  * Instance types: %s\n", paste(instance_types, collapse = ", ")))
 
   if (interactive() && !force) {
     response <- readline("\nContinue? [y/n]: ")
@@ -661,15 +661,15 @@ starburst_cleanup_ecr <- function(force = FALSE, region = NULL) {
       size_mb <- img$imageSizeInBytes / 1024 / 1024
 
       if (force) {
-        cat_info(sprintf("  • %s (%.0f days old, %.1f MB) - WILL DELETE\n",
+        cat_info(sprintf("  * %s (%.0f days old, %.1f MB) - WILL DELETE\n",
                         image_tag, age_days, size_mb))
         images_to_delete <- c(images_to_delete, list(list(imageTag = image_tag)))
       } else if (!is.null(config$ecr_image_ttl_days) && age_days > config$ecr_image_ttl_days) {
-        cat_info(sprintf("  • %s (%.0f days old, %.1f MB) - EXPIRED\n",
+        cat_info(sprintf("  * %s (%.0f days old, %.1f MB) - EXPIRED\n",
                         image_tag, age_days, size_mb))
         images_to_delete <- c(images_to_delete, list(list(imageTag = image_tag)))
       } else {
-        cat_info(sprintf("  • %s (%.0f days old, %.1f MB) - keeping\n",
+        cat_info(sprintf("  * %s (%.0f days old, %.1f MB) - keeping\n",
                         image_tag, age_days, size_mb))
       }
     }

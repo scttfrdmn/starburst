@@ -6,6 +6,11 @@
 \usage{
 \method{print}{StarburstSessionStatus}(x, ...)
 }
+\arguments{
+\item{x}{A StarburstSessionStatus object}
+
+\item{...}{Additional arguments (ignored)}
+}
 \description{
 Print method for session status
 }
