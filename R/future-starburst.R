@@ -148,7 +148,7 @@ run.StarburstFuture <- function(future, ...) {
   temp_file <- tempfile(fileext = ".qs")
 
   tryCatch({
-    qs::qsave(task_data, temp_file)
+    qs2::qs_save(task_data, temp_file)
     s3$put_object(
       Bucket = backend$bucket,
       Key = task_key,
@@ -262,7 +262,7 @@ result.StarburstFuture <- function(future, ...) {
       Key = result_key,
       Filename = temp_file
     )
-    result_data <- qs::qread(temp_file)
+    result_data <- qs2::qs_read(temp_file)
   }, finally = {
     unlink(temp_file)
   })

@@ -41,7 +41,7 @@ main <- function() {
     )
 
     # Load task
-    task <- qs::qread(task_file)
+    task <- qs2::qs_read(task_file)
     unlink(task_file)
 
     # Auto-detect mode from task metadata
@@ -75,7 +75,7 @@ main <- function() {
       result_key <- sprintf("results/%s.qs", task_id)
       result_file <- tempfile(fileext = ".qs")
 
-      qs::qsave(error_result, result_file)
+      qs2::qs_save(error_result, result_file)
 
       s3$put_object(
         Bucket = bucket,
@@ -287,7 +287,7 @@ upload_result <- function(result, task_id, s3, bucket) {
   result_key <- sprintf("results/%s.qs", task_id)
   result_file <- tempfile(fileext = ".qs")
 
-  qs::qsave(result, result_file)
+  qs2::qs_save(result, result_file)
 
   s3$put_object(
     Bucket = bucket,
@@ -311,7 +311,7 @@ download_task <- function(task_id, s3, bucket) {
     Filename = task_file
   )
 
-  task <- qs::qread(task_file)
+  task <- qs2::qs_read(task_file)
   unlink(task_file)
 
   task
@@ -331,7 +331,7 @@ try_claim_task <- function(session_id, task_id, worker_id, s3, bucket, region) {
     # Read status
     status_file <- tempfile(fileext = ".qs")
     writeBin(response$Body, status_file)
-    status <- qs::qread(status_file)
+    status <- qs2::qs_read(status_file)
     unlink(status_file)
 
     # Only claim if pending
@@ -345,7 +345,7 @@ try_claim_task <- function(session_id, task_id, worker_id, s3, bucket, region) {
     status$claimed_by <- worker_id
 
     temp_file <- tempfile(fileext = ".qs")
-    qs::qsave(status, temp_file)
+    qs2::qs_save(status, temp_file)
 
     # Conditional PUT - only succeeds if ETag matches
     s3$put_object(
@@ -401,7 +401,7 @@ list_pending_tasks <- function(session_id, s3, bucket) {
         Filename = temp_file
       )
 
-      status <- qs::qread(temp_file)
+      status <- qs2::qs_read(temp_file)
       unlink(temp_file)
 
       if (status$state == "pending") {
@@ -427,14 +427,14 @@ update_task_status_simple <- function(session_id, task_id, state, s3, bucket, re
       Filename = temp_file
     )
 
-    status <- qs::qread(temp_file)
+    status <- qs2::qs_read(temp_file)
     status$state <- state
 
     if (state == "running") {
       status$started_at <- Sys.time()
     }
 
-    qs::qsave(status, temp_file)
+    qs2::qs_save(status, temp_file)
 
     s3$put_object(
       Bucket = bucket,
@@ -460,11 +460,11 @@ update_task_status_to_completed <- function(session_id, task_id, s3, bucket, reg
       Filename = temp_file
     )
 
-    status <- qs::qread(temp_file)
+    status <- qs2::qs_read(temp_file)
     status$state <- "completed"
     status$completed_at <- Sys.time()
 
-    qs::qsave(status, temp_file)
+    qs2::qs_save(status, temp_file)
 
     s3$put_object(
       Bucket = bucket,

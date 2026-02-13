@@ -57,7 +57,7 @@ create_session_manifest <- function(session_id, backend) {
   temp_file <- tempfile(fileext = ".qs")
   on.exit(unlink(temp_file), add = TRUE)
 
-  qs::qsave(manifest, temp_file)
+  qs2::qs_save(manifest, temp_file)
 
   s3$put_object(
     Bucket = bucket,
@@ -108,7 +108,7 @@ update_session_manifest <- function(session_id, updates, region, bucket, max_ret
 
       # Download object body
       writeBin(response$Body, temp_file)
-      manifest <- qs::qread(temp_file)
+      manifest <- qs2::qs_read(temp_file)
 
       # 2. Apply updates
       for (name in names(updates)) {
@@ -126,7 +126,7 @@ update_session_manifest <- function(session_id, updates, region, bucket, max_ret
       manifest$last_activity <- Sys.time()
 
       # 3. Save updated manifest
-      qs::qsave(manifest, temp_file)
+      qs2::qs_save(manifest, temp_file)
 
       # 4. Upload ATOMICALLY with conditional write
       # This only succeeds if ETag matches (i.e., object hasn't changed)
@@ -190,7 +190,7 @@ get_session_manifest <- function(session_id, region, bucket) {
       Filename = temp_file
     )
 
-    qs::qread(temp_file)
+    qs2::qs_read(temp_file)
   }, error = function(e) {
     stop(sprintf("Session not found: %s", session_id))
   })
@@ -223,7 +223,7 @@ create_task_status <- function(session_id, task_id, state = "pending", region, b
   temp_file <- tempfile(fileext = ".qs")
   on.exit(unlink(temp_file), add = TRUE)
 
-  qs::qsave(status, temp_file)
+  qs2::qs_save(status, temp_file)
 
   s3$put_object(
     Bucket = bucket,
@@ -261,7 +261,7 @@ update_task_status <- function(session_id, task_id, state, etag = NULL,
       Filename = temp_file
     )
 
-    status <- qs::qread(temp_file)
+    status <- qs2::qs_read(temp_file)
 
     # Update state
     status$state <- state
@@ -272,7 +272,7 @@ update_task_status <- function(session_id, task_id, state, etag = NULL,
     }
 
     # Save updated status
-    qs::qsave(status, temp_file)
+    qs2::qs_save(status, temp_file)
 
     # Conditional put if ETag provided
     put_params <- list(
@@ -322,7 +322,7 @@ get_task_status <- function(session_id, task_id, region, bucket, include_etag = 
     on.exit(unlink(temp_file), add = TRUE)
 
     writeBin(response$Body, temp_file)
-    status <- qs::qread(temp_file)
+    status <- qs2::qs_read(temp_file)
     status$etag <- response$ETag
 
     return(status)
@@ -337,7 +337,7 @@ get_task_status <- function(session_id, task_id, region, bucket, include_etag = 
       Filename = temp_file
     )
 
-    qs::qread(temp_file)
+    qs2::qs_read(temp_file)
   }
 }
 
@@ -382,7 +382,7 @@ list_pending_tasks <- function(session_id, region, bucket) {
         Filename = temp_file
       )
 
-      status <- qs::qread(temp_file)
+      status <- qs2::qs_read(temp_file)
 
       if (status$state == "pending") {
         pending_tasks <- c(pending_tasks, task_id)
@@ -438,7 +438,7 @@ list_task_statuses <- function(session_id, region, bucket) {
         Filename = temp_file
       )
 
-      statuses[[task_id]] <- qs::qread(temp_file)
+      statuses[[task_id]] <- qs2::qs_read(temp_file)
     }, error = function(e) {
       # Skip if error reading status
     }, finally = {

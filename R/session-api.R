@@ -430,7 +430,7 @@ collect_session_results <- function(session, wait, timeout) {
           Filename = temp_file
         )
 
-        result_data <- qs::qread(temp_file)
+        result_data <- qs2::qs_read(temp_file)
         results[[task_id]] <- result_data
       }, error = function(e) {
         cat_warn(sprintf("Failed to download result for task %s: %s\n",

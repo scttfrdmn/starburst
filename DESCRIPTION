@@ -23,7 +23,7 @@ Imports:
     paws.storage,
     paws.management,
     paws.security.identity,
-    qs,
+    qs2,
     uuid,
     renv,
     jsonlite,

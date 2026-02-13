@@ -275,7 +275,7 @@ serialize_and_upload <- function(obj, bucket, key) {
   temp_file <- tempfile(fileext = ".qs")
   on.exit(unlink(temp_file))
 
-  qs::qsave(obj, temp_file)
+  qs2::qs_save(obj, temp_file)
 
   s3 <- get_s3_client(extract_region_from_key(key))
   s3$put_object(
@@ -337,7 +337,7 @@ poll_for_result <- function(future, timeout = 3600) {
         Filename = temp_file
       )
 
-      result <- qs::qread(temp_file)
+      result <- qs2::qs_read(temp_file)
       return(result)
     }
 

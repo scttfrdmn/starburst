@@ -216,7 +216,7 @@ upload_detached_task <- function(task_id, task_data, backend) {
   temp_file <- tempfile(fileext = ".qs")
   on.exit(unlink(temp_file), add = TRUE)
 
-  qs::qsave(task_data, temp_file)
+  qs2::qs_save(task_data, temp_file)
 
   s3$put_object(
     Bucket = backend$bucket,

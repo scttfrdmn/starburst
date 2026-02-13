@@ -36,7 +36,7 @@ main <- function() {
     )
 
     # Load task data
-    task_data <- qs::qread(task_file)
+    task_data <- qs2::qs_read(task_file)
     unlink(task_file)
 
     message("Task loaded, executing...")
@@ -75,7 +75,7 @@ main <- function() {
     result_key <- sprintf("results/%s.qs", task_id)
     result_file <- tempfile(fileext = ".qs")
 
-    qs::qsave(result, result_file)
+    qs2::qs_save(result, result_file)
 
     s3$put_object(
       Bucket = bucket,
@@ -113,7 +113,7 @@ main <- function() {
       result_key <- sprintf("results/%s.qs", task_id)
       result_file <- tempfile(fileext = ".qs")
 
-      qs::qsave(error_result, result_file)
+      qs2::qs_save(error_result, result_file)
 
       s3$put_object(
         Bucket = bucket,

@@ -223,7 +223,7 @@ launchFuture.StarburstBackend <- function(backend, future, ...) {
   temp_task_file <- tempfile(fileext = ".qs")
   on.exit(unlink(temp_task_file), add = TRUE)
 
-  qs::qsave(task_data, temp_task_file)
+  qs2::qs_save(task_data, temp_task_file)
 
   s3$put_object(
     Bucket = backend_env$bucket,
