@@ -54,9 +54,9 @@ params:
   data: NULL
 ---
 
-```{r template-setup, include=FALSE}
+`​``{r template-setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
-```
+`​``
 
 # Monthly Report for `r params$customer_name`
 
@@ -70,39 +70,39 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 
 This report summarizes activity for `r params$customer_name` during `r params$month`.
 
-```{r summary}
+\`\`\`{r summary}
 data <- params$data
 cat(sprintf("Total transactions: %d\\n", nrow(data)))
 cat(sprintf("Total revenue: $%.2f\\n", sum(data$revenue)))
 cat(sprintf("Average order value: $%.2f\\n", mean(data$revenue)))
 cat(sprintf("Active days: %d\\n", length(unique(data$date))))
-```
+\`\`\`
 
 ## Revenue Trend
 
-```{r revenue-plot, fig.width=8, fig.height=4}
+\`\`\`{r revenue-plot, fig.width=8, fig.height=4}
 daily_revenue <- aggregate(revenue ~ date, data, sum)
 plot(daily_revenue$date, daily_revenue$revenue,
      type = "l", lwd = 2, col = "steelblue",
      main = "Daily Revenue Trend",
      xlab = "Date", ylab = "Revenue ($)")
 grid()
-```
+\`\`\`
 
 ## Top Products
 
-```{r top-products}
+\`\`\`{r top-products}
 top_products <- head(
   aggregate(revenue ~ product, data, sum),
   10
 )
 top_products <- top_products[order(-top_products$revenue), ]
 knitr::kable(top_products, format.args = list(big.mark = ","))
-```
+\`\`\`
 
 ## Summary Statistics
 
-```{r stats}
+\`\`\`{r stats}
 stats <- data.frame(
   Metric = c("Total Orders", "Avg Order Value", "Max Order",
              "Min Order", "Std Dev"),
@@ -115,7 +115,7 @@ stats <- data.frame(
   )
 )
 knitr::kable(stats, format.args = list(big.mark = ","))
-```
+\`\`\`
 
 ---
 
