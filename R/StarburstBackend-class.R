@@ -111,7 +111,7 @@ StarburstBackend <- function(workers = 10,
   options(starburst.current_backend = backend_env)
   options(starburst.current_cluster_id = cluster_id)
 
-  cat_success(sprintf("✓ Cluster ready: %s\n", cluster_id))
+  cat_success(sprintf("[OK] Cluster ready: %s\n", cluster_id))
 
   # Create the backend object using future::FutureBackend
   core <- future::FutureBackend(

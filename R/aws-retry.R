@@ -65,9 +65,9 @@ with_aws_retry <- function(expr,
       last_error <<- e
 
       # Check if error is retryable
-      is_retryable <- any(sapply(retryable_errors, function(pattern) {
+      is_retryable <- any(vapply(retryable_errors, function(pattern) {
         grepl(pattern, e$message, ignore.case = TRUE)
-      }))
+      }, FUN.VALUE = logical(1)))
 
       if (!is_retryable) {
         # Not retryable - fail immediately
@@ -87,7 +87,7 @@ with_aws_retry <- function(expr,
       total_delay <- capped_delay + jitter
 
       cat_warn(sprintf(
-        "⚠ %s failed (attempt %d/%d): %s\n  Retrying in %.1fs...\n",
+        "[WARNING] %s failed (attempt %d/%d): %s\n  Retrying in %.1fs...\n",
         operation_name, attempt, max_attempts,
         substring(e$message, 1, 100),  # Truncate long messages
         total_delay

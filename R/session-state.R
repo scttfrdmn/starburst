@@ -149,7 +149,7 @@ update_session_manifest <- function(session_id, updates, region, bucket, max_ret
         if (attempt < max_retries) {
           # Exponential backoff with jitter
           delay <- runif(1, 0.1, 0.5) * (2 ^ (attempt - 1))
-          cat_warn(sprintf("  ⚠ Concurrent update detected (attempt %d/%d), retrying in %.2fs...\n",
+          cat_warn(sprintf("  [WARNING] Concurrent update detected (attempt %d/%d), retrying in %.2fs...\n",
                           attempt, max_retries, delay))
           Sys.sleep(delay)
           # Continue to next iteration

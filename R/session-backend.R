@@ -123,7 +123,7 @@ initialize_detached_backend <- function(session_id,
 #' @return Invisibly returns NULL
 #' @keywords internal
 launch_detached_workers <- function(backend) {
-  cat_info(sprintf("🚀 Launching %d detached workers...\n", backend$workers))
+  cat_info(sprintf("[Starting] Launching %d detached workers...\n", backend$workers))
 
   # Get or create task definition
   if (is.null(backend$task_definition_arn)) {
@@ -192,11 +192,11 @@ launch_detached_workers <- function(backend) {
         backend$bucket
       )
     }, error = function(e) {
-      cat_warn(sprintf("  ⚠ Failed to track task ARN: %s\n", e$message))
+      cat_warn(sprintf("  [WARNING] Failed to track task ARN: %s\n", e$message))
     })
   }
 
-  cat_success(sprintf("✓ Launched %d workers for session: %s\n",
+  cat_success(sprintf("[OK] Launched %d workers for session: %s\n",
                      backend$workers, backend$session_id))
 
   invisible(NULL)

@@ -78,7 +78,7 @@ setup_ec2_capacity_provider <- function(backend) {
       capacityProviders = list(capacity_provider_name)
     )
     if (length(cp_response$capacityProviders) > 0) {
-      cat_success(sprintf("✓ Capacity provider already exists: %s\n", capacity_provider_name))
+      cat_success(sprintf("[OK] Capacity provider already exists: %s\n", capacity_provider_name))
       return(invisible(NULL))
     }
   }, error = function(e) {
@@ -143,9 +143,9 @@ setup_ec2_capacity_provider <- function(backend) {
 
   tryCatch({
     lt_response <- do.call(ec2$create_launch_template, lt_params)
-    cat_success(sprintf("✓ Launch Template created: %s\n", lt_name))
+    cat_success(sprintf("[OK] Launch Template created: %s\n", lt_name))
   }, error = function(e) {
-    cat_error(sprintf("✗ Launch Template creation failed: %s\n", e$message))
+    cat_error(sprintf("[ERROR] Launch Template creation failed: %s\n", e$message))
     cat_error(sprintf("  Full error: %s\n", paste(capture.output(print(e)), collapse = "\n")))
     stop(e)
   })
@@ -161,7 +161,7 @@ setup_ec2_capacity_provider <- function(backend) {
   vpc_id <- vpc_response$Vpcs[[1]]$VpcId
 
   subnet_response <- ec2$describe_subnets(Filters = list(list(Name = "vpc-id", Values = list(vpc_id))))
-  subnet_ids <- sapply(subnet_response$Subnets, function(s) s$SubnetId)
+  subnet_ids <- vapply(subnet_response$Subnets, function(s) s$SubnetId, FUN.VALUE = character(1))
 
   if (length(subnet_ids) == 0) {
     stop("No subnets found in default VPC")
@@ -192,7 +192,7 @@ setup_ec2_capacity_provider <- function(backend) {
       }
 
       if (i == 12) {
-        cat_warning("⚠ ASG deletion taking longer than expected, continuing anyway...\n")
+        cat_warning("[WARNING] ASG deletion taking longer than expected, continuing anyway...\n")
       }
     }
   }, error = function(e) {
@@ -227,9 +227,9 @@ setup_ec2_capacity_provider <- function(backend) {
 
   tryCatch({
     do.call(autoscaling$create_auto_scaling_group, asg_params)
-    cat_success(sprintf("✓ Auto-Scaling Group created: %s\n", asg_name))
+    cat_success(sprintf("[OK] Auto-Scaling Group created: %s\n", asg_name))
   }, error = function(e) {
-    cat_error(sprintf("✗ ASG creation failed: %s\n", e$message))
+    cat_error(sprintf("[ERROR] ASG creation failed: %s\n", e$message))
     cat_error(sprintf("  Full error: %s\n", paste(capture.output(print(e)), collapse = "\n")))
     stop(e)
   })
@@ -262,9 +262,9 @@ setup_ec2_capacity_provider <- function(backend) {
 
   tryCatch({
     do.call(ecs$create_capacity_provider, cp_params)
-    cat_success(sprintf("✓ Capacity Provider created: %s\n", capacity_provider_name))
+    cat_success(sprintf("[OK] Capacity Provider created: %s\n", capacity_provider_name))
   }, error = function(e) {
-    cat_error(sprintf("✗ Capacity Provider creation failed: %s\n", e$message))
+    cat_error(sprintf("[ERROR] Capacity Provider creation failed: %s\n", e$message))
     stop(e)
   })
 
@@ -279,7 +279,7 @@ setup_ec2_capacity_provider <- function(backend) {
   if (!cluster_exists) {
     cat_info(sprintf("   • Creating ECS cluster: %s...\n", cluster_name))
     ecs$create_cluster(clusterName = cluster_name)
-    cat_success(sprintf("✓ Cluster created: %s\n", cluster_name))
+    cat_success(sprintf("[OK] Cluster created: %s\n", cluster_name))
   }
 
   # Associate capacity provider with cluster
@@ -302,12 +302,12 @@ setup_ec2_capacity_provider <- function(backend) {
       capacityProviders = all_providers,
       defaultCapacityProviderStrategy = list()
     )
-    cat_success(sprintf("✓ Capacity Provider associated with cluster\n"))
+    cat_success(sprintf("[OK] Capacity Provider associated with cluster\n"))
   } else {
-    cat_success(sprintf("✓ Capacity Provider already associated with cluster\n"))
+    cat_success(sprintf("[OK] Capacity Provider already associated with cluster\n"))
   }
 
-  cat_success("✓ EC2 capacity provider setup complete\n")
+  cat_success("[OK] EC2 capacity provider setup complete\n")
 
   invisible(list(
     capacity_provider_name = capacity_provider_name,
@@ -326,7 +326,7 @@ setup_ec2_capacity_provider <- function(backend) {
 #' @return Invisible NULL
 #' @keywords internal
 start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
-  cat_info(sprintf("🚀 Starting warm pool: %d instances of %s...\n", capacity, backend$instance_type))
+  cat_info(sprintf("[Starting] Starting warm pool: %d instances of %s...\n", capacity, backend$instance_type))
 
   region <- backend$region
   cluster_name <- backend$cluster_name
@@ -362,13 +362,13 @@ start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
       # Count in-service instances
       in_service <- 0
       if (length(asg$Instances) > 0) {
-        in_service <- sum(sapply(asg$Instances, function(i) {
+        in_service <- sum(vapply(asg$Instances, function(i) {
           if (!is.null(i$LifecycleState)) {
             i$LifecycleState == "InService"
           } else {
             FALSE
           }
-        }))
+        }, FUN.VALUE = logical(1)))
       }
 
       cat_info(sprintf("   • Instances in service: %d/%d (%.0fs elapsed)\n",
@@ -379,7 +379,7 @@ start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
         container_instances <- ecs$list_container_instances(cluster = cluster_name)
 
         if (length(container_instances$containerInstanceArns) >= capacity) {
-          cat_success(sprintf("✓ Pool ready: %d instances available\n", in_service))
+          cat_success(sprintf("[OK] Pool ready: %d instances available\n", in_service))
           return(invisible(NULL))
         }
       }
@@ -409,7 +409,7 @@ stop_warm_pool <- function(backend) {
     DesiredCapacity = 0
   )
 
-  cat_success("✓ Pool scaled to zero\n")
+  cat_success("[OK] Pool scaled to zero\n")
 
   invisible(NULL)
 }
@@ -449,13 +449,13 @@ get_pool_status <- function(backend) {
   # Count in-service instances
   in_service <- 0
   if (length(asg$Instances) > 0) {
-    in_service <- sum(sapply(asg$Instances, function(i) {
+    in_service <- sum(vapply(asg$Instances, function(i) {
       if (!is.null(i$LifecycleState)) {
         i$LifecycleState == "InService"
       } else {
         FALSE
       }
-    }))
+    }, FUN.VALUE = logical(1)))
   }
 
   # Get ECS container instances
@@ -538,7 +538,7 @@ ensure_ecs_instance_profile <- function(region) {
       PolicyDocument = s3_policy
     )
 
-    cat_success(sprintf("✓ IAM role created: %s\n", role_name))
+    cat_success(sprintf("[OK] IAM role created: %s\n", role_name))
     role_response$Role$Arn
   })
 
@@ -563,7 +563,7 @@ ensure_ecs_instance_profile <- function(region) {
     # Wait for profile to propagate
     Sys.sleep(10)
 
-    cat_success(sprintf("✓ Instance profile created: %s\n", profile_name))
+    cat_success(sprintf("[OK] Instance profile created: %s\n", profile_name))
     profile_response$InstanceProfile$Arn
   })
 
@@ -633,7 +633,7 @@ ensure_ecs_security_group <- function(region) {
     }
   })
 
-  cat_success(sprintf("✓ Security group created: %s\n", sg_id))
+  cat_success(sprintf("[OK] Security group created: %s\n", sg_id))
 
   sg_id
 }

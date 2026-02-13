@@ -43,14 +43,14 @@ starburst_error <- function(message,
 
   # Add context if provided
   if (length(context) > 0) {
-    context_lines <- sapply(names(context), function(k) {
+    context_lines <- vapply(names(context), function(k) {
       value <- context[[k]]
       if (is.numeric(value)) {
         sprintf("  %s: %s", k, format(value, big.mark = ","))
       } else {
         sprintf("  %s: %s", k, as.character(value))
       }
-    })
+    }, FUN.VALUE = character(1))
     full_message <- sprintf("%s\n\nContext:\n%s",
                            full_message,
                            paste(context_lines, collapse = "\n"))
@@ -58,14 +58,14 @@ starburst_error <- function(message,
 
   # Add solution if provided
   if (!is.null(solution)) {
-    full_message <- sprintf("%s\n\n💡 Solution:\n  %s",
+    full_message <- sprintf("%s\n\n[TIP] Solution:\n  %s",
                            full_message,
                            solution)
   }
 
   # Add link to troubleshooting guide
   full_message <- sprintf(
-    "%s\n\n📖 For more help: vignette('troubleshooting', package = 'starburst')",
+    "%s\n\n[INFO] For more help: vignette('troubleshooting', package = 'starburst')",
     full_message
   )
 

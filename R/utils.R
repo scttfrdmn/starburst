@@ -140,9 +140,9 @@ create_ecr_lifecycle_policy <- function(region, repository_name, ttl_days = NULL
       repositoryName = repository_name,
       lifecyclePolicyText = jsonlite::toJSON(policy, auto_unbox = TRUE)
     )
-    cat_success(sprintf("✓ ECR auto-cleanup enabled: Images deleted after %d days\n", ttl_days))
+    cat_success(sprintf("[OK] ECR auto-cleanup enabled: Images deleted after %d days\n", ttl_days))
   }, error = function(e) {
-    cat_warning(sprintf("⚠ Failed to set ECR lifecycle policy: %s\n", e$message))
+    cat_warning(sprintf("[WARNING] Failed to set ECR lifecycle policy: %s\n", e$message))
   })
 }
 
@@ -190,17 +190,17 @@ check_ecr_image_age <- function(region, image_tag, ttl_days = NULL, force_rebuil
   # Check if image is stale
   if (age_days > ttl_days) {
     if (force_rebuild) {
-      cat_warning(sprintf("⚠ Image is %.0f days old (TTL: %d days), rebuilding...\n",
+      cat_warning(sprintf("[WARNING] Image is %.0f days old (TTL: %d days), rebuilding...\n",
                          age_days, ttl_days))
       return(FALSE)  # Signal rebuild needed
     } else {
-      cat_warning(sprintf("⚠ Image is %.0f days old (TTL: %d days)\n", age_days, ttl_days))
+      cat_warning(sprintf("[WARNING] Image is %.0f days old (TTL: %d days)\n", age_days, ttl_days))
       cat_info("  AWS will auto-delete soon. Consider running a job to refresh.\n")
       return(TRUE)  # Use existing but warn
     }
   } else {
     days_remaining <- ttl_days - age_days
-    cat_info(sprintf("✓ Image age: %.0f days (%.0f days until auto-delete)\n",
+    cat_info(sprintf("[OK] Image age: %.0f days (%.0f days until auto-delete)\n",
                     age_days, days_remaining))
     return(TRUE)
   }
@@ -889,11 +889,11 @@ build_base_image <- function(region) {
         cat_info("   • Image expired, rebuilding...\n")
         # Continue to rebuild below
       } else {
-        cat_success(sprintf("✓ Base image already exists: %s\n", base_uri))
+        cat_success(sprintf("[OK] Base image already exists: %s\n", base_uri))
         return(base_uri)
       }
     } else {
-      cat_success(sprintf("✓ Base image already exists: %s\n", base_uri))
+      cat_success(sprintf("[OK] Base image already exists: %s\n", base_uri))
       return(base_uri)
     }
   }
@@ -984,13 +984,13 @@ build_base_image <- function(region) {
         build_dir)
     )
 
-    cat_success(sprintf("✓ Base image built and pushed: %s\n", image_tag))
-    cat_success("✓ This base image will be reused by all future projects\n")
+    cat_success(sprintf("[OK] Base image built and pushed: %s\n", image_tag))
+    cat_success("[OK] This base image will be reused by all future projects\n")
 
     return(image_tag)
 
   }, error = function(e) {
-    cat_error(sprintf("✗ Base image build failed: %s\n", e$message))
+    cat_error(sprintf("[ERROR] Base image build failed: %s\n", e$message))
     stop(e)
   })
 }
@@ -1050,7 +1050,7 @@ ensure_base_image <- function(region, use_public = NULL) {
       build_base_image(region)
     } else {
       base_uri <- get_base_image_uri(region)
-      cat_info(sprintf("✓ Using existing private base image: %s\n", base_uri))
+      cat_info(sprintf("[OK] Using existing private base image: %s\n", base_uri))
     }
 
     return(get_base_image_uri(region))
@@ -1187,12 +1187,12 @@ build_environment_image <- function(tag, region, use_public = NULL) {
         build_dir)
     )
 
-    cat_success(sprintf("✓ Image built and pushed: %s\n", image_tag))
+    cat_success(sprintf("[OK] Image built and pushed: %s\n", image_tag))
 
     return(image_tag)
 
   }, error = function(e) {
-    cat_error(sprintf("✗ Image build failed: %s\n", e$message))
+    cat_error(sprintf("[ERROR] Image build failed: %s\n", e$message))
     stop(e)
   })
 }
@@ -1352,7 +1352,7 @@ get_or_create_task_definition <- function(plan) {
           }
         }
 
-        cat_success(sprintf("✓ Using existing task definition: %s\n", task_def$taskDefinitionArn))
+        cat_success(sprintf("[OK] Using existing task definition: %s\n", task_def$taskDefinitionArn))
         return(task_def$taskDefinitionArn)
       }
     }
@@ -1414,7 +1414,7 @@ get_or_create_task_definition <- function(plan) {
   response <- do.call(ecs$register_task_definition, task_def_params)
 
   task_def_arn <- response$taskDefinition$taskDefinitionArn
-  cat_success(sprintf("✓ Task definition registered: %s\n", task_def_arn))
+  cat_success(sprintf("[OK] Task definition registered: %s\n", task_def_arn))
 
   return(task_def_arn)
 }
@@ -1557,7 +1557,7 @@ get_or_create_subnets <- function(vpc_id, region) {
   )
 
   if (length(subnets$Subnets) > 0) {
-    return(sapply(subnets$Subnets, function(s) s$SubnetId))
+    return(vapply(subnets$Subnets, function(s) s$SubnetId, FUN.VALUE = character(1)))
   }
 
   # Get existing subnets to check if VPC has any
@@ -1569,7 +1569,7 @@ get_or_create_subnets <- function(vpc_id, region) {
 
   if (length(all_subnets$Subnets) > 0) {
     # Use existing subnets (don't create new ones unnecessarily)
-    return(sapply(all_subnets$Subnets, function(s) s$SubnetId))
+    return(vapply(all_subnets$Subnets, function(s) s$SubnetId, FUN.VALUE = character(1)))
   }
 
   # Create subnets in multiple availability zones

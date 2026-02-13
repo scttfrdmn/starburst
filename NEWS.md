@@ -1,3 +1,50 @@
+# starburst 0.3.1 (2026-02-12)
+
+## Code Quality Improvements
+
+**Complete:** All 3 issues from v0.3.1 milestone (#18, #19, #20)
+
+### Changes
+
+* **Replaced all emojis with ASCII equivalents** (#19)
+  - ✓ → [OK] (success messages)
+  - ⚠ → [WARNING] (warning messages)
+  - 💡 → [TIP] (recommendations)
+  - 📖 → [INFO] (documentation links)
+  - 🚀 → [Starting] (initialization messages)
+  - 🧹 → [Cleaning] (cleanup messages)
+  - ✗ → [ERROR] (error messages)
+  - 14 files updated, better compatibility with older systems
+
+* **Applied goodpractice suggestions** (#20)
+  - Replaced all `sapply()` with `vapply()` for type safety (10 instances in R/)
+  - More predictable return types
+  - Prevents unexpected list returns
+  - Better error handling for edge cases
+
+* **Fixed lintr warnings** (#18)
+  - Removed 127 trailing whitespace instances
+  - Down from 325 to 198 remaining lints (39% improvement)
+  - Remaining lints are cosmetic (indentation, style preferences)
+
+### Impact
+
+- No functional changes
+- Better code readability
+- Improved compatibility
+- More robust type safety
+
+### Remaining Lints (198)
+
+Acceptable cosmetic issues for future polish:
+- 85 indentation inconsistencies
+- 49 unused variable warnings
+- 29 return() style preferences
+- 15 seq_len() suggestions (in examples/vignettes)
+- 20 other minor style issues
+
+---
+
 # starburst 0.3.0 (2026-02-12)
 
 ## 🎉 Production-Ready Release

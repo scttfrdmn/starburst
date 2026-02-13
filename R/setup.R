@@ -26,22 +26,22 @@
 #' starburst_setup(use_public_base = FALSE, ecr_image_ttl_days = 7)
 #' }
 starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base = TRUE, ecr_image_ttl_days = NULL) {
-  
+
   cat_header("⚡ staRburst Setup\n")
-  
+
   # Check if already set up
   if (!force && is_setup_complete()) {
-    cat_info("✓ staRburst is already configured\n")
+    cat_info("[OK] staRburst is already configured\n")
     cat_info("  Use starburst_setup(force = TRUE) to reconfigure\n")
     return(invisible(TRUE))
   }
-  
+
   cat_info("\nThis will configure AWS resources for staRburst:\n")
   cat_info("  • S3 bucket for data transfer\n")
   cat_info("  • ECR repository for Docker images\n")
   cat_info("  • ECS cluster for Fargate tasks\n")
   cat_info("  • VPC resources (subnets, security groups)\n")
-  
+
   if (interactive()) {
     response <- readline("\nContinue? [y/n]: ")
     if (tolower(response) != "y") {
@@ -49,7 +49,7 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
       return(invisible(FALSE))
     }
   }
-  
+
   # Step 1: AWS Credentials
   cat_info("\n[1/5] Checking AWS credentials...\n")
   if (!check_aws_credentials()) {
@@ -60,21 +60,21 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
     cat_info("  3. AWS credentials file: ~/.aws/credentials\n")
     stop("AWS credentials required")
   }
-  cat_success("✓ AWS credentials valid\n")
-  
+  cat_success("[OK] AWS credentials valid\n")
+
   # Step 2: S3 Bucket
   cat_info("\n[2/5] Setting up S3 bucket...\n")
-  bucket_name <- sprintf("starburst-%s-%s", 
-                        get_aws_account_id(), 
+  bucket_name <- sprintf("starburst-%s-%s",
+                        get_aws_account_id(),
                         substr(uuid::UUIDgenerate(), 1, 8))
-  
+
   bucket <- create_starburst_bucket(bucket_name, region)
-  cat_success(sprintf("✓ S3 bucket created: %s\n", bucket))
-  
+  cat_success(sprintf("[OK] S3 bucket created: %s\n", bucket))
+
   # Step 3: ECR Repository
   cat_info("\n[3/5] Setting up ECR repository...\n")
   repo <- create_ecr_repository("starburst-worker", region)
-  cat_success(sprintf("✓ ECR repository created: %s\n", repo$repositoryUri))
+  cat_success(sprintf("[OK] ECR repository created: %s\n", repo$repositoryUri))
 
   # Set up ECR lifecycle policy for auto-cleanup
   if (!is.null(ecr_image_ttl_days)) {
@@ -85,17 +85,17 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
     cat_info("     Idle cost: ~$0.50/month for stored images\n")
     cat_info("     To enable: starburst_setup(ecr_image_ttl_days = 30)\n")
   }
-  
+
   # Step 4: ECS Cluster
   cat_info("\n[4/5] Setting up ECS cluster...\n")
   cluster <- create_ecs_cluster("starburst-cluster", region)
-  cat_success(sprintf("✓ ECS cluster created: %s\n", cluster$clusterName))
-  
+  cat_success(sprintf("[OK] ECS cluster created: %s\n", cluster$clusterName))
+
   # Step 5: VPC Resources
   cat_info("\n[5/5] Setting up VPC resources...\n")
   vpc_resources <- setup_vpc_resources(region)
-  cat_success("✓ VPC resources created\n")
-  
+  cat_success("[OK] VPC resources created\n")
+
   # Get AWS account ID for config
   account_id <- get_aws_account_id()
 
@@ -114,20 +114,20 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
     aws_account_id = account_id,
     setup_at = Sys.time()
   )
-  
+
   save_config(config)
-  
+
   # Check quotas proactively
   cat_info("\n📊 Checking Fargate quotas...\n")
   quota_info <- check_fargate_quota(region)
-  
+
   cat_info(sprintf("Current Fargate vCPU quota: %d\n", quota_info$limit))
-  cat_info(sprintf("  Allows ~%d workers with 4 vCPUs each\n", 
+  cat_info(sprintf("  Allows ~%d workers with 4 vCPUs each\n",
                   floor(quota_info$limit / 4)))
-  
+
   if (quota_info$limit < 500) {
-    cat_warn("\n💡 For typical parallel workloads, we recommend 500+ vCPUs\n")
-    
+    cat_warn("\n[TIP] For typical parallel workloads, we recommend 500+ vCPUs\n")
+
     if (!quota_info$increase_pending && interactive()) {
       response <- readline("\nRequest quota increase to 500 vCPUs now? [y/n]: ")
       if (tolower(response) == "y") {
@@ -138,31 +138,31 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
           region = region,
           reason = "staRburst parallel R computing setup"
         )
-        
+
         if (!is.null(case_id)) {
-          cat_success(sprintf("✓ Quota increase requested (Case ID: %s)\n", case_id))
-          cat_success("✓ You'll receive email when approved (usually 1-24 hours)\n")
+          cat_success(sprintf("[OK] Quota increase requested (Case ID: %s)\n", case_id))
+          cat_success("[OK] You'll receive email when approved (usually 1-24 hours)\n")
         }
       }
     }
   } else {
-    cat_success(sprintf("✓ Quota is sufficient (%d vCPUs)\n", quota_info$limit))
+    cat_success(sprintf("[OK] Quota is sufficient (%d vCPUs)\n", quota_info$limit))
   }
-  
+
   # Build initial environment
   cat_info("\n🔨 Building initial R environment...\n")
   cat_info("This may take 5-10 minutes on first run\n")
-  
+
   env_hash <- build_initial_environment(region)
-  cat_success("✓ Environment built and cached\n")
-  
+  cat_success("[OK] Environment built and cached\n")
+
   # Final message
   cat_success("\n✅ staRburst setup complete!\n")
   cat_info("\nQuick start:\n")
   cat_info("  library(furrr)\n")
   cat_info("  plan(future_starburst, workers = 50)\n")
   cat_info("  results <- future_map(data, expensive_function)\n")
-  
+
   invisible(TRUE)
 }
 
@@ -172,11 +172,11 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
 #' @keywords internal
 get_starburst_config <- function() {
   config_file <- config_path()
-  
+
   if (!file.exists(config_file)) {
     stop("staRburst not configured. Run starburst_setup() first.")
   }
-  
+
   readRDS(config_file)
 }
 
@@ -188,10 +188,10 @@ save_config <- function(config) {
   if (!dir.exists(config_dir)) {
     dir.create(config_dir, recursive = TRUE)
   }
-  
+
   config_file <- config_path()
   saveRDS(config, config_file)
-  
+
   invisible(NULL)
 }
 
@@ -238,32 +238,32 @@ starburst_config <- function(max_cost_per_job = NULL,
                              cost_alert_threshold = NULL,
                              auto_cleanup_s3 = NULL,
                              ...) {
-  
+
   config <- get_starburst_config()
-  
+
   # Update config
   if (!is.null(max_cost_per_job)) {
     config$max_cost_per_job <- max_cost_per_job
   }
-  
+
   if (!is.null(cost_alert_threshold)) {
     config$cost_alert_threshold <- cost_alert_threshold
   }
-  
+
   if (!is.null(auto_cleanup_s3)) {
     config$auto_cleanup_s3 <- auto_cleanup_s3
   }
-  
+
   # Handle additional options
   extra_opts <- list(...)
   if (length(extra_opts) > 0) {
     config <- c(config, extra_opts)
   }
-  
+
   save_config(config)
-  
-  cat_success("✓ Configuration updated\n")
-  
+
+  cat_success("[OK] Configuration updated\n")
+
   invisible(config)
 }
 
@@ -272,30 +272,30 @@ starburst_config <- function(max_cost_per_job = NULL,
 #' @export
 starburst_status <- function() {
   config <- get_starburst_config()
-  
+
   cat_header("staRburst Status\n")
   cat_info(sprintf("Region: %s\n", config$region))
   cat_info(sprintf("S3 Bucket: %s\n", config$bucket))
   cat_info(sprintf("ECR Repository: %s\n", config$ecr_repository))
-  
+
   # Check quota
   quota_info <- check_fargate_quota(config$region)
-  cat_info(sprintf("\nFargate vCPU Quota: %d / %d used\n", 
+  cat_info(sprintf("\nFargate vCPU Quota: %d / %d used\n",
                   quota_info$used, quota_info$limit))
-  
+
   # List running clusters
   cat_info("\nActive Clusters:\n")
   clusters <- list_active_clusters(config$region)
-  
+
   if (length(clusters) == 0) {
     cat_info("  (none)\n")
   } else {
     for (cluster in clusters) {
-      cat_info(sprintf("  • %s: %d tasks running\n", 
+      cat_info(sprintf("  • %s: %d tasks running\n",
                       cluster$id, cluster$task_count))
     }
   }
-  
+
   invisible(NULL)
 }
 
@@ -346,7 +346,7 @@ create_starburst_bucket <- function(bucket_name, region) {
         )
       )
     }, error = function(e) {
-      cat_warn(sprintf("⚠ Could not enable bucket encryption: %s\n", e$message))
+      cat_warn(sprintf("[WARNING] Could not enable bucket encryption: %s\n", e$message))
     })
 
     # Set lifecycle policy (delete after 7 days)
@@ -365,7 +365,7 @@ create_starburst_bucket <- function(bucket_name, region) {
         )
       )
     }, error = function(e) {
-      cat_warn(sprintf("⚠ Could not set lifecycle policy: %s\n", e$message))
+      cat_warn(sprintf("[WARNING] Could not set lifecycle policy: %s\n", e$message))
     })
 
     bucket_name
@@ -380,7 +380,7 @@ create_starburst_bucket <- function(bucket_name, region) {
 #' @keywords internal
 create_ecr_repository <- function(repo_name, region) {
   ecr <- get_ecr_client(region)
-  
+
   tryCatch({
     response <- with_ecr_retry(
       {
@@ -397,7 +397,7 @@ create_ecr_repository <- function(repo_name, region) {
     )
 
     response$repository
-    
+
   }, error = function(e) {
     if (grepl("RepositoryAlreadyExistsException", e$message)) {
       # Repository exists, describe it
@@ -455,12 +455,12 @@ create_ecs_cluster <- function(cluster_name, region) {
 #' @keywords internal
 setup_vpc_resources <- function(region) {
   ec2 <- get_ec2_client(region)
-  
+
   # Use default VPC if exists, otherwise create
   vpcs <- ec2$describe_vpcs(Filters = list(
     list(Name = "isDefault", Values = list("true"))
   ))
-  
+
   if (length(vpcs$Vpcs) > 0) {
     vpc_id <- vpcs$Vpcs[[1]]$VpcId
   } else {
@@ -468,13 +468,13 @@ setup_vpc_resources <- function(region) {
     vpc <- ec2$create_vpc(CidrBlock = "10.0.0.0/16")
     vpc_id <- vpc$Vpc$VpcId
   }
-  
+
   # Get or create private subnets
   subnets <- get_or_create_subnets(vpc_id, region)
-  
+
   # Get or create security group
   security_group <- get_or_create_security_group(vpc_id, region)
-  
+
   list(
     vpc_id = vpc_id,
     subnets = subnets,
@@ -531,14 +531,14 @@ starburst_setup_ec2 <- function(region = "us-east-1",
 
   # First ensure basic setup is complete
   if (!is_setup_complete()) {
-    cat_error("✗ Basic staRburst setup not complete\n")
+    cat_error("[ERROR] Basic staRburst setup not complete\n")
     cat_info("  Run starburst_setup() first\n")
     return(invisible(FALSE))
   }
 
   # Check AWS credentials
   if (!check_aws_credentials()) {
-    cat_error("✗ AWS credentials not found\n")
+    cat_error("[ERROR] AWS credentials not found\n")
     return(invisible(FALSE))
   }
 
@@ -566,7 +566,7 @@ starburst_setup_ec2 <- function(region = "us-east-1",
   ensure_ecs_instance_profile(region)
   ensure_ecs_security_group(region)
 
-  cat_success("✓ IAM roles and security groups ready\n")
+  cat_success("[OK] IAM roles and security groups ready\n")
 
   # Setup capacity providers for each instance type
   cat_info(sprintf("\n[2/2] Setting up capacity providers for %d instance types...\n", length(instance_types)))
@@ -590,13 +590,13 @@ starburst_setup_ec2 <- function(region = "us-east-1",
 
     tryCatch({
       setup_ec2_capacity_provider(backend)
-      cat_success(sprintf("  ✓ %s ready\n", instance_type))
+      cat_success(sprintf("  [OK] %s ready\n", instance_type))
     }, error = function(e) {
-      cat_error(sprintf("  ✗ Failed to setup %s: %s\n", instance_type, e$message))
+      cat_error(sprintf("  [ERROR] Failed to setup %s: %s\n", instance_type, e$message))
     })
   }
 
-  cat_success("\n✓ EC2 setup complete!\n")
+  cat_success("\n[OK] EC2 setup complete!\n")
   cat_info("\nYou can now use EC2 launch type:\n")
   cat_info("  plan(starburst, workers = 100, launch_type = \"EC2\",\n")
   cat_info("       instance_type = \"c7g.xlarge\", use_spot = TRUE)\n")
@@ -624,7 +624,7 @@ starburst_setup_ec2 <- function(region = "us-east-1",
 #' }
 starburst_cleanup_ecr <- function(force = FALSE, region = NULL) {
   if (!is_setup_complete()) {
-    cat_error("✗ staRburst not configured. Run starburst_setup() first.\n")
+    cat_error("[ERROR] staRburst not configured. Run starburst_setup() first.\n")
     return(invisible(FALSE))
   }
 
@@ -636,14 +636,14 @@ starburst_cleanup_ecr <- function(force = FALSE, region = NULL) {
   ecr <- get_ecr_client(region)
   repo_name <- "starburst-worker"
 
-  cat_header("🧹 staRburst ECR Cleanup\n")
+  cat_header("[Cleaning] staRburst ECR Cleanup\n")
 
   # List all images
   tryCatch({
     images <- ecr$list_images(repositoryName = repo_name)
 
     if (length(images$imageIds) == 0) {
-      cat_info("✓ No images to clean up\n")
+      cat_info("[OK] No images to clean up\n")
       return(invisible(TRUE))
     }
 
@@ -675,7 +675,7 @@ starburst_cleanup_ecr <- function(force = FALSE, region = NULL) {
     }
 
     if (length(images_to_delete) == 0) {
-      cat_success("\n✓ No images need cleanup\n")
+      cat_success("\n[OK] No images need cleanup\n")
       return(invisible(TRUE))
     }
 
@@ -695,13 +695,13 @@ starburst_cleanup_ecr <- function(force = FALSE, region = NULL) {
       imageIds = images_to_delete
     )
 
-    cat_success(sprintf("✓ Deleted %d images\n", length(images_to_delete)))
+    cat_success(sprintf("[OK] Deleted %d images\n", length(images_to_delete)))
     cat_info("  Images will be rebuilt on next use (adds 3-5 min)\n")
 
     invisible(TRUE)
 
   }, error = function(e) {
-    cat_error(sprintf("✗ Cleanup failed: %s\n", e$message))
+    cat_error(sprintf("[ERROR] Cleanup failed: %s\n", e$message))
     invisible(FALSE)
   })
 }

@@ -90,7 +90,7 @@ starburst_session <- function(workers = 10,
   # Create session object
   session <- create_session_object(backend)
 
-  cat_success(sprintf("✓ Session ready: %s\n", session_id))
+  cat_success(sprintf("[OK] Session ready: %s\n", session_id))
   cat_info("   Use session$submit(expr) to add tasks\n")
   cat_info("   Use session$status() to check progress\n")
   cat_info("   Use session$collect() to retrieve results\n")
@@ -135,7 +135,7 @@ starburst_session_attach <- function(session_id, region = NULL) {
   # Create session object
   session <- create_session_object(backend)
 
-  cat_success(sprintf("✓ Attached to session: %s\n", session_id))
+  cat_success(sprintf("[OK] Attached to session: %s\n", session_id))
 
   session
 }
@@ -336,7 +336,7 @@ submit_to_session <- function(session, expr, envir, substitute, globals, package
 
   backend$total_tasks <- backend$total_tasks + 1
 
-  cat_info(sprintf("✓ Task submitted: %s\n", task_id))
+  cat_info(sprintf("[OK] Task submitted: %s\n", task_id))
 
   invisible(task_id)
 }
@@ -446,7 +446,7 @@ collect_session_results <- function(session, wait, timeout) {
     }
 
     # Check if all tasks are completed
-    all_completed <- all(sapply(statuses, function(s) {
+    all_completed <- all(vapply(statuses, function(s) {
       s$state %in% c("completed", "failed")
     }))
 
@@ -465,7 +465,7 @@ collect_session_results <- function(session, wait, timeout) {
     Sys.sleep(2)
   }
 
-  cat_info(sprintf("✓ Collected %d results\n", length(results)))
+  cat_info(sprintf("[OK] Collected %d results\n", length(results)))
 
   results
 }
@@ -486,7 +486,7 @@ extend_session_timeout <- function(session, seconds) {
     bucket = backend$bucket
   )
 
-  cat_success(sprintf("✓ Extended session timeout by %d seconds\n", seconds))
+  cat_success(sprintf("[OK] Extended session timeout by %d seconds\n", seconds))
 
   invisible(NULL)
 }
@@ -501,7 +501,7 @@ cleanup_session <- function(session, stop_workers = TRUE, force = FALSE) {
   backend <- session$backend
   session_id <- backend$session_id
 
-  cat_info(sprintf("🧹 Cleaning up session: %s\n", session_id))
+  cat_info(sprintf("[Cleaning] Cleaning up session: %s\n", session_id))
 
   # 1. Stop all running ECS tasks
   if (stop_workers) {
@@ -550,24 +550,24 @@ cleanup_session <- function(session, stop_workers = TRUE, force = FALSE) {
               )
               stopped_count <- stopped_count + 1
             }, error = function(e) {
-              cat_warn(sprintf("  ⚠ Failed to stop task: %s\n", e$message))
+              cat_warn(sprintf("  [WARNING] Failed to stop task: %s\n", e$message))
             })
           }
         }
 
         if (stopped_count > 0) {
-          cat_success(sprintf("  ✓ Stopped %d workers\n", stopped_count))
+          cat_success(sprintf("  [OK] Stopped %d workers\n", stopped_count))
         } else {
-          cat_info("  ℹ No running workers found for this session\n")
+          cat_info("  [INFO] No running workers found for this session\n")
         }
       } else {
-        cat_info("  ℹ No running workers found\n")
+        cat_info("  [INFO] No running workers found\n")
       }
     }, error = function(e) {
-      cat_warn(sprintf("  ⚠ Failed to stop workers: %s\n", e$message))
+      cat_warn(sprintf("  [WARNING] Failed to stop workers: %s\n", e$message))
     })
   } else {
-    cat_info("  ℹ Workers not stopped (stop_workers = FALSE)\n")
+    cat_info("  [INFO] Workers not stopped (stop_workers = FALSE)\n")
   }
 
   # 2. Delete S3 session files (if force = TRUE)
@@ -584,7 +584,7 @@ cleanup_session <- function(session, stop_workers = TRUE, force = FALSE) {
 
       if (length(result$Contents) > 0) {
         # Delete in batches of 1000 (S3 limit)
-        object_keys <- sapply(result$Contents, function(x) x$Key)
+        object_keys <- vapply(result$Contents, function(x) x$Key, FUN.VALUE = character(1))
 
         total_deleted <- 0
         for (i in seq(1, length(object_keys), by = 1000)) {
@@ -608,12 +608,12 @@ cleanup_session <- function(session, stop_workers = TRUE, force = FALSE) {
 
         remaining <- length(verify_result$Contents)
         if (remaining > 0) {
-          cat_warn(sprintf("  ⚠ Warning: %d objects remain after cleanup\n", remaining))
+          cat_warn(sprintf("  [WARNING] Warning: %d objects remain after cleanup\n", remaining))
         } else {
-          cat_success(sprintf("  ✓ Deleted %d S3 objects\n", total_deleted))
+          cat_success(sprintf("  [OK] Deleted %d S3 objects\n", total_deleted))
         }
       } else {
-        cat_info("  ℹ No S3 files found to delete\n")
+        cat_info("  [INFO] No S3 files found to delete\n")
       }
 
       # Also delete task files
@@ -625,7 +625,7 @@ cleanup_session <- function(session, stop_workers = TRUE, force = FALSE) {
 
       if (length(tasks_result$Contents) > 0) {
         # Filter task files for this session
-        session_task_keys <- sapply(tasks_result$Contents, function(obj) {
+        session_task_keys <- vapply(tasks_result$Contents, function(obj) {
           # Task files are named with session ID in the task ID
           if (grepl(session_id, obj$Key)) {
             obj$Key
@@ -642,14 +642,14 @@ cleanup_session <- function(session, stop_workers = TRUE, force = FALSE) {
               Objects = lapply(session_task_keys, function(k) list(Key = k))
             )
           )
-          cat_success(sprintf("  ✓ Deleted %d task files\n", length(session_task_keys)))
+          cat_success(sprintf("  [OK] Deleted %d task files\n", length(session_task_keys)))
         }
       }
     }, error = function(e) {
-      cat_warn(sprintf("  ⚠ S3 cleanup failed: %s\n", e$message))
+      cat_warn(sprintf("  [WARNING] S3 cleanup failed: %s\n", e$message))
     })
   } else {
-    cat_info("  ℹ S3 files preserved (use force = TRUE to delete)\n")
+    cat_info("  [INFO] S3 files preserved (use force = TRUE to delete)\n")
   }
 
   # 3. Mark session as terminated in manifest (if not force deleting)
@@ -664,13 +664,13 @@ cleanup_session <- function(session, stop_workers = TRUE, force = FALSE) {
         backend$region,
         backend$bucket
       )
-      cat_success("  ✓ Session marked as terminated\n")
+      cat_success("  [OK] Session marked as terminated\n")
     }, error = function(e) {
       # Silently fail if manifest already deleted or inaccessible
     })
   }
 
-  cat_success("✓ Cleanup complete\n")
+  cat_success("[OK] Cleanup complete\n")
   invisible(NULL)
 }
 

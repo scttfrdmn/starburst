@@ -118,7 +118,7 @@ starburst_rebuild_environment <- function(region = NULL, force = FALSE) {
   # Build image
   build_environment_image(env_hash, region)
 
-  cat_success(sprintf("✓ Environment rebuilt (hash: %s)\n", env_hash))
+  cat_success(sprintf("[OK] Environment rebuilt (hash: %s)\n", env_hash))
 
   invisible(env_hash)
 }

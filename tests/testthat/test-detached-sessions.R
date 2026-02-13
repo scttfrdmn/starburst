@@ -109,9 +109,9 @@ test_that("session state functions work correctly", {
 
 test_that("detached session creation works", {
   skip_on_cran()
-  skip("Skipping full session test - requires AWS resources")
+  skip_if_not(check_aws_credentials(), "AWS credentials not available")
 
-  # This test would launch actual workers, so skip by default
+  # This test launches actual workers
   session <- starburst_session(
     workers = 2,
     cpu = 1,
@@ -129,7 +129,7 @@ test_that("detached session creation works", {
 
 test_that("session submit and collect workflow", {
   skip_on_cran()
-  skip("Skipping full integration test")
+  skip_if_not(check_aws_credentials(), "AWS credentials not available")
 
   # Create session
   session <- starburst_session(workers = 2, cpu = 1, memory = "2GB")
@@ -147,7 +147,7 @@ test_that("session submit and collect workflow", {
   expect_equal(status$total, 5)
 
   # Wait and collect
-  Sys.sleep(30)  # Give workers time to process
+  Sys.sleep(60)  # Give workers time to process
   results <- session$collect(wait = FALSE)
 
   expect_true(length(results) > 0)
@@ -158,10 +158,10 @@ test_that("session submit and collect workflow", {
 
 test_that("session attach workflow", {
   skip_on_cran()
-  skip("Skipping attach test")
+  skip_if_not(check_aws_credentials(), "AWS credentials not available")
 
   # Create session
-  session <- starburst_session(workers = 2)
+  session <- starburst_session(workers = 2, cpu = 1, memory = "2GB")
   session_id <- session$session_id
 
   # Submit tasks
@@ -181,7 +181,7 @@ test_that("session attach workflow", {
   expect_equal(status$total, 10)
 
   # Collect results
-  results <- session$collect(wait = TRUE, timeout = 120)
+  results <- session$collect(wait = TRUE, timeout = 180)
   expect_equal(length(results), 10)
 
   # Cleanup

@@ -46,7 +46,7 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 
   # Setup progress reporting
   if (.progress) {
-    cat_info(sprintf("🚀 Starting starburst cluster with %d workers\n", workers))
+    cat_info(sprintf("[Starting] Starting starburst cluster with %d workers\n", workers))
   }
 
   start_time <- Sys.time()
@@ -105,7 +105,7 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 
   # Run all futures
   if (.progress) {
-    cat_info(sprintf("🚀 Submitting %d tasks...\n", n))
+    cat_info(sprintf("[Starting] Submitting %d tasks...\n", n))
   }
 
   for (future in futures) {
@@ -150,7 +150,7 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 
   if (.progress) {
     elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
-    cat_success(sprintf("\n✓ Completed in %.1f seconds\n", elapsed))
+    cat_success(sprintf("\n[OK] Completed in %.1f seconds\n", elapsed))
 
     # Cost estimate
     cost_est <- estimate_cost(workers, cpu, memory)
@@ -276,7 +276,7 @@ starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
 
   # Run all futures (submits to AWS)
   if (.progress) {
-    cat_info(sprintf("🚀 Submitting %d tasks to AWS Fargate...\n", n))
+    cat_info(sprintf("[Starting] Submitting %d tasks to AWS Fargate...\n", n))
   }
 
   for (future in futures) {
@@ -322,7 +322,7 @@ starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
 
   if (.progress) {
     elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
-    cat_success(sprintf("\n✓ Completed %d items in %.1f seconds\n", n, elapsed))
+    cat_success(sprintf("\n[OK] Completed %d items in %.1f seconds\n", n, elapsed))
   }
 
   results

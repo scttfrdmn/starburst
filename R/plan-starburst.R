@@ -76,7 +76,7 @@ plan.starburst <- function(strategy,
   } else {
     "X86_64"  # Fargate default
   }
-  
+
   # Check quota (only for Fargate)
   quota_limited <- FALSE
   workers_per_wave <- workers
@@ -92,27 +92,27 @@ plan.starburst <- function(strategy,
     workers_per_wave <- floor(vcpus_available / cpu)
     num_waves <- ceiling(workers / workers_per_wave)
     quota_limited <- TRUE
-    
+
     # Inform user
     cat_warn(sprintf(
-      "⚠ Requested: %d workers (%d vCPUs)\n⚠ Current quota: %d vCPUs (allows %d workers max)\n",
+      "[WARNING] Requested: %d workers (%d vCPUs)\n[WARNING] Current quota: %d vCPUs (allows %d workers max)\n",
       workers, vcpus_needed, vcpus_available, workers_per_wave
     ))
-    
+
     cat_info(sprintf(
       "\n📋 Execution plan:\n   • Running in %d waves of %d workers each\n",
       num_waves, workers_per_wave
     ))
-    
+
     # Offer quota increase
     if (!quota_info$increase_pending && auto_quota_request) {
       recommended_quota <- suggest_quota(vcpus_needed)
-      
+
       cat_info(sprintf(
-        "\n💡 Quota increase recommended:\n   Request %d vCPU quota? (usually approved in 1-24 hours)\n",
+        "\n[TIP] Quota increase recommended:\n   Request %d vCPU quota? (usually approved in 1-24 hours)\n",
         recommended_quota
       ))
-      
+
       response <- readline("   [y/n]: ")
       if (tolower(response) == "y") {
         case_id <- request_quota_increase(
@@ -122,11 +122,11 @@ plan.starburst <- function(strategy,
           region = region,
           reason = sprintf("staRburst parallel R computing with %d workers", workers)
         )
-        
+
         if (!is.null(case_id)) {
-          cat_success(sprintf("✓ Quota increase requested (Case ID: %s)\n", case_id))
-          cat_success("✓ You'll receive email when approved\n")
-          cat_success("✓ Future runs will use full parallelism\n")
+          cat_success(sprintf("[OK] Quota increase requested (Case ID: %s)\n", case_id))
+          cat_success("[OK] You'll receive email when approved\n")
+          cat_success("[OK] Future runs will use full parallelism\n")
         }
       }
     }
@@ -148,7 +148,7 @@ plan.starburst <- function(strategy,
                     instance_type,
                     if (use_spot) " spot" else ""))
   }
-  
+
   # Check cost limits
   if (!is.null(config$max_cost_per_job) && cost_est$per_hour > config$max_cost_per_job) {
     stop(sprintf(
@@ -156,13 +156,13 @@ plan.starburst <- function(strategy,
       cost_est$per_hour, config$max_cost_per_job
     ))
   }
-  
+
   # Ensure environment is ready
   env_info <- ensure_environment(region)
 
   # Create cluster identifier
   cluster_id <- sprintf("starburst-%s", uuid::UUIDgenerate())
-  
+
   # Get config for bucket
   config <- get_starburst_config()
 
@@ -236,7 +236,7 @@ plan.starburst <- function(strategy,
     options(starburst.cleanup_handlers = cleanup_handlers)
   }
 
-  cat_success(sprintf("✓ Cluster ready: %s\n", cluster_id))
+  cat_success(sprintf("[OK] Cluster ready: %s\n", cluster_id))
 
   # Create a tweaked strategy that knows about our backend
   # This tells future() to call future.starburst() when creating futures
@@ -285,7 +285,7 @@ get_wave_status <- function(backend) {
 #'
 #' @keywords internal
 cleanup_cluster <- function(backend) {
-  cat_info(sprintf("\n🧹 Cleaning up cluster: %s\n", backend$cluster_id))
+  cat_info(sprintf("\n[Cleaning] Cleaning up cluster: %s\n", backend$cluster_id))
 
   # Stop any running tasks
   stop_running_tasks(backend)
@@ -298,7 +298,7 @@ cleanup_cluster <- function(backend) {
 
   # Report
   cat_success(sprintf(
-    "✓ Cluster shutdown:\n   • Runtime: %.1f minutes\n   • Tasks completed: %d\n   • Tasks failed: %d\n   • Total cost: $%.2f\n",
+    "[OK] Cluster shutdown:\n   • Runtime: %.1f minutes\n   • Tasks completed: %d\n   • Tasks failed: %d\n   • Total cost: $%.2f\n",
     runtime, backend$completed_tasks, backend$failed_tasks, final_cost
   ))
 
@@ -312,7 +312,7 @@ cleanup_cluster <- function(backend) {
     idle_time <- difftime(Sys.time(), backend$pool_started_at, units = "secs")
 
     if (idle_time > backend$warm_pool_timeout) {
-      cat_info("🧹 Pool timeout reached, scaling down...\n")
+      cat_info("[Cleaning] Pool timeout reached, scaling down...\n")
       stop_warm_pool(backend)
     } else {
       remaining_mins <- (backend$warm_pool_timeout - as.numeric(idle_time)) / 60
@@ -407,15 +407,15 @@ parse_memory <- function(memory) {
   if (is.numeric(memory)) {
     return(memory)
   }
-  
+
   if (grepl("GB$", memory, ignore.case = TRUE)) {
     return(as.numeric(sub("GB$", "", memory, ignore.case = TRUE)))
   }
-  
+
   if (grepl("MB$", memory, ignore.case = TRUE)) {
     return(as.numeric(sub("MB$", "", memory, ignore.case = TRUE)) / 1024)
   }
-  
+
   stop("memory must be numeric (GB) or string like '8GB'")
 }
 
