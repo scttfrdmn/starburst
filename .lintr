@@ -2,7 +2,12 @@ linters: linters_with_defaults(
     line_length_linter = line_length_linter(120),
     object_name_linter = NULL,  # Allow different naming styles
     cyclocomp_linter = NULL,    # Allow complex functions
-    commented_code_linter = NULL # Allow commented examples
+    commented_code_linter = NULL, # Allow commented examples
+    # Suppressions for idiomatic R code:
+    return_linter = NULL,       # Accept explicit return() (clarity over brevity)
+    object_length_linter = NULL, # Accept descriptive names (clarity over brevity)
+    object_usage_linter = NULL,  # Suppress false positives for internal functions
+    indentation_linter = NULL    # Accept minor indentation variations (cosmetic only)
   )
 exclusions: list(
     "inst/examples",
