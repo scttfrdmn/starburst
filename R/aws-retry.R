@@ -57,7 +57,7 @@ with_aws_retry <- function(expr,
   last_error <- NULL
 
   for (attempt in seq_len(max_attempts)) {
-    result <- tryCatch({
+    tryCatch({
       # Execute expression
       return(force(expr))  # Success - return immediately
 

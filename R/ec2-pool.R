@@ -142,7 +142,7 @@ setup_ec2_capacity_provider <- function(backend) {
   }
 
   tryCatch({
-    lt_response <- do.call(ec2$create_launch_template, lt_params)
+    do.call(ec2$create_launch_template, lt_params)
     cat_success(sprintf("[OK] Launch Template created: %s\n", lt_name))
   }, error = function(e) {
     cat_error(sprintf("[ERROR] Launch Template creation failed: %s\n", e$message))
@@ -192,7 +192,7 @@ setup_ec2_capacity_provider <- function(backend) {
       }
 
       if (i == 12) {
-        cat_warning("[WARNING] ASG deletion taking longer than expected, continuing anyway...\n")
+        cat_warn("[WARNING] ASG deletion taking longer than expected, continuing anyway...\n")
       }
     }
   }, error = function(e) {

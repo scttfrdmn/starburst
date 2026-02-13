@@ -1,7 +1,7 @@
 Package: starburst
 Type: Package
 Title: Seamless AWS Cloud Bursting for Parallel R Workloads
-Version: 0.3.1
+Version: 0.3.2
 Authors@R: c(
     person("Scott", "Friedman", email = "help@starburst.ing", role = c("aut", "cre"))
     )
