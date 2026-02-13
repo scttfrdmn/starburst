@@ -10,10 +10,10 @@ test_that("null coalesce operator works", {
 test_that("validate_workers checks bounds", {
   expect_error(validate_workers(-1))
   expect_error(validate_workers(0))
-  expect_error(validate_workers(10001))
+  expect_error(validate_workers(1000))  # Exceeds max of 500
   expect_silent(validate_workers(1))
   expect_silent(validate_workers(100))
-  expect_silent(validate_workers(10000))
+  expect_silent(validate_workers(500))  # Max allowed
 })
 
 test_that("validate_cpu checks valid values", {
