@@ -340,23 +340,4 @@ estimate_cost <- function(workers, cpu, memory, time_seconds) {
 }
 
 #' Parse Memory String
-#'
-#' @keywords internal
-parse_memory <- function(memory_str) {
-  if (is.numeric(memory_str)) {
-    return(memory_str)
-  }
-
-  # Parse "8GB", "4 GB", "8G" etc.
-  num <- as.numeric(gsub("[^0-9.]", "", memory_str))
-
-  # Check if it's already in GB or needs conversion
-  if (grepl("GB|G", memory_str, ignore.case = TRUE)) {
-    return(num)
-  } else if (grepl("MB|M", memory_str, ignore.case = TRUE)) {
-    return(num / 1024)
-  } else {
-    # Assume GB if no unit
-    return(num)
-  }
-}
+# Note: parse_memory() is defined in R/plan-starburst.R

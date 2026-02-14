@@ -414,6 +414,9 @@ validate_instance_type <- function(instance_type) {
   }
 }
 
+#' Parse memory specification
+#' @param memory Memory specification (numeric GB or string like "8GB")
+#' @keywords internal
 parse_memory <- function(memory) {
   if (is.numeric(memory)) {
     return(memory)
