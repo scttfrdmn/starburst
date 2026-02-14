@@ -247,6 +247,7 @@ get_starburst_security_groups <- function(region) {
 #' Infix null-coalesce operator
 #'
 #' @keywords internal
+#' @noRd
 `%||%` <- function(a, b) {
   if (is.null(a)) b else a
 }
