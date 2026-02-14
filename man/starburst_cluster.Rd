@@ -8,6 +8,7 @@ starburst_cluster(
   workers = 10,
   cpu = 4,
   memory = "8GB",
+  platform = "X86_64",
   region = NULL,
   timeout = 3600
 )
@@ -18,6 +19,8 @@ starburst_cluster(
 \item{cpu}{CPU units per worker}
 
 \item{memory}{Memory per worker}
+
+\item{platform}{CPU architecture (X86_64 or ARM64)}
 
 \item{region}{AWS region}
 

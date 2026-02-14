@@ -169,6 +169,7 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 #' @param workers Number of parallel workers
 #' @param cpu CPU units per worker
 #' @param memory Memory per worker
+#' @param platform CPU architecture (X86_64 or ARM64)
 #' @param region AWS region
 #' @param timeout Maximum runtime in seconds
 #'
@@ -181,7 +182,7 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 #' results <- cluster$map(data, function(x) x * 2)
 #' }
 starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
-                              region = NULL, timeout = 3600) {
+                              platform = "X86_64", region = NULL, timeout = 3600) {
 
   # Get configuration
   config <- get_starburst_config()
@@ -205,7 +206,7 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
 
   # Create cluster object
   cluster <- list(
-    evaluator = evaluator,
+    evaluator = backend,
     backend = backend,
     cluster_id = backend$cluster_id,
     workers = backend$workers,

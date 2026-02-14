@@ -142,7 +142,7 @@ create_ecr_lifecycle_policy <- function(region, repository_name, ttl_days = NULL
     )
     cat_success(sprintf("[OK] ECR auto-cleanup enabled: Images deleted after %d days\n", ttl_days))
   }, error = function(e) {
-    cat_warning(sprintf("[WARNING] Failed to set ECR lifecycle policy: %s\n", e$message))
+    cat_warn(sprintf("[WARNING] Failed to set ECR lifecycle policy: %s\n", e$message))
   })
 }
 
@@ -190,11 +190,11 @@ check_ecr_image_age <- function(region, image_tag, ttl_days = NULL, force_rebuil
   # Check if image is stale
   if (age_days > ttl_days) {
     if (force_rebuild) {
-      cat_warning(sprintf("[WARNING] Image is %.0f days old (TTL: %d days), rebuilding...\n",
+      cat_warn(sprintf("[WARNING] Image is %.0f days old (TTL: %d days), rebuilding...\n",
                          age_days, ttl_days))
       return(FALSE)  # Signal rebuild needed
     } else {
-      cat_warning(sprintf("[WARNING] Image is %.0f days old (TTL: %d days)\n", age_days, ttl_days))
+      cat_warn(sprintf("[WARNING] Image is %.0f days old (TTL: %d days)\n", age_days, ttl_days))
       cat_info("  AWS will auto-delete soon. Consider running a job to refresh.\n")
       return(TRUE)  # Use existing but warn
     }
@@ -1424,10 +1424,11 @@ get_or_create_task_definition <- function(plan) {
 #'
 #' @keywords internal
 get_task_registry <- function() {
-  if (!exists(".starburst_task_registry", envir = .GlobalEnv)) {
-    assign(".starburst_task_registry", new.env(parent = emptyenv()), envir = .GlobalEnv)
+  # Access package-level environment
+  if (is.null(.starburst_task_registry)) {
+    stop("Task registry not initialized. This should not happen.")
   }
-  get(".starburst_task_registry", envir = .GlobalEnv)
+  .starburst_task_registry
 }
 
 #' Store task ARN
