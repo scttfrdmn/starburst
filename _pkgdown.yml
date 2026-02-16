@@ -55,37 +55,22 @@ navbar:
       text: News
       href: news/index.html
 
-reference:
-- title: "Main Functions"
-  desc: "Core functions for cloud bursting"
-  contents:
-  - starburst_map
-  - starburst_cluster
-  - starburst_setup
-
-- title: "Configuration"
-  desc: "Configure and manage staRburst"
-  contents:
-  - starburst_config
-  - starburst_status
-  - get_starburst_config
-
-- title: "Cost Management"
-  desc: "Track and manage AWS costs"
-  contents:
-  - estimate_cost
-
-- title: "Advanced"
-  desc: "Advanced usage and utilities"
-  contents:
-  - build_environment_image
-  - ensure_base_image
+# Let pkgdown auto-generate the reference index
+# Manually organizing 29+ exported functions is error-prone
+# reference:
+# - title: "Main Functions"
+#   desc: "Core functions for cloud bursting"
+#   contents:
+#   - starburst_map
+#   - starburst_cluster
+#   - starburst_setup
 
 articles:
 - title: "Getting Started"
   navbar: ~
   contents:
   - getting-started
+  - detached-sessions
 
 - title: "Data Processing Examples"
   desc: "Parallel data processing use cases"
@@ -102,6 +87,12 @@ articles:
   - example-feature-engineering
   - example-bootstrap
   - example-reports
+
+- title: "Operations & Troubleshooting"
+  desc: "Security, debugging, and maintenance"
+  contents:
+  - security
+  - troubleshooting
 
 footer:
   structure:
