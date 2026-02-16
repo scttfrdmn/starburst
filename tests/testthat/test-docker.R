@@ -70,6 +70,11 @@ test_that("ensure_environment returns hash and image URI", {
   # Mock file.exists
   mockery::stub(ensure_environment, "file.exists", function(...) TRUE)
 
+  # Mock readLines to return mock renv.lock content
+  mockery::stub(ensure_environment, "readLines", function(file, warn = FALSE) {
+    c("{", "  \"R\": { \"Version\": \"4.3.0\" },", "  \"Packages\": {}", "}")
+  })
+
   # Mock digest::digest
   mockery::stub(ensure_environment, "digest::digest", function(...) {
     "abc123hash"
@@ -103,6 +108,11 @@ test_that("ensure_environment builds image if not exists", {
 
   # Mock file.exists
   mockery::stub(ensure_environment, "file.exists", function(...) TRUE)
+
+  # Mock readLines to return mock renv.lock content
+  mockery::stub(ensure_environment, "readLines", function(file, warn = FALSE) {
+    c("{", "  \"R\": { \"Version\": \"4.3.0\" },", "  \"Packages\": {}", "}")
+  })
 
   # Mock digest::digest
   mockery::stub(ensure_environment, "digest::digest", function(...) {

@@ -33,6 +33,15 @@ test_that("ensure_environment returns proper structure", {
     "test.lock"
   })
   mockery::stub(ensure_environment, "file.exists", function(...) TRUE)
+  mockery::stub(ensure_environment, "readLines", function(file, warn = FALSE) {
+    # Return mock renv.lock content
+    c(
+      "{",
+      "  \"R\": { \"Version\": \"4.3.0\" },",
+      "  \"Packages\": {}",
+      "}"
+    )
+  })
   mockery::stub(ensure_environment, "digest::digest", function(...) {
     "abc123hash"
   })
@@ -84,6 +93,15 @@ test_that("image URI format is correct", {
 
   mockery::stub(ensure_environment, "renv::paths$lockfile", function() "test.lock")
   mockery::stub(ensure_environment, "file.exists", function(...) TRUE)
+  mockery::stub(ensure_environment, "readLines", function(file, warn = FALSE) {
+    # Return mock renv.lock content
+    c(
+      "{",
+      "  \"R\": { \"Version\": \"4.3.0\" },",
+      "  \"Packages\": {}",
+      "}"
+    )
+  })
   mockery::stub(ensure_environment, "digest::digest", function(...) "deadbeef123")
   mockery::stub(ensure_environment, "get_starburst_config", function() {
     list(aws_account_id = "999888777666")
