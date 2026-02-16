@@ -32,6 +32,11 @@ test_that("build_environment_image checks for renv.lock", {
     stop("Unexpected command")
   })
 
+  # Mock get_starburst_config (called first before checking renv.lock)
+  mockery::stub(build_environment_image, "get_starburst_config", function() {
+    list(aws_account_id = "123456789012")
+  })
+
   # Mock ensure_base_image to avoid building base image
   mockery::stub(build_environment_image, "ensure_base_image", function(...) {
     "mock-base-image:latest"
