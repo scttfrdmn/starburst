@@ -1,0 +1,20 @@
+pandoc: 3.1.11
+pkgdown: 2.2.0
+pkgdown_sha: ~
+articles:
+  detached-sessions: detached-sessions.html
+  example-api-calls: example-api-calls.html
+  example-bootstrap: example-bootstrap.html
+  example-feature-engineering: example-feature-engineering.html
+  example-geospatial: example-geospatial.html
+  example-grid-search: example-grid-search.html
+  example-monte-carlo: example-monte-carlo.html
+  example-reports: example-reports.html
+  example-risk-modeling: example-risk-modeling.html
+  getting-started: getting-started.html
+  security: security.html
+  troubleshooting: troubleshooting.html
+last_built: 2026-02-16T23:38Z
+urls:
+  reference: https://scttfrdmn.github.io/starburst/reference
+  article: https://scttfrdmn.github.io/starburst/articles
