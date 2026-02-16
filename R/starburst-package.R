@@ -9,9 +9,4 @@
 ## usethis namespace: end
 NULL
 
-# Package-level environment for task registry
-.starburst_task_registry <- NULL
-
-.onLoad <- function(libname, pkgname) {
-  .starburst_task_registry <<- new.env(parent = emptyenv())
-}
+# Note: task registry is created on-demand in get_task_registry()

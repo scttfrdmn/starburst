@@ -1439,11 +1439,10 @@ get_or_create_task_definition <- function(plan) {
 #'
 #' @keywords internal
 get_task_registry <- function() {
-  # Access package-level environment
-  if (is.null(.starburst_task_registry)) {
-    stop("Task registry not initialized. This should not happen.")
+  if (!exists(".starburst_task_registry", envir = .GlobalEnv)) {
+    assign(".starburst_task_registry", new.env(parent = emptyenv()), envir = .GlobalEnv)
   }
-  .starburst_task_registry
+  get(".starburst_task_registry", envir = .GlobalEnv)
 }
 
 #' Store task ARN
