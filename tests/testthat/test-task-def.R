@@ -17,7 +17,7 @@ test_that("ensure_log_group creates log group if missing", {
   })
 
   # Should not error
-  expect_silent(ensure_log_group("/aws/ecs/test", "us-east-1"))
+  expect_error(ensure_log_group("/aws/ecs/test", "us-east-1"), NA)
 })
 
 test_that("get_execution_role_arn returns configured role", {
@@ -79,6 +79,7 @@ test_that("get_or_create_task_definition uses existing compatible task def", {
           taskDefinitionArn = "arn:aws:ecs:us-east-1:123456789012:task-definition/test:1",
           cpu = "2048",
           memory = "8192",
+          requiresCompatibilities = list("FARGATE"),
           containerDefinitions = list(
             list(image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/test:latest")
           )
