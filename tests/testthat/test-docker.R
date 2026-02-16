@@ -24,6 +24,19 @@ test_that("build_environment_image checks for renv.lock", {
     list()  # status = 0
   })
 
+  # Mock Docker check to pass
+  mockery::stub(build_environment_image, "safe_system", function(command, args, ...) {
+    if (command == "docker" && any(grepl("--version", args))) {
+      return(list(status = 0, stdout = "Docker version 20.10.0"))
+    }
+    stop("Unexpected command")
+  })
+
+  # Mock ensure_base_image to avoid building base image
+  mockery::stub(build_environment_image, "ensure_base_image", function(...) {
+    "mock-base-image:latest"
+  })
+
   # Mock file.exists to return FALSE for renv.lock
   mockery::stub(build_environment_image, "file.exists", function(path) {
     if (grepl("renv.lock", path)) return(FALSE)
@@ -73,7 +86,7 @@ test_that("ensure_environment returns hash and image URI", {
   result <- ensure_environment("us-east-1")
 
   expect_type(result, "list")
-  expect_named(result, c("hash", "image_uri"))
+  expect_named(result, c("hash", "image_uri", "cluster"))
   expect_equal(result$hash, "abc123hash")
   expect_match(result$image_uri, "^123456789012\\.dkr\\.ecr\\.us-east-1")
   expect_match(result$image_uri, "abc123hash$")

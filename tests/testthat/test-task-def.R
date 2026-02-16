@@ -20,97 +20,40 @@ test_that("ensure_log_group creates log group if missing", {
   expect_silent(ensure_log_group("/aws/ecs/test", "us-east-1"))
 })
 
-test_that("get_execution_role_arn returns existing role", {
+test_that("get_execution_role_arn returns configured role", {
   skip_on_cran()
   skip_if_not_installed("mockery")
 
-  # Mock IAM client
-  iam_client <- list(
-    get_role = function(...) {
-      list(Role = list(Arn = "arn:aws:iam::123456789012:role/test-role"))
-    }
-  )
-
-  mockery::stub(get_execution_role_arn, "paws.management::iam", function(...) {
-    iam_client
-  })
-
   mockery::stub(get_execution_role_arn, "get_starburst_config", function() {
-    list()
+    list(execution_role_arn = "arn:aws:iam::123456789012:role/test-role")
   })
 
   result <- get_execution_role_arn("us-east-1")
   expect_equal(result, "arn:aws:iam::123456789012:role/test-role")
 })
 
-test_that("get_execution_role_arn creates role if missing", {
+test_that("get_execution_role_arn constructs default ARN", {
   skip_on_cran()
   skip_if_not_installed("mockery")
 
-  role_created <- FALSE
-
-  # Mock IAM client
-  iam_client <- list(
-    get_role = function(...) {
-      stop("NoSuchEntity")
-    },
-    create_role = function(...) {
-      role_created <<- TRUE
-      list(Role = list(Arn = "arn:aws:iam::123456789012:role/new-role"))
-    },
-    attach_role_policy = function(...) {
-      list()
-    }
-  )
-
-  mockery::stub(get_execution_role_arn, "paws.management::iam", function(...) {
-    iam_client
-  })
-
   mockery::stub(get_execution_role_arn, "get_starburst_config", function() {
-    list()
+    list(aws_account_id = "123456789012")
   })
 
   result <- get_execution_role_arn("us-east-1")
-
-  expect_true(role_created)
-  expect_equal(result, "arn:aws:iam::123456789012:role/new-role")
+  expect_equal(result, "arn:aws:iam::123456789012:role/starburstECSExecutionRole")
 })
 
-test_that("get_task_role_arn includes S3 permissions", {
+test_that("get_task_role_arn constructs default ARN", {
   skip_on_cran()
   skip_if_not_installed("mockery")
 
-  s3_policy_set <- FALSE
-
-  # Mock IAM client
-  iam_client <- list(
-    get_role = function(...) {
-      stop("NoSuchEntity")
-    },
-    create_role = function(...) {
-      list(Role = list(Arn = "arn:aws:iam::123456789012:role/task-role"))
-    },
-    put_role_policy = function(...) {
-      s3_policy_set <<- TRUE
-      list()
-    }
-  )
-
-  mockery::stub(get_task_role_arn, "paws.management::iam", function(...) {
-    iam_client
-  })
-
   mockery::stub(get_task_role_arn, "get_starburst_config", function() {
-    list(
-      aws_account_id = "123456789012",
-      bucket_name = "test-bucket"
-    )
+    list(aws_account_id = "123456789012")
   })
 
   result <- get_task_role_arn("us-east-1")
-
-  expect_true(s3_policy_set)
+  expect_equal(result, "arn:aws:iam::123456789012:role/starburstECSTaskRole")
 })
 
 test_that("get_or_create_task_definition uses existing compatible task def", {

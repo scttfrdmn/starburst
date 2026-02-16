@@ -45,7 +45,7 @@ test_that("ensure_environment returns proper structure", {
 
   # Check structure
   expect_type(result, "list")
-  expect_named(result, c("hash", "image_uri"))
+  expect_named(result, c("hash", "image_uri", "cluster"))
 
   # Check values
   expect_equal(result$hash, "abc123hash")

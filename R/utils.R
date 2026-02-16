@@ -1217,15 +1217,30 @@ ensure_log_group <- function(log_group_name, region) {
   )
 
   # Check if log group exists
-  result <- logs$describe_log_groups(logGroupNamePrefix = log_group_name)
+  log_group_exists <- FALSE
+  tryCatch({
+    result <- logs$describe_log_groups(logGroupNamePrefix = log_group_name)
 
-  # If log group exists with exact name match, return
-  if (length(result$logGroups) > 0) {
-    for (lg in result$logGroups) {
-      if (lg$logGroupName == log_group_name) {
-        return(invisible(NULL))
+    # If log group exists with exact name match, return
+    if (length(result$logGroups) > 0) {
+      for (lg in result$logGroups) {
+        if (lg$logGroupName == log_group_name) {
+          log_group_exists <- TRUE
+          break
+        }
       }
     }
+  }, error = function(e) {
+    # ResourceNotFoundException means log group doesn't exist
+    if (grepl("ResourceNotFoundException", e$message)) {
+      log_group_exists <<- FALSE
+    } else {
+      stop(e)
+    }
+  })
+
+  if (log_group_exists) {
+    return(invisible(NULL))
   }
 
   # Create log group if it doesn't exist

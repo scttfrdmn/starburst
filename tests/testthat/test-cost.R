@@ -139,13 +139,13 @@ test_that("calculate_total_cost handles batches of tasks", {
     describe_tasks = function(cluster, tasks) {
       batch_count <<- batch_count + 1
 
-      # Return mock tasks
-      lapply(tasks, function(arn) {
+      # Return mock tasks in correct format
+      list(tasks = lapply(tasks, function(arn) {
         list(
           startedAt = as.numeric(Sys.time()) - 3600,
           stoppedAt = as.numeric(Sys.time())
         )
-      })
+      }))
     }
   )
 
