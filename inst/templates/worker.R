@@ -19,7 +19,7 @@ main <- function() {
   tryCatch({
     # Load required packages
     library(paws.storage)
-    library(qs)
+    library(qs2)
 
     # Create S3 client with timeouts to prevent hanging
     s3 <- paws.storage::s3(config = list(
@@ -62,7 +62,7 @@ main <- function() {
     # Try to upload error result
     tryCatch({
       library(paws.storage)
-      library(qs)
+      library(qs2)
 
       s3 <- paws.storage::s3(config = list(region = region))
 
