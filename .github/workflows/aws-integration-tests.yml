@@ -1,0 +1,223 @@
+name: AWS Integration Tests
+
+on:
+  # Run on manual trigger
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - detached-sessions
+          - integration-examples
+          - ec2
+          - cleanup
+          - quick
+  # Run on push to main (but only for relevant changes)
+  push:
+    branches: [main]
+    paths:
+      - 'R/**'
+      - 'inst/templates/**'
+      - 'tests/testthat/test-detached-sessions.R'
+      - 'tests/testthat/test-integration-examples.R'
+      - 'tests/testthat/test-ec2-*.R'
+      - 'tests/testthat/test-cleanup.R'
+  # Run weekly to catch infrastructure drift
+  schedule:
+    - cron: '0 8 * * 1'  # Monday 8am UTC
+
+jobs:
+  aws-integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    # Only run if AWS credentials are configured
+    if: github.event_name == 'workflow_dispatch' || github.repository == 'scttfrdmn/starburst'
+
+    permissions:
+      id-token: write  # For OIDC
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+
+      - name: Setup R dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-r-${{ hashFiles('DESCRIPTION') }}
+          restore-keys: |
+            ${{ runner.os }}-r-
+
+      - name: Install R package dependencies
+        run: |
+          Rscript -e "install.packages(c('remotes', 'devtools', 'testthat'))"
+          Rscript -e "remotes::install_deps(dependencies = TRUE)"
+
+      - name: Install package
+        run: |
+          R CMD INSTALL .
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: GitHubActions-StarburstIntegrationTests
+
+      - name: Verify AWS access
+        run: |
+          aws sts get-caller-identity
+          aws s3 ls || echo "No S3 buckets or access denied"
+
+      - name: Run quick smoke tests
+        if: github.event.inputs.test_suite == 'quick' || github.event.inputs.test_suite == 'all'
+        run: |
+          Rscript -e "
+            devtools::load_all()
+            # Quick validation tests
+            cat('Testing AWS connectivity...\n')
+            config <- starburst_config()
+            cat('AWS Account:', config\$aws_account_id, '\n')
+            cat('Region:', config\$region, '\n')
+            cat('Bucket:', config\$bucket, '\n')
+
+            # Test ECR access
+            ecr <- paws.compute::ecr(config = list(region = config\$region))
+            repos <- ecr\$describe_repositories()
+            cat('ECR access: OK\n')
+
+            # Test S3 access
+            s3 <- paws.storage::s3(config = list(region = config\$region))
+            s3\$head_bucket(Bucket = config\$bucket)
+            cat('S3 access: OK\n')
+
+            cat('Quick smoke tests: PASSED\n')
+          "
+
+      - name: Run detached session tests
+        if: github.event.inputs.test_suite == 'detached-sessions' || github.event.inputs.test_suite == 'all'
+        run: |
+          Rscript -e "
+            devtools::load_all()
+            results <- testthat::test_file(
+              'tests/testthat/test-detached-sessions.R',
+              reporter = 'summary'
+            )
+            if (length(results) > 0 && any(sapply(results, function(r) !is.null(r\$failed) && r\$failed > 0))) {
+              quit(status = 1)
+            }
+          "
+
+      - name: Run integration example tests
+        if: github.event.inputs.test_suite == 'integration-examples' || github.event.inputs.test_suite == 'all'
+        env:
+          RUN_INTEGRATION_TESTS: "TRUE"
+        run: |
+          Rscript -e "
+            devtools::load_all()
+            results <- testthat::test_file(
+              'tests/testthat/test-integration-examples.R',
+              reporter = 'summary'
+            )
+            if (length(results) > 0 && any(sapply(results, function(r) !is.null(r\$failed) && r\$failed > 0))) {
+              quit(status = 1)
+            }
+          "
+
+      - name: Run EC2 integration tests
+        if: github.event.inputs.test_suite == 'ec2' || github.event.inputs.test_suite == 'all'
+        run: |
+          Rscript -e "
+            devtools::load_all()
+            # Run EC2 tests but skip manual/expensive ones
+            results <- testthat::test_file(
+              'tests/testthat/test-ec2-integration.R',
+              reporter = 'summary'
+            )
+            if (length(results) > 0 && any(sapply(results, function(r) !is.null(r\$failed) && r\$failed > 0))) {
+              quit(status = 1)
+            }
+          "
+
+      - name: Run cleanup tests
+        if: github.event.inputs.test_suite == 'cleanup' || github.event.inputs.test_suite == 'all'
+        run: |
+          Rscript -e "
+            devtools::load_all()
+            results <- testthat::test_file(
+              'tests/testthat/test-cleanup.R',
+              reporter = 'summary'
+            )
+            if (length(results) > 0 && any(sapply(results, function(r) !is.null(r\$failed) && r\$failed > 0))) {
+              quit(status = 1)
+            }
+          "
+
+      - name: Cleanup test resources
+        if: always()
+        run: |
+          Rscript -e "
+            tryCatch({
+              devtools::load_all()
+
+              # List and clean up any test sessions
+              sessions <- starburst_list_sessions()
+              if (length(sessions) > 0) {
+                cat('Cleaning up', length(sessions), 'test sessions\n')
+                for (session_id in names(sessions)) {
+                  tryCatch({
+                    session <- starburst_session_attach(session_id)
+                    session\$cleanup(force = TRUE)
+                    cat('Cleaned:', session_id, '\n')
+                  }, error = function(e) {
+                    cat('Failed to clean', session_id, ':', e\$message, '\n')
+                  })
+                }
+              }
+
+              # Clean up any orphaned ECS tasks
+              config <- starburst_config()
+              ecs <- paws.compute::ecs(config = list(region = config\$region))
+              tasks <- ecs\$list_tasks(cluster = config\$cluster)
+              if (length(tasks\$taskArns) > 0) {
+                cat('Found', length(tasks\$taskArns), 'running tasks\n')
+                # Only stop tasks that match test pattern
+                for (task_arn in tasks\$taskArns) {
+                  if (grepl('test', task_arn, ignore.case = TRUE)) {
+                    cat('Stopping test task:', task_arn, '\n')
+                    ecs\$stop_task(cluster = config\$cluster, task = task_arn, reason = 'CI cleanup')
+                  }
+                }
+              }
+
+              cat('Cleanup complete\n')
+            }, error = function(e) {
+              cat('Cleanup error (non-fatal):', e\$message, '\n')
+            })
+          " || true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            tests/testthat/*.rds
+            *.log
+          retention-days: 7
