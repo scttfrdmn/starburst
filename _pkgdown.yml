@@ -74,7 +74,6 @@ reference:
   desc: "Track and manage AWS costs"
   contents:
   - estimate_cost
-  - get_job_cost
 
 - title: "Advanced"
   desc: "Advanced usage and utilities"
