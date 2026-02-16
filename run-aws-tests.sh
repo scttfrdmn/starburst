@@ -75,23 +75,40 @@ cat(sprintf('✓ Region: %s\n', config\$region))
 cat(sprintf('✓ S3 Bucket: %s\n', config\$bucket))
 cat(sprintf('✓ ECS Cluster: %s\n', config\$cluster %||% 'starburst-cluster'))
 
-# Test S3 access
-s3 <- paws.storage::s3(config = list(region = config\$region))
+# Test S3 access with explicit credentials
+aws_profile <- Sys.getenv('AWS_PROFILE', 'default')
+s3 <- paws.storage::s3(config = list(
+  region = config\$region,
+  credentials = list(profile = aws_profile)
+))
 tryCatch({
   s3\$head_bucket(Bucket = config\$bucket)
   cat('✓ S3 bucket accessible\n')
 }, error = function(e) {
   cat('✗ S3 bucket not accessible:', e\$message, '\n')
+  cat('  Bucket:', config\$bucket, '\n')
+  cat('  Region:', config\$region, '\n')
+  cat('  Profile:', aws_profile, '\n')
+  cat('\n')
+  cat('This may indicate:\n')
+  cat('  1. Bucket does not exist - run starburst_setup() first\n')
+  cat('  2. No permissions to access bucket\n')
+  cat('  3. Bucket is in wrong region\n')
+  cat('\n')
+  cat('To create bucket: Rscript -e \"starburst::starburst_setup()\"\n')
   stop('S3 access failed')
 })
 
 # Test ECR access
-ecr <- paws.compute::ecr(config = list(region = config\$region))
+ecr <- paws.compute::ecr(config = list(
+  region = config\$region,
+  credentials = list(profile = aws_profile)
+))
 tryCatch({
   repos <- ecr\$describe_repositories()
   cat('✓ ECR access OK\n')
 }, error = function(e) {
-  cat('⚠ ECR access limited (may need setup)\n')
+  cat('⚠ ECR access limited (may need initial setup)\n')
 })
 "
 echo ""
