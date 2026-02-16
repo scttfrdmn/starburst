@@ -448,7 +448,7 @@ collect_session_results <- function(session, wait, timeout) {
     # Check if all tasks are completed
     all_completed <- all(vapply(statuses, function(s) {
       s$state %in% c("completed", "failed")
-    }))
+    }, FUN.VALUE = logical(1)))
 
     if (all_completed) {
       break
@@ -625,15 +625,8 @@ cleanup_session <- function(session, stop_workers = TRUE, force = FALSE) {
 
       if (length(tasks_result$Contents) > 0) {
         # Filter task files for this session
-        session_task_keys <- vapply(tasks_result$Contents, function(obj) {
-          # Task files are named with session ID in the task ID
-          if (grepl(session_id, obj$Key)) {
-            obj$Key
-          } else {
-            NULL
-          }
-        })
-        session_task_keys <- Filter(Negate(is.null), session_task_keys)
+        all_keys <- sapply(tasks_result$Contents, function(obj) obj$Key)
+        session_task_keys <- all_keys[grepl(session_id, all_keys)]
 
         if (length(session_task_keys) > 0) {
           s3$delete_objects(
