@@ -9,4 +9,5 @@
 ## usethis namespace: end
 NULL
 
-# Note: task registry is created on-demand in get_task_registry()
+# Package-level environment for internal state
+.starburst_env <- new.env(parent = emptyenv())

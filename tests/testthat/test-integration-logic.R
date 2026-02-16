@@ -1,7 +1,7 @@
 test_that("task registry stores and retrieves tasks", {
   # Clean slate
-  if (exists(".starburst_task_registry", envir = .GlobalEnv)) {
-    rm(".starburst_task_registry", envir = .GlobalEnv)
+  if (exists(".starburst_task_registry", envir = .starburst_env)) {
+    rm(".starburst_task_registry", envir = .starburst_env)
   }
 
   # Store tasks

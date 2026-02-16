@@ -2,22 +2,22 @@ test_that("get_task_registry creates registry if missing", {
   skip_on_cran()
 
   # Remove registry if it exists
-  if (exists(".starburst_task_registry", envir = .GlobalEnv)) {
-    rm(".starburst_task_registry", envir = .GlobalEnv)
+  if (exists(".starburst_task_registry", envir = .starburst_env)) {
+    rm(".starburst_task_registry", envir = .starburst_env)
   }
 
   registry <- get_task_registry()
 
   expect_true(is.environment(registry))
-  expect_true(exists(".starburst_task_registry", envir = .GlobalEnv))
+  expect_true(exists(".starburst_task_registry", envir = .starburst_env))
 })
 
 test_that("store_task_arn stores task information", {
   skip_on_cran()
 
   # Remove registry if it exists
-  if (exists(".starburst_task_registry", envir = .GlobalEnv)) {
-    rm(".starburst_task_registry", envir = .GlobalEnv)
+  if (exists(".starburst_task_registry", envir = .starburst_env)) {
+    rm(".starburst_task_registry", envir = .starburst_env)
   }
 
   store_task_arn("task-123", "arn:aws:ecs:us-east-1:123456789012:task/abc")
@@ -34,8 +34,8 @@ test_that("get_task_arn retrieves stored ARN", {
   skip_on_cran()
 
   # Remove registry if it exists
-  if (exists(".starburst_task_registry", envir = .GlobalEnv)) {
-    rm(".starburst_task_registry", envir = .GlobalEnv)
+  if (exists(".starburst_task_registry", envir = .starburst_env)) {
+    rm(".starburst_task_registry", envir = .starburst_env)
   }
 
   store_task_arn("task-456", "arn:aws:ecs:us-east-1:123456789012:task/def")
@@ -48,8 +48,8 @@ test_that("get_task_arn returns NULL for unknown task", {
   skip_on_cran()
 
   # Remove registry if it exists
-  if (exists(".starburst_task_registry", envir = .GlobalEnv)) {
-    rm(".starburst_task_registry", envir = .GlobalEnv)
+  if (exists(".starburst_task_registry", envir = .starburst_env)) {
+    rm(".starburst_task_registry", envir = .starburst_env)
   }
 
   result <- get_task_arn("nonexistent-task")
@@ -60,8 +60,8 @@ test_that("list_task_arns returns all stored tasks", {
   skip_on_cran()
 
   # Remove registry if it exists
-  if (exists(".starburst_task_registry", envir = .GlobalEnv)) {
-    rm(".starburst_task_registry", envir = .GlobalEnv)
+  if (exists(".starburst_task_registry", envir = .starburst_env)) {
+    rm(".starburst_task_registry", envir = .starburst_env)
   }
 
   store_task_arn("task-1", "arn:task-1")
@@ -83,8 +83,8 @@ test_that("list_task_arns returns empty list when no tasks", {
   skip_on_cran()
 
   # Remove registry if it exists
-  if (exists(".starburst_task_registry", envir = .GlobalEnv)) {
-    rm(".starburst_task_registry", envir = .GlobalEnv)
+  if (exists(".starburst_task_registry", envir = .starburst_env)) {
+    rm(".starburst_task_registry", envir = .starburst_env)
   }
 
   result <- list_task_arns()
@@ -97,8 +97,8 @@ test_that("task registry persists across function calls", {
   skip_on_cran()
 
   # Remove registry if it exists
-  if (exists(".starburst_task_registry", envir = .GlobalEnv)) {
-    rm(".starburst_task_registry", envir = .GlobalEnv)
+  if (exists(".starburst_task_registry", envir = .starburst_env)) {
+    rm(".starburst_task_registry", envir = .starburst_env)
   }
 
   store_task_arn("task-persist", "arn:persist")

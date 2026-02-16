@@ -117,7 +117,29 @@ test_that("plan() respects worker limits", {
 
 test_that("Docker commands use safe_system not shell commands", {
   # Read the utils.R file and check for unsafe patterns
-  utils_content <- readLines(system.file("R", "utils.R", package = "starburst"))
+  utils_path <- system.file("R", "utils.R", package = "starburst")
+
+  # Try multiple paths if package file doesn't exist
+  if (!file.exists(utils_path) || nchar(utils_path) == 0) {
+    possible_paths <- c(
+      "../../R/utils.R",           # From tests/testthat during devtools::test()
+      "../00_pkg_src/starburst/R/utils.R"  # From R CMD check temp directory
+    )
+
+    for (path in possible_paths) {
+      if (file.exists(path)) {
+        utils_path <- path
+        break
+      }
+    }
+
+    # Skip test if we can't find the file
+    if (!file.exists(utils_path)) {
+      skip("Cannot locate utils.R source file")
+    }
+  }
+
+  utils_content <- readLines(utils_path)
 
   # Should NOT contain:
   # - system() with sprintf() building commands

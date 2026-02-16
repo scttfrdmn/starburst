@@ -1439,10 +1439,10 @@ get_or_create_task_definition <- function(plan) {
 #'
 #' @keywords internal
 get_task_registry <- function() {
-  if (!exists(".starburst_task_registry", envir = .GlobalEnv)) {
-    assign(".starburst_task_registry", new.env(parent = emptyenv()), envir = .GlobalEnv)
+  if (!exists(".starburst_task_registry", envir = .starburst_env)) {
+    assign(".starburst_task_registry", new.env(parent = emptyenv()), envir = .starburst_env)
   }
-  get(".starburst_task_registry", envir = .GlobalEnv)
+  get(".starburst_task_registry", envir = .starburst_env)
 }
 
 #' Store task ARN
