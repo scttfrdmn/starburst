@@ -532,9 +532,9 @@ source(system.file("examples/risk-modeling.R", package = "starburst"))
 - Create automated risk reporting dashboards
 
 **Related examples**: - [Monte Carlo
-Simulation](https://scttfrdmn.github.io/starburst/articles/example-monte-carlo.md) -
+Simulation](https://starburst.ing/articles/example-monte-carlo.md) -
 Similar scenario-based pattern - [Bootstrap
-CI](https://scttfrdmn.github.io/starburst/articles/example-bootstrap.md) -
-Statistical confidence intervals - [Feature
-Engineering](https://scttfrdmn.github.io/starburst/articles/example-feature-engineering.md) -
+CI](https://starburst.ing/articles/example-bootstrap.md) - Statistical
+confidence intervals - [Feature
+Engineering](https://starburst.ing/articles/example-feature-engineering.md) -
 Data-intensive parallel processing

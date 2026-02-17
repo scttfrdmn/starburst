@@ -404,9 +404,9 @@ source(system.file("examples/feature-engineering.R", package = "starburst"))
 - Add feature validation and quality checks
 
 **Related examples**: - [Grid
-Search](https://scttfrdmn.github.io/starburst/articles/example-grid-search.md) -
+Search](https://starburst.ing/articles/example-grid-search.md) -
 Hyperparameter tuning with features - [Risk
-Modeling](https://scttfrdmn.github.io/starburst/articles/example-risk-modeling.md) -
+Modeling](https://starburst.ing/articles/example-risk-modeling.md) -
 Advanced customer analytics - [Bootstrap
-CI](https://scttfrdmn.github.io/starburst/articles/example-bootstrap.md) -
-Feature importance estimation
+CI](https://starburst.ing/articles/example-bootstrap.md) - Feature
+importance estimation

@@ -485,17 +485,13 @@ plan(future_starburst, workers = 50, region = "us-west-2")
 ### Next Steps
 
 - Check out the [Advanced
-  Usage](https://scttfrdmn.github.io/starburst/articles/advanced-usage.md)
-  vignette
+  Usage](https://starburst.ing/articles/advanced-usage.md) vignette
 - Review [Performance
-  Tuning](https://scttfrdmn.github.io/starburst/articles/performance-tuning.md)
-  guide
-- See [Example
-  Workflows](https://scttfrdmn.github.io/starburst/articles/examples.md)
+  Tuning](https://starburst.ing/articles/performance-tuning.md) guide
+- See [Example Workflows](https://starburst.ing/articles/examples.md)
   for real-world patterns
 - Read [Troubleshooting
-  Guide](https://scttfrdmn.github.io/starburst/articles/troubleshooting.md)
-  when stuck
+  Guide](https://starburst.ing/articles/troubleshooting.md) when stuck
 
 ### Getting Help
 

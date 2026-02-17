@@ -366,7 +366,7 @@ saveRDS(results, "my_results.rds")  # Save locally
 #### Issue 7: Detached Session Reattach Fails
 
 **Symptoms:** -
-[`starburst_session_attach()`](https://scttfrdmn.github.io/starburst/reference/starburst_session_attach.md)
+[`starburst_session_attach()`](https://starburst.ing/reference/starburst_session_attach.md)
 throws error - “Session not found” message - Can’t reconnect after
 closing R
 
@@ -535,8 +535,8 @@ If you encounter issues not covered here:
 ### See Also
 
 - [Security Best
-  Practices](https://scttfrdmn.github.io/starburst/articles/security.md) -
-  Securing your staRburst deployments
+  Practices](https://starburst.ing/articles/security.md) - Securing your
+  staRburst deployments
 - [staRburst README](https://github.com/scttfrdmn/starburst) - Getting
   started guide
 - [AWS Fargate

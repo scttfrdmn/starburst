@@ -208,7 +208,7 @@ Fast test execution (\<5 seconds)
 
 1.  Set AWS credentials (`AWS_PROFILE=aws`)
 2.  Run
-    [`starburst_setup()`](https://scttfrdmn.github.io/starburst/reference/starburst_setup.md)
+    [`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md)
 3.  Test single task execution
 4.  Test parallel execution (10 workers)
 5.  Test wave execution (quota-limited)

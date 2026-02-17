@@ -14,23 +14,23 @@ session mode is now fully functional and ready for testing.
 Core S3 operations for session state persistence:
 
 **Functions:** -
-[`create_session_manifest()`](https://scttfrdmn.github.io/starburst/reference/create_session_manifest.md) -
+[`create_session_manifest()`](https://starburst.ing/reference/create_session_manifest.md) -
 Initialize session in S3 with full backend config -
-[`update_session_manifest()`](https://scttfrdmn.github.io/starburst/reference/update_session_manifest.md) -
+[`update_session_manifest()`](https://starburst.ing/reference/update_session_manifest.md) -
 Update session metadata and stats -
-[`get_session_manifest()`](https://scttfrdmn.github.io/starburst/reference/get_session_manifest.md) -
+[`get_session_manifest()`](https://starburst.ing/reference/get_session_manifest.md) -
 Load session from S3 -
-[`create_task_status()`](https://scttfrdmn.github.io/starburst/reference/create_task_status.md) -
+[`create_task_status()`](https://starburst.ing/reference/create_task_status.md) -
 Create task status file (pending/claimed/running/completed/failed) -
-[`update_task_status()`](https://scttfrdmn.github.io/starburst/reference/update_task_status.md) -
+[`update_task_status()`](https://starburst.ing/reference/update_task_status.md) -
 Update status with optional atomic ETag check -
-[`get_task_status()`](https://scttfrdmn.github.io/starburst/reference/get_task_status.md) -
+[`get_task_status()`](https://starburst.ing/reference/get_task_status.md) -
 Get task status with optional ETag for atomic operations -
-[`list_pending_tasks()`](https://scttfrdmn.github.io/starburst/reference/list_pending_tasks.md) -
+[`list_pending_tasks()`](https://starburst.ing/reference/list_pending_tasks.md) -
 Find all pending tasks in session -
-[`list_task_statuses()`](https://scttfrdmn.github.io/starburst/reference/list_task_statuses.md) -
+[`list_task_statuses()`](https://starburst.ing/reference/list_task_statuses.md) -
 Get all task statuses for collection -
-[`atomic_claim_task()`](https://scttfrdmn.github.io/starburst/reference/atomic_claim_task.md) -
+[`atomic_claim_task()`](https://starburst.ing/reference/atomic_claim_task.md) -
 High-level atomic task claiming helper
 
 **Key Implementation Details:** - Uses S3 ETags for atomic conditional
@@ -44,15 +44,15 @@ timestamps and worker IDs
 Backend management for detached sessions:
 
 **Functions:** -
-[`initialize_detached_backend()`](https://scttfrdmn.github.io/starburst/reference/initialize_detached_backend.md) -
+[`initialize_detached_backend()`](https://starburst.ing/reference/initialize_detached_backend.md) -
 Create backend without modifying future plan -
-[`launch_detached_workers()`](https://scttfrdmn.github.io/starburst/reference/launch_detached_workers.md) -
+[`launch_detached_workers()`](https://starburst.ing/reference/launch_detached_workers.md) -
 Launch workers with bootstrap tasks -
-[`upload_detached_task()`](https://scttfrdmn.github.io/starburst/reference/upload_detached_task.md) -
+[`upload_detached_task()`](https://starburst.ing/reference/upload_detached_task.md) -
 Upload task data to S3 -
-[`submit_detached_worker()`](https://scttfrdmn.github.io/starburst/reference/submit_detached_worker.md) -
+[`submit_detached_worker()`](https://starburst.ing/reference/submit_detached_worker.md) -
 Submit ECS task for worker -
-[`reconstruct_backend_from_manifest()`](https://scttfrdmn.github.io/starburst/reference/reconstruct_backend_from_manifest.md) -
+[`reconstruct_backend_from_manifest()`](https://starburst.ing/reference/reconstruct_backend_from_manifest.md) -
 Rebuild backend when reattaching
 
 **Key Implementation Details:** - Backend stores `session_id` and
@@ -66,13 +66,13 @@ types - Handles warm pool management for EC2
 Public API for detached sessions:
 
 **Exported Functions:** -
-[`starburst_session()`](https://scttfrdmn.github.io/starburst/reference/starburst_session.md) -
+[`starburst_session()`](https://starburst.ing/reference/starburst_session.md) -
 Create new detached session -
-[`starburst_session_attach()`](https://scttfrdmn.github.io/starburst/reference/starburst_session_attach.md) -
+[`starburst_session_attach()`](https://starburst.ing/reference/starburst_session_attach.md) -
 Reattach to existing session -
-[`starburst_list_sessions()`](https://scttfrdmn.github.io/starburst/reference/starburst_list_sessions.md) -
+[`starburst_list_sessions()`](https://starburst.ing/reference/starburst_list_sessions.md) -
 List all sessions in S3 -
-[`print.StarburstSessionStatus()`](https://scttfrdmn.github.io/starburst/reference/print.StarburstSessionStatus.md) -
+[`print.StarburstSessionStatus()`](https://starburst.ing/reference/print.StarburstSessionStatus.md) -
 Pretty print session status
 
 **Session Object Methods:** - `session$submit(expr, ...)` - Submit task
@@ -97,7 +97,7 @@ mode - `run_ephemeral_worker()` - Existing one-shot behavior -
 `execute_task_content()` - Shared task execution logic -
 `upload_result()` - Result upload helper - `download_task()` - Task
 download helper - `try_claim_task()` - Atomic task claiming with ETag -
-[`list_pending_tasks()`](https://scttfrdmn.github.io/starburst/reference/list_pending_tasks.md) -
+[`list_pending_tasks()`](https://starburst.ing/reference/list_pending_tasks.md) -
 Worker-side pending task listing - `update_task_status_simple()` -
 Status update helpers - `update_task_status_to_completed()` - Mark task
 completed
@@ -115,7 +115,7 @@ Added parameter and validation:
 
 **Changes:** - Added `detached = FALSE` parameter - Guard prevents
 `plan(starburst, detached = TRUE)` - Directs users to
-[`starburst_session()`](https://scttfrdmn.github.io/starburst/reference/starburst_session.md)
+[`starburst_session()`](https://starburst.ing/reference/starburst_session.md)
 instead
 
 ### 6. `/tests/testthat/test-detached-sessions.R` - Test Suite
@@ -528,13 +528,13 @@ List all task statuses
 
 **Session API** (`session-api.R`)
 
-[`starburst_session()`](https://scttfrdmn.github.io/starburst/reference/starburst_session.md) -
+[`starburst_session()`](https://starburst.ing/reference/starburst_session.md) -
 Create session
 
-[`starburst_session_attach()`](https://scttfrdmn.github.io/starburst/reference/starburst_session_attach.md) -
+[`starburst_session_attach()`](https://starburst.ing/reference/starburst_session_attach.md) -
 Reattach
 
-[`starburst_list_sessions()`](https://scttfrdmn.github.io/starburst/reference/starburst_list_sessions.md) -
+[`starburst_list_sessions()`](https://starburst.ing/reference/starburst_list_sessions.md) -
 List sessions
 
 Session methods: submit, status, collect, extend, cleanup
@@ -543,10 +543,10 @@ Print method for status
 
 **Backend initialization** (`session-backend.R`)
 
-[`initialize_detached_backend()`](https://scttfrdmn.github.io/starburst/reference/initialize_detached_backend.md) -
+[`initialize_detached_backend()`](https://starburst.ing/reference/initialize_detached_backend.md) -
 Backend creation
 
-[`launch_detached_workers()`](https://scttfrdmn.github.io/starburst/reference/launch_detached_workers.md) -
+[`launch_detached_workers()`](https://starburst.ing/reference/launch_detached_workers.md) -
 Worker launch
 
 Bootstrap task creation

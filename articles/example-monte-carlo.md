@@ -239,7 +239,7 @@ source(system.file("examples/monte-carlo.R", package = "starburst"))
 - Add more sophisticated portfolio models
 
 **Related examples**: - [Bootstrap Confidence
-Intervals](https://scttfrdmn.github.io/starburst/articles/example-bootstrap.md) -
+Intervals](https://starburst.ing/articles/example-bootstrap.md) -
 Another Monte Carlo application - [Financial Risk
-Modeling](https://scttfrdmn.github.io/starburst/articles/example-risk-modeling.md) -
+Modeling](https://starburst.ing/articles/example-risk-modeling.md) -
 Advanced portfolio analysis

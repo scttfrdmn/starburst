@@ -481,12 +481,12 @@ to fit within quota
 ### Issue: Cost calculation returns 0
 
 **Problem**:
-[`calculate_total_cost()`](https://scttfrdmn.github.io/starburst/reference/calculate_total_cost.md)
+[`calculate_total_cost()`](https://starburst.ing/reference/calculate_total_cost.md)
 returns 0
 
 **Solution**: - Check if tasks completed (not still running) - Verify
 task ARNs stored in registry:
-[`list_task_arns()`](https://scttfrdmn.github.io/starburst/reference/list_task_arns.md) -
+[`list_task_arns()`](https://starburst.ing/reference/list_task_arns.md) -
 Check ECS API permissions (`ecs:DescribeTasks`)
 
 ------------------------------------------------------------------------
@@ -547,8 +547,7 @@ Expected performance on AWS Fargate (based on task specification):
 
 For issues, questions, or contributions: - GitHub Issues:
 <https://github.com/yourusername/starburst/issues> - Documentation: Run
-[`?starburst`](https://scttfrdmn.github.io/starburst/reference/starburst.md)
-in R
+[`?starburst`](https://starburst.ing/reference/starburst.md) in R
 
 ------------------------------------------------------------------------
 

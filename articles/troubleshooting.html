@@ -108,7 +108,7 @@ staRburst.</p>
 </h4>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># For ephemeral mode</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://starburst.ing" class="external-link">starburst</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://starburst.ing">starburst</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Check logs for a specific task</span></span>
@@ -307,7 +307,7 @@ images</p>
 <span><span class="co"># - IAM: PassRole (to pass ECS task role)</span></span>
 <span></span>
 <span><span class="co"># Solution 3: Run starburst_setup() to create all resources</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://starburst.ing" class="external-link">starburst</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://starburst.ing">starburst</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/starburst_setup.html">starburst_setup</a></span><span class="op">(</span>bucket <span class="op">=</span> <span class="st">"my-starburst-bucket"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
@@ -319,7 +319,7 @@ active workers</p>
 <p><strong>Diagnosis:</strong></p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># List all active sessions</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://starburst.ing" class="external-link">starburst</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://starburst.ing">starburst</a></span><span class="op">)</span></span>
 <span><span class="va">sessions</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/starburst_list_sessions.html">starburst_list_sessions</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">sessions</span><span class="op">)</span></span>
 <span></span>

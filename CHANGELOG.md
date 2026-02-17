@@ -67,7 +67,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- [`ensure_environment()`](https://scttfrdmn.github.io/starburst/reference/ensure_environment.md)
+- [`ensure_environment()`](https://starburst.ing/reference/ensure_environment.md)
   now returns list with `hash` and `image_uri` (previously just hash)
 - Plan object structure includes `wave_queue`, `worker_cpu`,
   `worker_memory`, `image_uri`

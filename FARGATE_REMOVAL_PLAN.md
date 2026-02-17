@@ -40,7 +40,7 @@ plan(starburst, workers = 50)  # Uses default instance type
 ```
 
 **Migration steps for users**: 1. Run
-[`starburst_setup_ec2()`](https://scttfrdmn.github.io/starburst/reference/starburst_setup_ec2.md)
+[`starburst_setup_ec2()`](https://starburst.ing/reference/starburst_setup_ec2.md)
 (one-time) 2. Add `instance_type` parameter to `plan()` calls 3. Remove
 `launch_type = "FARGATE"` if present 4. Rebuild Docker images (happens
 automatically)
@@ -95,7 +95,7 @@ branches - Fargate-specific configuration
 **File**: `R/future-starburst.R`
 
 **Remove**: - `submit_fargate_task()` function (or rename to
-[`submit_task()`](https://scttfrdmn.github.io/starburst/reference/submit_task.md)) -
+[`submit_task()`](https://starburst.ing/reference/submit_task.md)) -
 Fargate-specific run_task parameters - All launch_type conditionals
 
 **Before**:
@@ -196,9 +196,9 @@ estimate_cost <- function(workers,
 **File**: `R/setup.R`
 
 **Merge**: -
-[`starburst_setup()`](https://scttfrdmn.github.io/starburst/reference/starburst_setup.md)
+[`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md)
 and
-[`starburst_setup_ec2()`](https://scttfrdmn.github.io/starburst/reference/starburst_setup_ec2.md)
+[`starburst_setup_ec2()`](https://starburst.ing/reference/starburst_setup_ec2.md)
 into single function - Always create EC2 infrastructure
 
 **Before**:

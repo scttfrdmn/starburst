@@ -504,9 +504,9 @@ source(system.file("examples/geospatial.R", package = "starburst"))
 - Add time-based analysis (traffic patterns)
 
 **Related examples**: - [Feature
-Engineering](https://scttfrdmn.github.io/starburst/articles/example-feature-engineering.md) -
+Engineering](https://starburst.ing/articles/example-feature-engineering.md) -
 Location-based features - [Grid
-Search](https://scttfrdmn.github.io/starburst/articles/example-grid-search.md) -
+Search](https://starburst.ing/articles/example-grid-search.md) -
 Parameter optimization for spatial models - [Risk
-Modeling](https://scttfrdmn.github.io/starburst/articles/example-risk-modeling.md) -
+Modeling](https://starburst.ing/articles/example-risk-modeling.md) -
 Geographic risk assessment

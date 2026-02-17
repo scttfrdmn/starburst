@@ -234,8 +234,7 @@ Verified: AWS integration tests passed"
 ### Security
 
 - Never hard-code AWS credentials
-- Use
-  [`safe_system()`](https://scttfrdmn.github.io/starburst/reference/safe_system.md)
+- Use [`safe_system()`](https://starburst.ing/reference/safe_system.md)
   for all external command execution
 - Validate all user inputs
 - Follow security best practices from `vignettes/security.Rmd`

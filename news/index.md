@@ -165,7 +165,7 @@ excellence, and comprehensive documentation.
 - **Detached session mode** - Long-running jobs that persist after R
   session ends
   - Create sessions with
-    [`starburst_session()`](https://scttfrdmn.github.io/starburst/reference/starburst_session.md)
+    [`starburst_session()`](https://starburst.ing/reference/starburst_session.md)
   - Submit tasks and disconnect: `session$submit(expr)`
   - Reattach later with `starburst_session_attach(session_id)`
   - Check progress anytime: `session$status()`
@@ -190,7 +190,7 @@ excellence, and comprehensive documentation.
 - **Command injection prevention** - Replaced unsafe
   [`system()`](https://rdrr.io/r/base/system.html) calls
   - New
-    [`safe_system()`](https://scttfrdmn.github.io/starburst/reference/safe_system.md)
+    [`safe_system()`](https://starburst.ing/reference/safe_system.md)
     wrapper using
     [`processx::run()`](http://processx.r-lib.org/reference/run.md)
   - Command whitelist validation
@@ -226,29 +226,29 @@ excellence, and comprehensive documentation.
   - Retries throttling, timeouts, 5xx errors automatically
   - Configurable retry limits (default 3 attempts)
   - Specialized retry wrappers:
-    [`with_s3_retry()`](https://scttfrdmn.github.io/starburst/reference/with_s3_retry.md),
-    [`with_ecs_retry()`](https://scttfrdmn.github.io/starburst/reference/with_ecs_retry.md),
-    [`with_ecr_retry()`](https://scttfrdmn.github.io/starburst/reference/with_ecr_retry.md)
+    [`with_s3_retry()`](https://starburst.ing/reference/with_s3_retry.md),
+    [`with_ecs_retry()`](https://starburst.ing/reference/with_ecs_retry.md),
+    [`with_ecr_retry()`](https://starburst.ing/reference/with_ecr_retry.md)
   - Reduces job failures from temporary AWS service issues
 - **Improved error messages** - Context, solutions, and documentation
   links
   - New
-    [`starburst_error()`](https://scttfrdmn.github.io/starburst/reference/starburst_error.md)
+    [`starburst_error()`](https://starburst.ing/reference/starburst_error.md)
     helper for rich error messages
   - Every error includes relevant context (quota limits, resources,
     regions)
   - Actionable solutions provided (not just “something failed”)
   - Links to troubleshooting guide for detailed help
   - Specialized errors:
-    [`quota_error()`](https://scttfrdmn.github.io/starburst/reference/quota_error.md),
-    [`permission_error()`](https://scttfrdmn.github.io/starburst/reference/permission_error.md),
-    [`task_failure_error()`](https://scttfrdmn.github.io/starburst/reference/task_failure_error.md)
+    [`quota_error()`](https://starburst.ing/reference/quota_error.md),
+    [`permission_error()`](https://starburst.ing/reference/permission_error.md),
+    [`task_failure_error()`](https://starburst.ing/reference/task_failure_error.md)
 
 ### New Functions & API
 
-- [`starburst_session()`](https://scttfrdmn.github.io/starburst/reference/starburst_session.md) -
+- [`starburst_session()`](https://starburst.ing/reference/starburst_session.md) -
   Create detached session for long-running jobs
-- [`starburst_session_attach()`](https://scttfrdmn.github.io/starburst/reference/starburst_session_attach.md) -
+- [`starburst_session_attach()`](https://starburst.ing/reference/starburst_session_attach.md) -
   Reattach to existing session
 - `starburst_session_list()` - List all active sessions
 - `session$submit()` - Submit tasks to detached session
@@ -389,11 +389,11 @@ deployments.**
 
 ### New Functions
 
-- [`build_base_image()`](https://scttfrdmn.github.io/starburst/reference/build_base_image.md) -
+- [`build_base_image()`](https://starburst.ing/reference/build_base_image.md) -
   Build base Docker image with common dependencies
-- [`ensure_base_image()`](https://scttfrdmn.github.io/starburst/reference/ensure_base_image.md) -
+- [`ensure_base_image()`](https://starburst.ing/reference/ensure_base_image.md) -
   Check for/create base image as needed
-- [`get_base_image_uri()`](https://scttfrdmn.github.io/starburst/reference/get_base_image_uri.md) -
+- [`get_base_image_uri()`](https://starburst.ing/reference/get_base_image_uri.md) -
   Get ECR URI for base image
 
 ### Bug Fixes

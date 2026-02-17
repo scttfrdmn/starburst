@@ -16,7 +16,7 @@ container ‘starburst-worker’. At least one of ‘memory’ or
 ‘memoryReservation’ must be specified.”
 
 **Root Cause**: - Function
-[`get_or_create_task_definition()`](https://scttfrdmn.github.io/starburst/reference/get_or_create_task_definition.md)
+[`get_or_create_task_definition()`](https://starburst.ing/reference/get_or_create_task_definition.md)
 expected `plan$worker_cpu` and `plan$worker_memory` - But it was being
 called with a `cluster` object that had `cluster$cpu` and
 `cluster$memory` - Memory was a string (e.g., “8GB”) that needed parsing
@@ -43,11 +43,11 @@ if (is.character(memory)) {
 **Root Cause**: Function was called but never implemented
 
 **Fix**: Created complete
-[`get_vpc_config()`](https://scttfrdmn.github.io/starburst/reference/get_vpc_config.md)
+[`get_vpc_config()`](https://starburst.ing/reference/get_vpc_config.md)
 function that: - Retrieves default VPC - Gets or creates subnets using
-[`get_or_create_subnets()`](https://scttfrdmn.github.io/starburst/reference/get_or_create_subnets.md) -
+[`get_or_create_subnets()`](https://starburst.ing/reference/get_or_create_subnets.md) -
 Gets or creates security group using
-[`get_or_create_security_group()`](https://scttfrdmn.github.io/starburst/reference/get_or_create_security_group.md) -
+[`get_or_create_security_group()`](https://starburst.ing/reference/get_or_create_security_group.md) -
 Returns properly formatted network configuration for ECS
 
 ### 3. CloudWatch Log Group Creation Bug
@@ -57,7 +57,7 @@ Returns properly formatted network configuration for ECS
 **Problem**: Tasks failed with “The specified log group does not exist”
 
 **Root Cause**:
-[`ensure_log_group()`](https://scttfrdmn.github.io/starburst/reference/ensure_log_group.md)
+[`ensure_log_group()`](https://starburst.ing/reference/ensure_log_group.md)
 had flawed logic: - Called `describe_log_groups()` which doesn’t error
 if group is missing - Only tried to create in the error handler - Since
 no error occurred, group was never created
@@ -98,12 +98,12 @@ roles: - `starburstECSExecutionRole` (for ECS/ECR/CloudWatch access) -
 ### R/utils.R
 
 - Lines 558-585: Fixed
-  [`ensure_log_group()`](https://scttfrdmn.github.io/starburst/reference/ensure_log_group.md)
+  [`ensure_log_group()`](https://starburst.ing/reference/ensure_log_group.md)
   logic
 - Lines 522: Added `--platform linux/amd64` to Docker build
 - Lines 632-648: Fixed CPU/memory parsing for both object types
 - Lines 968-1001: Added
-  [`get_vpc_config()`](https://scttfrdmn.github.io/starburst/reference/get_vpc_config.md)
+  [`get_vpc_config()`](https://starburst.ing/reference/get_vpc_config.md)
   function
 
 ### Test Files Created

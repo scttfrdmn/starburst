@@ -49,12 +49,12 @@ seamless AWS cloud bursting of parallel R workloads.
 
 ### R/plan-starburst.R (~435 lines)
 
-- [`plan.starburst()`](https://scttfrdmn.github.io/starburst/reference/plan.starburst.md) -
+- [`plan.starburst()`](https://starburst.ing/reference/plan.starburst.md) -
   Main function to create future plan
 - `future_starburst()` - Create futures on AWS
 - `value.starburst_future()` - Retrieve results
 - `resolved.starburst_future()` - Check if future is resolved
-- [`submit_task()`](https://scttfrdmn.github.io/starburst/reference/submit_task.md) -
+- [`submit_task()`](https://starburst.ing/reference/submit_task.md) -
   Submit task to Fargate
 - `submit_fargate_task()` - Actual Fargate task submission
 - Wave-based execution logic
@@ -62,29 +62,29 @@ seamless AWS cloud bursting of parallel R workloads.
 
 ### R/setup.R (~434 lines)
 
-- [`starburst_setup()`](https://scttfrdmn.github.io/starburst/reference/starburst_setup.md) -
+- [`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md) -
   Interactive setup wizard
 - AWS resource creation (S3, ECR, ECS, VPC)
 - Configuration management
-- [`starburst_config()`](https://scttfrdmn.github.io/starburst/reference/starburst_config.md) -
+- [`starburst_config()`](https://starburst.ing/reference/starburst_config.md) -
   User preferences
-- [`starburst_status()`](https://scttfrdmn.github.io/starburst/reference/starburst_status.md) -
+- [`starburst_status()`](https://starburst.ing/reference/starburst_status.md) -
   Show current status
 - Helper functions for AWS resources
 
 ### R/quota.R (~428 lines)
 
-- [`check_fargate_quota()`](https://scttfrdmn.github.io/starburst/reference/check_fargate_quota.md) -
+- [`check_fargate_quota()`](https://starburst.ing/reference/check_fargate_quota.md) -
   Query quota limits
-- [`request_quota_increase()`](https://scttfrdmn.github.io/starburst/reference/request_quota_increase.md) -
+- [`request_quota_increase()`](https://starburst.ing/reference/request_quota_increase.md) -
   Request increase from AWS
-- [`starburst_request_quota_increase()`](https://scttfrdmn.github.io/starburst/reference/starburst_request_quota_increase.md) -
+- [`starburst_request_quota_increase()`](https://starburst.ing/reference/starburst_request_quota_increase.md) -
   User-facing quota request
-- [`starburst_quota_status()`](https://scttfrdmn.github.io/starburst/reference/starburst_quota_status.md) -
+- [`starburst_quota_status()`](https://starburst.ing/reference/starburst_quota_status.md) -
   Display quota information
-- [`suggest_quota()`](https://scttfrdmn.github.io/starburst/reference/suggest_quota.md) -
+- [`suggest_quota()`](https://starburst.ing/reference/suggest_quota.md) -
   Intelligent quota recommendations
-- [`starburst_check_quota_request()`](https://scttfrdmn.github.io/starburst/reference/starburst_check_quota_request.md) -
+- [`starburst_check_quota_request()`](https://starburst.ing/reference/starburst_check_quota_request.md) -
   Monitor quota requests
 
 ### R/utils.R (~400 lines)
@@ -99,9 +99,9 @@ seamless AWS cloud bursting of parallel R workloads.
 
 ### R/logs.R (~80 lines)
 
-- [`starburst_logs()`](https://scttfrdmn.github.io/starburst/reference/starburst_logs.md) -
+- [`starburst_logs()`](https://starburst.ing/reference/starburst_logs.md) -
   View worker logs from CloudWatch
-- [`starburst_rebuild_environment()`](https://scttfrdmn.github.io/starburst/reference/starburst_rebuild_environment.md) -
+- [`starburst_rebuild_environment()`](https://starburst.ing/reference/starburst_rebuild_environment.md) -
   Rebuild Docker image
 
 ## Templates
@@ -190,15 +190,15 @@ seamless AWS cloud bursting of parallel R workloads.
 ### NAMESPACE
 
 - Exports 9 user-facing functions:
-  - [`plan.starburst()`](https://scttfrdmn.github.io/starburst/reference/plan.starburst.md)
-  - [`starburst_setup()`](https://scttfrdmn.github.io/starburst/reference/starburst_setup.md)
-  - [`starburst_config()`](https://scttfrdmn.github.io/starburst/reference/starburst_config.md)
-  - [`starburst_status()`](https://scttfrdmn.github.io/starburst/reference/starburst_status.md)
-  - [`starburst_quota_status()`](https://scttfrdmn.github.io/starburst/reference/starburst_quota_status.md)
-  - [`starburst_request_quota_increase()`](https://scttfrdmn.github.io/starburst/reference/starburst_request_quota_increase.md)
-  - [`starburst_check_quota_request()`](https://scttfrdmn.github.io/starburst/reference/starburst_check_quota_request.md)
-  - [`starburst_logs()`](https://scttfrdmn.github.io/starburst/reference/starburst_logs.md)
-  - [`starburst_rebuild_environment()`](https://scttfrdmn.github.io/starburst/reference/starburst_rebuild_environment.md)
+  - [`plan.starburst()`](https://starburst.ing/reference/plan.starburst.md)
+  - [`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md)
+  - [`starburst_config()`](https://starburst.ing/reference/starburst_config.md)
+  - [`starburst_status()`](https://starburst.ing/reference/starburst_status.md)
+  - [`starburst_quota_status()`](https://starburst.ing/reference/starburst_quota_status.md)
+  - [`starburst_request_quota_increase()`](https://starburst.ing/reference/starburst_request_quota_increase.md)
+  - [`starburst_check_quota_request()`](https://starburst.ing/reference/starburst_check_quota_request.md)
+  - [`starburst_logs()`](https://starburst.ing/reference/starburst_logs.md)
+  - [`starburst_rebuild_environment()`](https://starburst.ing/reference/starburst_rebuild_environment.md)
 
 ## Key Features Implemented
 

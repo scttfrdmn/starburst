@@ -437,7 +437,7 @@ computation
 5.  **Batch efficiently**: Fewer larger tasks = less overhead
 
 6.  **Monitor and tune**: Track cost per job with
-    [`starburst_estimate()`](https://scttfrdmn.github.io/starburst/reference/starburst_estimate.md)
+    [`starburst_estimate()`](https://starburst.ing/reference/starburst_estimate.md)
 
 **Example costs**: - 50 workers × 1 hour on c8a spot = ~\$1.10 - 100
 workers × 1 hour on c8a spot = ~\$2.20
@@ -617,7 +617,7 @@ setup - **Value**: Keep it local
 - [x] Keeps laptop usable
 - [x] Often cheaper than expected (\$1-2 per multi-hour job)
 - ⚠️ One-time setup:
-  [`starburst_setup_ec2()`](https://scttfrdmn.github.io/starburst/reference/starburst_setup_ec2.md)
+  [`starburst_setup_ec2()`](https://starburst.ing/reference/starburst_setup_ec2.md)
 
 **Use it when the math makes sense**: Time saved × hourly value \> Cost
 

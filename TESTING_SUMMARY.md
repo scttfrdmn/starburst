@@ -123,9 +123,9 @@ tasks (one per worker), which were included in the count - Test expected
 **Fix Applied:** **Commit:** `6bd35b3` (same commit as Issue \#2)
 
 Changes made to `/R/session-api.R`: 1. Modified
-[`get_session_status()`](https://scttfrdmn.github.io/starburst/reference/get_session_status.md)
+[`get_session_status()`](https://starburst.ing/reference/get_session_status.md)
 to skip tasks with IDs starting with “bootstrap-” 2. Modified
-[`collect_session_results()`](https://scttfrdmn.github.io/starburst/reference/collect_session_results.md)
+[`collect_session_results()`](https://starburst.ing/reference/collect_session_results.md)
 to skip bootstrap tasks when collecting
 
 ``` r
@@ -193,7 +193,7 @@ be available at `public.ecr.aws/starburst/base:r{version}`. These
 haven’t been published yet, causing Docker builds to fail.
 
 **Impact:** - All
-[`starburst_session()`](https://scttfrdmn.github.io/starburst/reference/starburst_session.md)
+[`starburst_session()`](https://starburst.ing/reference/starburst_session.md)
 calls failed - Integration tests couldn’t run - First-time users would
 hit immediate error
 
@@ -204,7 +204,7 @@ logic - Updated configuration
 Integration tests pass ✅
 
 **Files Changed:** - `R/utils.R` - Modified
-[`ensure_base_image()`](https://scttfrdmn.github.io/starburst/reference/ensure_base_image.md)
+[`ensure_base_image()`](https://starburst.ing/reference/ensure_base_image.md)
 function
 
 ------------------------------------------------------------------------
@@ -228,7 +228,7 @@ evaluated expressions are language objects
 successfully ✅ - Results collected ✅
 
 **Files Changed:** - `R/session-api.R` - Modified
-[`submit_to_session()`](https://scttfrdmn.github.io/starburst/reference/submit_to_session.md)
+[`submit_to_session()`](https://starburst.ing/reference/submit_to_session.md)
 function
 
 ------------------------------------------------------------------------
@@ -246,18 +246,18 @@ session - Tests expecting 5 tasks saw 7 (5 real + 2 bootstrap) -
 Misleading progress reporting to users
 
 **Fix:** - Filter out tasks with IDs starting with “bootstrap-” in: -
-[`get_session_status()`](https://scttfrdmn.github.io/starburst/reference/get_session_status.md) -
+[`get_session_status()`](https://starburst.ing/reference/get_session_status.md) -
 status counting -
-[`collect_session_results()`](https://scttfrdmn.github.io/starburst/reference/collect_session_results.md) -
+[`collect_session_results()`](https://starburst.ing/reference/collect_session_results.md) -
 result collection
 
 **Verification:** - Integration tests pass ✅ - Correct task counts
 reported ✅
 
 **Files Changed:** - `R/session-api.R` - Modified
-[`get_session_status()`](https://scttfrdmn.github.io/starburst/reference/get_session_status.md)
+[`get_session_status()`](https://starburst.ing/reference/get_session_status.md)
 and
-[`collect_session_results()`](https://scttfrdmn.github.io/starburst/reference/collect_session_results.md)
+[`collect_session_results()`](https://starburst.ing/reference/collect_session_results.md)
 
 ------------------------------------------------------------------------
 
@@ -349,7 +349,7 @@ tasks
 
 **Guard Against Misuse:** - `plan(starburst, detached = TRUE)` → Error
 with helpful message - Users directed to use
-[`starburst_session()`](https://scttfrdmn.github.io/starburst/reference/starburst_session.md)
+[`starburst_session()`](https://starburst.ing/reference/starburst_session.md)
 instead
 
 ------------------------------------------------------------------------

@@ -250,10 +250,10 @@ plan <- add_to_queue(task_id, plan)
 1.  **R/plan-starburst.R**:
     - Updated `add_to_queue()` (L350-361)
     - Updated
-      [`check_and_submit_wave()`](https://scttfrdmn.github.io/starburst/reference/check_and_submit_wave.md)
+      [`check_and_submit_wave()`](https://starburst.ing/reference/check_and_submit_wave.md)
       (L363-426)
     - Updated
-      [`submit_task()`](https://scttfrdmn.github.io/starburst/reference/submit_task.md)
+      [`submit_task()`](https://starburst.ing/reference/submit_task.md)
       (L271-304)
     - Updated `resolved.starburst_future()` (L235-266)
 2.  **tests/testthat/test-waves.R**:

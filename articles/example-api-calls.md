@@ -355,7 +355,7 @@ source(system.file("examples/api-calls.R", package = "starburst"))
 - Implement more sophisticated retry logic
 
 **Related examples**: - [Report
-Generation](https://scttfrdmn.github.io/starburst/articles/example-reports.md) -
-Another I/O-bound parallel task - [Feature
-Engineering](https://scttfrdmn.github.io/starburst/articles/example-feature-engineering.md) -
+Generation](https://starburst.ing/articles/example-reports.md) - Another
+I/O-bound parallel task - [Feature
+Engineering](https://starburst.ing/articles/example-feature-engineering.md) -
 Data enrichment patterns

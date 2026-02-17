@@ -81,7 +81,7 @@ execution - Difficult to diagnose S3 access issues - Poor operational
 visibility
 
 **Fix Required:** 1. Add log group creation in
-[`initialize_detached_backend()`](https://scttfrdmn.github.io/starburst/reference/initialize_detached_backend.md)
+[`initialize_detached_backend()`](https://starburst.ing/reference/initialize_detached_backend.md)
 2. Test CloudWatch logging with detached workers 3. Add log stream
 querying to `session$status()` for recent errors 4. Document how to
 access logs
@@ -93,7 +93,7 @@ access logs
 ### 3. **Race Condition in Manifest Updates** ⚠️ MEDIUM
 
 **Location:** `R/session-state.R:78-118` -
-[`update_session_manifest()`](https://scttfrdmn.github.io/starburst/reference/update_session_manifest.md)
+[`update_session_manifest()`](https://starburst.ing/reference/update_session_manifest.md)
 
 **Issue:** The manifest update is NOT atomic. It downloads, modifies,
 and uploads without using ETags for conditional writes. Multiple
@@ -153,7 +153,7 @@ s3$put_object(
 ### 4. **Incomplete Cleanup Implementation** ⚠️ HIGH
 
 **Location:** `R/session-api.R:497-513` -
-[`cleanup_session()`](https://scttfrdmn.github.io/starburst/reference/cleanup_session.md)
+[`cleanup_session()`](https://starburst.ing/reference/cleanup_session.md)
 
 **Issue:** The cleanup function does almost nothing: - Doesn’t stop
 running workers - Doesn’t delete S3 files - Doesn’t provide forced
@@ -191,7 +191,7 @@ this flag and exit immediately
 ### 5. **No Failed Task Handling in Results Collection** ⚠️ MEDIUM
 
 **Location:** `R/session-api.R:393-471` -
-[`collect_session_results()`](https://scttfrdmn.github.io/starburst/reference/collect_session_results.md)
+[`collect_session_results()`](https://starburst.ing/reference/collect_session_results.md)
 
 **Issue:** The collection function only looks for
 `state == "completed"`. Failed tasks are completely ignored.
@@ -234,10 +234,10 @@ if (status$state == "completed") {
 Users won’t discover this major feature.
 
 **Current README sections:** - ✅ Basic
-[`starburst_map()`](https://scttfrdmn.github.io/starburst/reference/starburst_map.md)
+[`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
 usage - ✅ Quick start examples - ✅ Cluster reuse - ❌ **No mention of
 detached sessions** - ❌ **No mention of
-[`starburst_session()`](https://scttfrdmn.github.io/starburst/reference/starburst_session.md)** -
+[`starburst_session()`](https://starburst.ing/reference/starburst_session.md)** -
 ❌ **No link to detached sessions vignette**
 
 **Impact:** - Poor feature discoverability - Users unaware of
@@ -263,8 +263,8 @@ results <- session$collect()
 ```
 
 See [Detached Sessions
-Guide](https://scttfrdmn.github.io/starburst/vignettes/detached-sessions.Rmd)
-for details.
+Guide](https://starburst.ing/vignettes/detached-sessions.Rmd) for
+details.
 
     **Priority:** **MEDIUM**
 
@@ -298,7 +298,7 @@ expose implementation details
 ### 8. **No Progress Indicator During Collection** ⚠️ LOW
 
 **Location:** `R/session-api.R:393-471` -
-[`collect_session_results()`](https://scttfrdmn.github.io/starburst/reference/collect_session_results.md)
+[`collect_session_results()`](https://starburst.ing/reference/collect_session_results.md)
 
 **Issue:** When waiting for results with `wait = TRUE`, there’s no
 progress indicator. User just sees nothing for potentially hours.
@@ -373,7 +373,7 @@ upload_result <- function(result, task_id, s3, bucket) {
 ### 10. **Insufficient Validation in Session Creation** ⚠️ LOW
 
 **Location:** `R/session-api.R:55-88` -
-[`starburst_session()`](https://scttfrdmn.github.io/starburst/reference/starburst_session.md)
+[`starburst_session()`](https://starburst.ing/reference/starburst_session.md)
 
 **Issue:** Limited input validation: - No max workers limit (could
 accidentally create 1000s) - No timeout range checks - No memory
@@ -431,7 +431,7 @@ clean up sessions?
 ### 12. **No Migration Guide from Ephemeral to Detached** 📚 MEDIUM
 
 **Issue:** Users with existing
-[`starburst_map()`](https://scttfrdmn.github.io/starburst/reference/starburst_map.md)
+[`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
 code don’t know how to convert to detached sessions.
 
 **Fix Required:** Add section to vignette:

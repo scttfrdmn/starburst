@@ -709,7 +709,7 @@ Test backup and recovery procedures
 ### See Also
 
 - [Troubleshooting
-  Guide](https://scttfrdmn.github.io/starburst/articles/troubleshooting.md) -
-  Diagnose and fix common issues
+  Guide](https://starburst.ing/articles/troubleshooting.md) - Diagnose
+  and fix common issues
 - [staRburst README](https://github.com/scttfrdmn/starburst) - Getting
   started guide

@@ -11,7 +11,7 @@ with a simple function call.
 - **Simple Setup**: One-time configuration (~2 minutes), then seamless
   operation
 - **Simple API**: Direct
-  [`starburst_map()`](https://scttfrdmn.github.io/starburst/reference/starburst_map.md)
+  [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
   function - no new concepts to learn
 - **Automatic Environment Sync**: Your packages and dependencies
   automatically available on workers
@@ -189,10 +189,10 @@ quota increases through AWS Service Quotas.
 
 - `starburst_map(.x, .f, workers, ...)` - Parallel map over data
 - `starburst_cluster(workers, cpu, memory)` - Create reusable cluster
-- [`starburst_setup()`](https://scttfrdmn.github.io/starburst/reference/starburst_setup.md) -
+- [`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md) -
   Initial AWS configuration
 - `starburst_config(...)` - Update configuration
-- [`starburst_status()`](https://scttfrdmn.github.io/starburst/reference/starburst_status.md) -
+- [`starburst_status()`](https://starburst.ing/reference/starburst_status.md) -
   Check cluster status
 
 ### Configuration Options
@@ -207,11 +207,10 @@ starburst_config(
 
 ## Documentation
 
-- [Getting
-  Started](https://scttfrdmn.github.io/starburst/vignettes/getting-started.Rmd)
+- [Getting Started](https://starburst.ing/vignettes/getting-started.Rmd)
 - [Implementation
-  Status](https://scttfrdmn.github.io/starburst/IMPLEMENTATION_STATUS.md)
-- [Examples](https://scttfrdmn.github.io/starburst/examples/)
+  Status](https://starburst.ing/IMPLEMENTATION_STATUS.md)
+- [Examples](https://starburst.ing/examples/)
 
 ## Comparison
 
@@ -235,7 +234,7 @@ starburst_config(
     - `starburstECSTaskRole` - for S3 access
 
 See
-[IMPLEMENTATION_STATUS.md](https://scttfrdmn.github.io/starburst/IMPLEMENTATION_STATUS.md)
+[IMPLEMENTATION_STATUS.md](https://starburst.ing/IMPLEMENTATION_STATUS.md)
 for detailed setup instructions.
 
 ## Roadmap
@@ -260,12 +259,11 @@ Spot instance support
 ## Contributing
 
 Contributions welcome! See
-[CONTRIBUTING.md](https://scttfrdmn.github.io/starburst/CONTRIBUTING.md).
+[CONTRIBUTING.md](https://starburst.ing/CONTRIBUTING.md).
 
 ## License
 
-Apache License 2.0 - see
-[LICENSE](https://scttfrdmn.github.io/starburst/LICENSE)
+Apache License 2.0 - see [LICENSE](https://starburst.ing/LICENSE)
 
 Copyright 2026 Scott Friedman
 

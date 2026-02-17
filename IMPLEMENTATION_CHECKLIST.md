@@ -552,7 +552,7 @@ Install dependencies
 Set up AWS credentials
 
 Run
-[`starburst_setup()`](https://scttfrdmn.github.io/starburst/reference/starburst_setup.md)
+[`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md)
 
 Test single task execution
 
@@ -604,7 +604,7 @@ Queue depth monitoring (if quota-limited)
 
 ### Breaking Changes
 
-- [`ensure_environment()`](https://scttfrdmn.github.io/starburst/reference/ensure_environment.md)
+- [`ensure_environment()`](https://starburst.ing/reference/ensure_environment.md)
   now returns `list(hash, image_uri)` instead of just hash
 - Plan object now includes `wave_queue`, `worker_cpu`, `worker_memory`,
   `image_uri`

@@ -322,7 +322,7 @@ source(system.file("examples/bootstrap.R", package = "starburst"))
 - Bootstrap other metrics (median, quantiles, variance)
 
 **Related examples**: - [Monte Carlo
-Simulation](https://scttfrdmn.github.io/starburst/articles/example-monte-carlo.md) -
+Simulation](https://starburst.ing/articles/example-monte-carlo.md) -
 Similar resampling pattern - [Risk
-Modeling](https://scttfrdmn.github.io/starburst/articles/example-risk-modeling.md) -
+Modeling](https://starburst.ing/articles/example-risk-modeling.md) -
 Advanced statistical analysis

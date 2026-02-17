@@ -252,14 +252,14 @@ session <- starburst_session(
 
 ### Comparison: Ephemeral vs Detached
 
-| Feature             | Ephemeral (`plan(starburst)`) | Detached ([`starburst_session()`](https://scttfrdmn.github.io/starburst/reference/starburst_session.md)) |
-|---------------------|-------------------------------|----------------------------------------------------------------------------------------------------------|
-| R session required  | Yes - must stay open          | No - can close and reattach                                                                              |
-| State persistence   | In-memory only                | S3-backed                                                                                                |
-| Max duration        | R session lifetime            | Days (configurable)                                                                                      |
-| Progress monitoring | Local variables               | `session$status()`                                                                                       |
-| Worker behavior     | One task per worker           | Workers poll for tasks                                                                                   |
-| Best for            | Quick parallel jobs           | Long-running analyses                                                                                    |
+| Feature             | Ephemeral (`plan(starburst)`) | Detached ([`starburst_session()`](https://starburst.ing/reference/starburst_session.md)) |
+|---------------------|-------------------------------|------------------------------------------------------------------------------------------|
+| R session required  | Yes - must stay open          | No - can close and reattach                                                              |
+| State persistence   | In-memory only                | S3-backed                                                                                |
+| Max duration        | R session lifetime            | Days (configurable)                                                                      |
+| Progress monitoring | Local variables               | `session$status()`                                                                       |
+| Worker behavior     | One task per worker           | Workers poll for tasks                                                                   |
+| Best for            | Quick parallel jobs           | Long-running analyses                                                                    |
 
 ### Troubleshooting
 
@@ -355,10 +355,10 @@ results <- session$collect()
 
 ### See Also
 
-- [`?starburst_session`](https://scttfrdmn.github.io/starburst/reference/starburst_session.md) -
+- [`?starburst_session`](https://starburst.ing/reference/starburst_session.md) -
   Create detached session
-- [`?starburst_session_attach`](https://scttfrdmn.github.io/starburst/reference/starburst_session_attach.md) -
+- [`?starburst_session_attach`](https://starburst.ing/reference/starburst_session_attach.md) -
   Reattach to session
-- [`?starburst_list_sessions`](https://scttfrdmn.github.io/starburst/reference/starburst_list_sessions.md) -
+- [`?starburst_list_sessions`](https://starburst.ing/reference/starburst_list_sessions.md) -
   List all sessions
 - `vignette("staRburst")` - General usage guide

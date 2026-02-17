@@ -1198,7 +1198,7 @@ staRburst requires sufficient AWS Fargate vCPU quota.
 
 **Check your quota:** - Visit AWS Console \> Service Quotas \> Fargate -
 Or run:
-[`starburst_quota_status()`](https://scttfrdmn.github.io/starburst/reference/starburst_quota_status.md)
+[`starburst_quota_status()`](https://starburst.ing/reference/starburst_quota_status.md)
 
 **Typical quotas:** - New accounts: 100 vCPUs (allows ~25 workers) -
 After increase: 500-1000 vCPUs (allows 100+ workers)

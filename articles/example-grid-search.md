@@ -473,9 +473,9 @@ source(system.file("examples/grid-search.R", package = "starburst"))
 - Use nested cross-validation for model selection
 
 **Related examples**: - [Feature
-Engineering](https://scttfrdmn.github.io/starburst/articles/example-feature-engineering.md) -
+Engineering](https://starburst.ing/articles/example-feature-engineering.md) -
 Parallel feature computation - [Bootstrap
-CI](https://scttfrdmn.github.io/starburst/articles/example-bootstrap.md) -
-Model uncertainty estimation - [Monte Carlo
-Simulation](https://scttfrdmn.github.io/starburst/articles/example-monte-carlo.md) -
+CI](https://starburst.ing/articles/example-bootstrap.md) - Model
+uncertainty estimation - [Monte Carlo
+Simulation](https://starburst.ing/articles/example-monte-carlo.md) -
 Similar parallel pattern

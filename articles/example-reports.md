@@ -396,7 +396,7 @@ source(system.file("examples/reports.R", package = "starburst"))
 - Schedule monthly report generation
 
 **Related examples**: - [API
-Calls](https://scttfrdmn.github.io/starburst/articles/example-api-calls.md) -
-Another I/O-bound parallel task - [Feature
-Engineering](https://scttfrdmn.github.io/starburst/articles/example-feature-engineering.md) -
+Calls](https://starburst.ing/articles/example-api-calls.md) - Another
+I/O-bound parallel task - [Feature
+Engineering](https://starburst.ing/articles/example-feature-engineering.md) -
 Data processing patterns

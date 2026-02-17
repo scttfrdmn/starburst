@@ -14,10 +14,10 @@
 ### 2. Direct API Implementation (NEW)
 
 - ✅
-  [`starburst_map()`](https://scttfrdmn.github.io/starburst/reference/starburst_map.md) -
+  [`starburst_map()`](https://starburst.ing/reference/starburst_map.md) -
   Main parallel map function
 - ✅
-  [`starburst_cluster()`](https://scttfrdmn.github.io/starburst/reference/starburst_cluster.md) -
+  [`starburst_cluster()`](https://starburst.ing/reference/starburst_cluster.md) -
   Cluster management object
 - ✅ Chunk-based task distribution
 - ✅ Progress tracking
@@ -49,8 +49,8 @@ AWS_PROFILE=aws ./setup-iam-roles.sh
 ECS/ECR/CloudWatch access 2. `starburstECSTaskRole` - For S3 data access
 
 **Detailed Documentation:** See
-[docs/IAM_SETUP.md](https://scttfrdmn.github.io/starburst/docs/IAM_SETUP.md)
-for: - Complete trust policies - Required permissions - Manual setup
+[docs/IAM_SETUP.md](https://starburst.ing/docs/IAM_SETUP.md) for: -
+Complete trust policies - Required permissions - Manual setup
 instructions - Troubleshooting guide
 
 ## 📖 Usage Examples
@@ -106,7 +106,7 @@ results2 <- cluster$map(data2, function(x) process(x))
 
 1.  **Create IAM Roles**: Set up the two required IAM roles in AWS
 2.  **End-to-End Test**: Run full test with
-    [`starburst_map()`](https://scttfrdmn.github.io/starburst/reference/starburst_map.md)
+    [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
     on AWS
 3.  **Documentation**: Update README with new API examples
 4.  **Future Backend** (Optional v2): Implement full Future API for

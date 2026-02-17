@@ -67,11 +67,11 @@ Verify quota increase requests
 **Goal**: One-time setup wizard and user configuration
 
 **Features**: - \[ \]
-[`starburst_setup()`](https://scttfrdmn.github.io/starburst/reference/starburst_setup.md)
+[`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md)
 wizard - \[ \] S3 bucket creation - \[ \] ECR repository creation - \[
 \] ECS cluster creation - \[ \] VPC resource setup (subnets, security
 groups) - \[ \] Configuration persistence - \[ \]
-[`starburst_config()`](https://scttfrdmn.github.io/starburst/reference/starburst_config.md)
+[`starburst_config()`](https://starburst.ing/reference/starburst_config.md)
 for user preferences
 
 **Deliverable**: Zero-config user experience after one-time setup
@@ -111,9 +111,9 @@ streaming for large outputs - \[ \] Automatic cleanup of S3 files - \[
 **Goal**: Tools for debugging and monitoring
 
 **Features**: - \[ \] CloudWatch Logs integration - \[ \]
-[`starburst_logs()`](https://scttfrdmn.github.io/starburst/reference/starburst_logs.md)
+[`starburst_logs()`](https://starburst.ing/reference/starburst_logs.md)
 for viewing worker output - \[ \]
-[`starburst_status()`](https://scttfrdmn.github.io/starburst/reference/starburst_status.md)
+[`starburst_status()`](https://starburst.ing/reference/starburst_status.md)
 for cluster monitoring - \[ \] Debug mode (keep workers alive) - \[ \]
 Better error messages
 
