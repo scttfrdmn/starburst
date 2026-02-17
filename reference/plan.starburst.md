@@ -1,6 +1,7 @@
 # staRburst Future Backend
 
-A future backend for running parallel R workloads on AWS Fargate
+A future backend for running parallel R workloads on AWS (EC2 or
+Fargate)
 
 ## Usage
 
@@ -14,9 +15,9 @@ plan(
   region = NULL,
   timeout = 3600,
   auto_quota_request = interactive(),
-  launch_type = "FARGATE",
+  launch_type = "EC2",
   instance_type = "c7g.xlarge",
-  use_spot = FALSE,
+  use_spot = TRUE,
   warm_pool_timeout = 3600,
   detached = FALSE,
   ...
@@ -55,7 +56,7 @@ plan(
 
 - launch_type:
 
-  Launch type: FARGATE or EC2 (default: FARGATE)
+  Launch type: EC2 or FARGATE (default: EC2)
 
 - instance_type:
 
@@ -63,7 +64,7 @@ plan(
 
 - use_spot:
 
-  Use EC2 Spot instances for cost savings (default: FALSE)
+  Use EC2 Spot instances for cost savings (default: TRUE)
 
 - warm_pool_timeout:
 
