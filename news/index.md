@@ -300,8 +300,9 @@ excellence, and comprehensive documentation.
 - **Worker cost controls** - Enforced maximum worker limits
   - Hard limit of 500 workers per cluster (prevents accidental runaway
     costs)
-  - Validation at [`plan()`](https://rdrr.io/pkg/future/man/plan.html)
-    time with helpful error messages
+  - Validation at
+    [`plan()`](https://future.futureverse.org/reference/plan.html) time
+    with helpful error messages
   - Clear guidance on requesting quota increases if needed
   - Estimated cost validation before worker launch
 - **Secure ECR authentication** - Fixed credential exposure

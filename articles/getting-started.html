@@ -126,14 +126,14 @@ package:</p>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co"># Local execution (single core)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">sequential</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">sequential</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="op">{</span></span>
 <span>  <span class="va">results_local</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">100</span>, <span class="va">expensive_simulation</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span><span class="co">#&gt; ~16 minutes on typical laptop</span></span>
 <span></span>
 <span><span class="co"># Cloud execution (50 workers)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="op">{</span></span>
 <span>  <span class="va">results_cloud</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">100</span>, <span class="va">expensive_simulation</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
@@ -167,7 +167,7 @@ package:</p>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co"># Run 10,000 simulations on 100 workers</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="va">simulate_portfolio</span>, .options <span class="op">=</span> <span class="fu">furrr_options</span><span class="op">(</span>seed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -204,7 +204,7 @@ package:</p>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co"># Run 10,000 bootstrap samples</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">boot_results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="va">bootstrap_regression</span>, data <span class="op">=</span> <span class="va">data</span><span class="op">)</span></span>
 <span></span>
@@ -244,7 +244,7 @@ package:</p>
 <span><span class="co"># Process 1000 samples on 100 workers</span></span>
 <span><span class="va">sample_ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="st">"s3://my-genomics-data/samples/"</span>, pattern <span class="op">=</span> <span class="st">".fastq$"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="va">sample_ids</span>, <span class="va">process_sample</span>, .progress <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
@@ -261,7 +261,7 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 </h4>
 <p>If your data is already in S3, workers can read it directly:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="va">file_list</span>, <span class="kw">function</span><span class="op">(</span><span class="va">file</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="co"># Workers read directly from S3</span></span>
@@ -278,7 +278,7 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"local_file.csv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># staRburst automatically uploads to S3 and distributes</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="co"># Each worker gets a copy of 'data'</span></span>
@@ -295,7 +295,7 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 <span><span class="va">s3_path</span> <span class="op">&lt;-</span> <span class="fu">starburst_upload</span><span class="op">(</span><span class="va">large_data</span>, <span class="st">"s3://my-bucket/large_data.rds"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Workers read from S3</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="co"># Read from S3 inside worker</span></span>
@@ -312,7 +312,7 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 </h4>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Check cost before running</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span>, memory <span class="op">=</span> <span class="st">"8GB"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span>, memory <span class="op">=</span> <span class="st">"8GB"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Estimated cost: ~$3.50/hour</span></span></code></pre></div>
 </div>
 <div class="section level4">
@@ -326,14 +326,14 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Now jobs exceeding limit will error before starting</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span>  <span class="co"># Would cost ~$35/hour</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span>  <span class="co"># Would cost ~$35/hour</span></span>
 <span><span class="co">#&gt; Error: Estimated cost ($35/hr) exceeds limit ($10/hr)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="track-actual-costs">Track Actual Costs<a class="anchor" aria-label="anchor" href="#track-actual-costs"></a>
 </h4>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="va">data</span>, <span class="va">process</span><span class="op">)</span></span>
 <span></span>
@@ -373,7 +373,7 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 automatically uses wave-based execution:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Quota allows 25 workers, but you request 100</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co">#&gt; ⚠ Requested: 100 workers (400 vCPUs)</span></span>
 <span><span class="co">#&gt; ⚠ Current quota: 100 vCPUs (allows 25 workers max)</span></span>
@@ -433,7 +433,7 @@ workers</p>
 <span><span class="fu"><a href="../reference/starburst_logs.html">starburst_logs</a></span><span class="op">(</span>task_id <span class="op">=</span> <span class="st">"failed-task-id"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Often due to memory limits - increase worker memory</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, memory <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span>  <span class="co"># Default is 8GB</span></span></code></pre></div>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, memory <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span>  <span class="co"># Default is 8GB</span></span></code></pre></div>
 <p><strong>Slow data transfer</strong>: Large objects taking too
 long</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
@@ -515,7 +515,7 @@ long</p>
 </h4>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># staRburst auto-cleans, but you can force it</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">sequential</span><span class="op">)</span>  <span class="co"># Switch back to local</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">sequential</span><span class="op">)</span>  <span class="co"># Switch back to local</span></span>
 <span><span class="co"># Old cluster resources are cleaned up automatically</span></span></code></pre></div>
 </div>
 </div>
@@ -527,24 +527,24 @@ long</p>
 </h4>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># High CPU, low memory (CPU-bound work)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, cpu <span class="op">=</span> <span class="fl">8</span>, memory <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, cpu <span class="op">=</span> <span class="fl">8</span>, memory <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Low CPU, high memory (memory-bound work)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">25</span>, cpu <span class="op">=</span> <span class="fl">4</span>, memory <span class="op">=</span> <span class="st">"32GB"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">25</span>, cpu <span class="op">=</span> <span class="fl">4</span>, memory <span class="op">=</span> <span class="st">"32GB"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="timeout">Timeout<a class="anchor" aria-label="anchor" href="#timeout"></a>
 </h4>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Increase timeout for long-running tasks (default 1 hour)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">10</span>, timeout <span class="op">=</span> <span class="fl">7200</span><span class="op">)</span>  <span class="co"># 2 hours</span></span></code></pre></div>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">10</span>, timeout <span class="op">=</span> <span class="fl">7200</span><span class="op">)</span>  <span class="co"># 2 hours</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="region">Region<a class="anchor" aria-label="anchor" href="#region"></a>
 </h4>
 <div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Use specific region (default from config)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, region <span class="op">=</span> <span class="st">"us-west-2"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, region <span class="op">=</span> <span class="st">"us-west-2"</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">

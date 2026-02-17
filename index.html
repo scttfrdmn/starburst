@@ -105,15 +105,18 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>Currently available via GitHub. CRAN submission planned for v1.0.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># In the R console:</span></span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">install.packages</span>(<span class="st">"remotes"</span>)</span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="sc">&gt;</span> remotes<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">"scttfrdmn/starburst"</span>)</span></code></pre></div>
+<p><strong>CRAN submission in progress for v0.3.6</strong> (expected within 2-4 weeks).</p>
+<p>Once available:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"starburst"</span><span class="op">)</span></span></code></pre></div>
+<p>Development version from GitHub:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"scttfrdmn/starburst"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://starburst.ing">starburst</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># One-time setup (2 minutes)</span></span>
@@ -139,7 +142,7 @@
 <div class="section level2">
 <h2 id="example-monte-carlo-simulation">Example: Monte Carlo Simulation<a class="anchor" aria-label="anchor" href="#example-monte-carlo-simulation"></a>
 </h2>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://starburst.ing">starburst</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Define simulation</span></span>
@@ -186,7 +189,7 @@
 <div class="section level3">
 <h3 id="reuse-cluster-for-multiple-operations">Reuse Cluster for Multiple Operations<a class="anchor" aria-label="anchor" href="#reuse-cluster-for-multiple-operations"></a>
 </h3>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create cluster once</span></span>
 <span><span class="va">cluster</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_cluster.html">starburst_cluster</a></span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">50</span>, cpu <span class="op">=</span> <span class="fl">4</span>, memory <span class="op">=</span> <span class="st">"8GB"</span><span class="op">)</span></span>
 <span></span>
@@ -200,7 +203,7 @@
 <div class="section level3">
 <h3 id="custom-worker-configuration">Custom Worker Configuration<a class="anchor" aria-label="anchor" href="#custom-worker-configuration"></a>
 </h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># For memory-intensive workloads</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_map.html">starburst_map</a></span><span class="op">(</span></span>
 <span>  <span class="va">large_datasets</span>,</span>
@@ -223,7 +226,7 @@
 <h3 id="detached-sessions">Detached Sessions<a class="anchor" aria-label="anchor" href="#detached-sessions"></a>
 </h3>
 <p>Run long jobs and disconnect - results persist in S3:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Start detached session</span></span>
 <span><span class="va">session</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_session.html">starburst_session</a></span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">50</span>, detached <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
@@ -269,7 +272,7 @@
 <div class="section level2">
 <h2 id="cost-management">Cost Management<a class="anchor" aria-label="anchor" href="#cost-management"></a>
 </h2>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Set cost limits</span></span>
 <span><span class="fu"><a href="reference/starburst_config.html">starburst_config</a></span><span class="op">(</span></span>
 <span>  max_cost_per_job <span class="op">=</span> <span class="fl">10</span>,      <span class="co"># Hard limit</span></span>
@@ -286,7 +289,7 @@
 <h2 id="quota-management">Quota Management<a class="anchor" aria-label="anchor" href="#quota-management"></a>
 </h2>
 <p>staRburst automatically handles AWS Fargate quota limitations:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">fn</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="co">#&gt; ⚠ Requested 100 workers (400 vCPUs) but quota allows 25 workers (100 vCPUs)</span></span>
 <span><span class="co">#&gt; ⚠ Using 25 workers instead</span></span>
@@ -315,7 +318,7 @@
 <div class="section level3">
 <h3 id="configuration-options">Configuration Options<a class="anchor" aria-label="anchor" href="#configuration-options"></a>
 </h3>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/starburst_config.html">starburst_config</a></span><span class="op">(</span></span>
 <span>  region <span class="op">=</span> <span class="st">"us-east-1"</span>,</span>
 <span>  max_cost_per_job <span class="op">=</span> <span class="fl">10</span>,</span>
@@ -418,7 +421,7 @@
 <h2 id="roadmap">Roadmap<a class="anchor" aria-label="anchor" href="#roadmap"></a>
 </h2>
 <div class="section level3">
-<h3 id="v036-current">v0.3.6 (Current)<a class="anchor" aria-label="anchor" href="#v036-current"></a>
+<h3 id="v036-current---cran-submission">v0.3.6 (Current - CRAN Submission)<a class="anchor" aria-label="anchor" href="#v036-current---cran-submission"></a>
 </h3>
 <ul>
 <li>✅ Direct API (<code>starburst_map</code>, <code>starburst_cluster</code>)</li>
@@ -431,10 +434,11 @@
 <li>✅ Support for <code>future.apply</code>, <code>furrr</code>, <code>targets</code>
 </li>
 <li>✅ Comprehensive AWS integration testing</li>
+<li>✅ CRAN-ready (0 errors, 0 notes)</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="v100-planned---cran-release">v1.0.0 (Planned - CRAN Release)<a class="anchor" aria-label="anchor" href="#v100-planned---cran-release"></a>
+<h3 id="future-releases">Future Releases<a class="anchor" aria-label="anchor" href="#future-releases"></a>
 </h3>
 <ul class="task-list">
 <li><label><input type="checkbox">Performance optimizations</label></li>
@@ -458,14 +462,14 @@
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co">@software{starburst,</span></span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">  title = {staRburst: Seamless AWS Cloud Bursting for R},</span></span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">  author = {Scott Friedman},</span></span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">  version = {0.3.6},</span></span>
-<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">  url = {https://starburst.ing},</span></span>
-<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">  license = {Apache-2.0}</span></span>
-<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co">@software{starburst,</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">  title = {staRburst: Seamless AWS Cloud Bursting for R},</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">  author = {Scott Friedman},</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">  version = {0.3.6},</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">  url = {https://starburst.ing},</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">  license = {Apache-2.0}</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="credits">Credits<a class="anchor" aria-label="anchor" href="#credits"></a>

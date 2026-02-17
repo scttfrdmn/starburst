@@ -109,7 +109,7 @@ staRburst.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># For ephemeral mode</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://starburst.ing">starburst</a></span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Check logs for a specific task</span></span>
 <span><span class="co"># (get task ID from error messages or futures)</span></span>
@@ -195,10 +195,10 @@ role permissions
 <span><span class="co"># Request vCPUs quota increase to 100+</span></span>
 <span></span>
 <span><span class="co"># Solution 2: Reduce workers</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>  <span class="co"># Use only 1 worker (4 vCPUs)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>  <span class="co"># Use only 1 worker (4 vCPUs)</span></span>
 <span></span>
 <span><span class="co"># Solution 3: Reduce CPU per worker</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">10</span>, cpu <span class="op">=</span> <span class="fl">0.25</span>, memory <span class="op">=</span> <span class="st">"512MB"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">10</span>, cpu <span class="op">=</span> <span class="fl">0.25</span>, memory <span class="op">=</span> <span class="st">"512MB"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Solution 4: Check IAM permissions</span></span>
 <span><span class="co"># Ensure ECS task execution role has:</span></span>
@@ -245,14 +245,14 @@ image/instance mismatch</li>
 <span><span class="co"># Should have S3 GetObject/PutObject on bucket</span></span>
 <span></span>
 <span><span class="co"># Solution 2: Increase memory</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">5</span>, cpu <span class="op">=</span> <span class="fl">4</span>, memory <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">5</span>, cpu <span class="op">=</span> <span class="fl">4</span>, memory <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Solution 3: Check Docker build logs</span></span>
 <span><span class="co"># Re-run starburst setup to rebuild image</span></span>
 <span><span class="co"># Watch for package installation errors</span></span>
 <span></span>
 <span><span class="co"># Solution 4: For EC2 mode, verify architecture matches</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>,</span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>,</span>
 <span>     launch_type <span class="op">=</span> <span class="st">"EC2"</span>,</span>
 <span>     instance_type <span class="op">=</span> <span class="st">"c7g.xlarge"</span><span class="op">)</span>  <span class="co"># Graviton (ARM64)</span></span>
 <span><span class="co"># Ensure Docker image built for matching architecture</span></span></code></pre></div>
