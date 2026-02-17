@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/scttfrdmn/starburst/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/scttfrdmn/starburst/actions/workflows/R-CMD-check.yaml)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/license/apache-2-0)
 [![Version](https://img.shields.io/badge/version-0.3.6-brightgreen.svg)](https://github.com/scttfrdmn/starburst/releases/tag/v0.3.6)
 <!-- badges: end -->
 
@@ -327,4 +327,4 @@ Built using the [paws](https://github.com/paws-r/paws) AWS SDK for R.
 
 Container management with [renv](https://rstudio.github.io/renv/) and [rocker](https://rocker-project.org/).
 
-Inspired by [Coiled](https://www.coiled.io/) for Python/Dask.
+Inspired by [Coiled](https://coiled.io/) for Python/Dask.

@@ -502,6 +502,6 @@ plan(future_starburst, workers = 50, region = "us-west-2")
 
 ## Getting Help
 
-- GitHub Issues: https://github.com/yourname/starburst/issues
-- Discussions: https://github.com/yourname/starburst/discussions
-- Email: your.email@example.com
+- GitHub Issues: https://github.com/scttfrdmn/starburst/issues
+- Email: help@starburst.ing
+- Documentation: https://starburst.ing
