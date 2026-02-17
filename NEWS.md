@@ -1,3 +1,89 @@
+# starburst 0.3.6 (2026-02-16)
+
+## AWS Integration Testing & Documentation
+
+**Major milestone:** Complete AWS integration testing infrastructure and documentation site launch.
+
+### New Features
+
+* **Comprehensive AWS Integration Testing** (#4b36310)
+  - GitHub Actions workflow for automated AWS testing
+  - Local test runner script (`run-aws-tests.sh`)
+  - Multiple test suites: quick, detached-sessions, integration-examples, ec2, cleanup
+  - OIDC authentication for secure CI/CD
+  - Comprehensive TESTING.md documentation
+  - Weekly scheduled testing runs
+
+* **Documentation Site** (https://starburst.ing)
+  - Custom domain with HTTPS enabled
+  - Full pkgdown site with all 29+ exported functions
+  - 12 vignettes including security and troubleshooting guides
+  - Example scripts and runnable code
+
+### Bug Fixes
+
+* **Test Suite**
+  - Fixed missing `readLines()` stubs in environment tests (#6514229)
+  - Fixed missing `get_starburst_config()` stub in Docker tests (#dad7124)
+  - Fixed environment variable handling in integration tests (#78dbc2c)
+  - Improved AWS credential handling in test script (#0e916f2)
+
+* **CI/CD**
+  - Removed docs/ directory conflict in pkgdown workflow (#bc97dca)
+  - Complete pkgdown configuration for all functions and vignettes (#7a562f3)
+  - Removed non-existent function from pkgdown config (#4fe5d97)
+
+### Test Results
+
+- **Unit Tests**: 202 passing, 0 failures
+- **Integration Tests**: 34 ready to run (local + CI)
+- **CI Status**: All checks passing on 5 platforms (Ubuntu, Windows, macOS)
+
+### Documentation
+
+Full documentation now available at **[starburst.ing](https://starburst.ing)**
+
+---
+
+# starburst 0.3.5 (2026-02-15)
+
+## Bug Fixes & Improvements
+
+### Changes
+
+* **Docker Image Versioning** (#707ee78)
+  - Include package version in Docker image hash
+  - Ensures environment rebuilds when package version changes
+  - Prevents stale Docker images with old code
+
+* **Serialization Update** (#cbfad21)
+  - Changed worker scripts from `qs` to `qs2` package
+  - Improved compatibility and performance
+  - Consistent with main package dependencies
+
+### Assessment
+
+Minor version bump with critical bug fixes for Docker caching and serialization consistency.
+
+---
+
+# starburst 0.3.4 (2026-02-14)
+
+## Code Quality Fix
+
+### Changes
+
+* **Fixed vapply calls** (#b96ace1)
+  - Added missing `FUN.VALUE` parameters to all `vapply()` calls
+  - Ensures type safety in vectorized operations
+  - Follows R best practices for safe functional programming
+
+### Assessment
+
+Quick patch release addressing R CMD check warnings about unsafe vapply usage.
+
+---
+
 # starburst 0.3.3 (2026-02-13)
 
 ## Zero Lints - Idiomatic R Code Quality
