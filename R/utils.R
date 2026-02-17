@@ -736,7 +736,7 @@ ensure_environment <- function(region) {
 
   # Calculate hash including renv.lock AND starburst package version
   # This ensures new images are built when starburst is updated (e.g., worker script fixes)
-  pkg_version <- as.character(packageVersion("starburst"))
+  pkg_version <- as.character(utils::packageVersion("starburst"))
   hash_input <- paste0(readLines(lock_file, warn = FALSE), collapse = "\n", pkg_version)
   env_hash <- digest::digest(hash_input, algo = "md5")
 
