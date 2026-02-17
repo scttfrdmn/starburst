@@ -50,6 +50,105 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.6" id="starburst-036-2026-02-16">starburst 0.3.6 (2026-02-16)<a class="anchor" aria-label="anchor" href="#starburst-036-2026-02-16"></a></h2>
+<div class="section level3">
+<h3 id="aws-integration-testing--documentation-0-3-6">AWS Integration Testing &amp; Documentation<a class="anchor" aria-label="anchor" href="#aws-integration-testing--documentation-0-3-6"></a></h3>
+<p><strong>Major milestone:</strong> Complete AWS integration testing infrastructure and documentation site launch.</p>
+<div class="section level4">
+<h4 id="new-features-0-3-6">New Features<a class="anchor" aria-label="anchor" href="#new-features-0-3-6"></a></h4>
+<ul><li>
+<strong>Comprehensive AWS Integration Testing</strong> (<a href="https://github.com/scttfrdmn/starburst/issues/4" class="external-link">#4</a>b36310)
+<ul><li>GitHub Actions workflow for automated AWS testing</li>
+<li>Local test runner script (<code>run-aws-tests.sh</code>)</li>
+<li>Multiple test suites: quick, detached-sessions, integration-examples, ec2, cleanup</li>
+<li>OIDC authentication for secure CI/CD</li>
+<li>Comprehensive TESTING.md documentation</li>
+<li>Weekly scheduled testing runs</li>
+</ul></li>
+<li>
+<strong>Documentation Site</strong> (<a href="https://starburst.ing" class="uri">https://starburst.ing</a>)
+<ul><li>Custom domain with HTTPS enabled</li>
+<li>Full pkgdown site with all 29+ exported functions</li>
+<li>12 vignettes including security and troubleshooting guides</li>
+<li>Example scripts and runnable code</li>
+</ul></li>
+</ul></div>
+<div class="section level4">
+<h4 id="bug-fixes-0-3-6">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-3-6"></a></h4>
+<ul><li>
+<strong>Test Suite</strong>
+<ul><li>Fixed missing <code><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines()</a></code> stubs in environment tests (<a href="https://github.com/scttfrdmn/starburst/issues/6514229" class="external-link">#6514229</a>)</li>
+<li>Fixed missing <code><a href="../reference/get_starburst_config.html">get_starburst_config()</a></code> stub in Docker tests (#dad7124)</li>
+<li>Fixed environment variable handling in integration tests (<a href="https://github.com/scttfrdmn/starburst/issues/78" class="external-link">#78</a>dbc2c)</li>
+<li>Improved AWS credential handling in test script (<a href="https://github.com/scttfrdmn/starburst/issues/0" class="external-link">#0</a>e916f2)</li>
+</ul></li>
+<li>
+<strong>CI/CD</strong>
+<ul><li>Removed docs/ directory conflict in pkgdown workflow (#bc97dca)</li>
+<li>Complete pkgdown configuration for all functions and vignettes (<a href="https://github.com/scttfrdmn/starburst/issues/7" class="external-link">#7</a>a562f3)</li>
+<li>Removed non-existent function from pkgdown config (<a href="https://github.com/scttfrdmn/starburst/issues/4" class="external-link">#4</a>fe5d97)</li>
+</ul></li>
+</ul></div>
+<div class="section level4">
+<h4 id="test-results-0-3-6">Test Results<a class="anchor" aria-label="anchor" href="#test-results-0-3-6"></a></h4>
+<ul><li>
+<strong>Unit Tests</strong>: 202 passing, 0 failures</li>
+<li>
+<strong>Integration Tests</strong>: 34 ready to run (local + CI)</li>
+<li>
+<strong>CI Status</strong>: All checks passing on 5 platforms (Ubuntu, Windows, macOS)</li>
+</ul></div>
+<div class="section level4">
+<h4 id="documentation-0-3-6">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-3-6"></a></h4>
+<p>Full documentation now available at <strong><a href="https://starburst.ing">starburst.ing</a></strong></p>
+<hr></div>
+</div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.5" id="starburst-035-2026-02-15">starburst 0.3.5 (2026-02-15)<a class="anchor" aria-label="anchor" href="#starburst-035-2026-02-15"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes--improvements-0-3-5">Bug Fixes &amp; Improvements<a class="anchor" aria-label="anchor" href="#bug-fixes--improvements-0-3-5"></a></h3>
+<div class="section level4">
+<h4 id="changes-0-3-5">Changes<a class="anchor" aria-label="anchor" href="#changes-0-3-5"></a></h4>
+<ul><li>
+<strong>Docker Image Versioning</strong> (<a href="https://github.com/scttfrdmn/starburst/issues/707" class="external-link">#707</a>ee78)
+<ul><li>Include package version in Docker image hash</li>
+<li>Ensures environment rebuilds when package version changes</li>
+<li>Prevents stale Docker images with old code</li>
+</ul></li>
+<li>
+<strong>Serialization Update</strong> (#cbfad21)
+<ul><li>Changed worker scripts from <code>qs</code> to <code>qs2</code> package</li>
+<li>Improved compatibility and performance</li>
+<li>Consistent with main package dependencies</li>
+</ul></li>
+</ul></div>
+<div class="section level4">
+<h4 id="assessment-0-3-5">Assessment<a class="anchor" aria-label="anchor" href="#assessment-0-3-5"></a></h4>
+<p>Minor version bump with critical bug fixes for Docker caching and serialization consistency.</p>
+<hr></div>
+</div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.4" id="starburst-034-2026-02-14">starburst 0.3.4 (2026-02-14)<a class="anchor" aria-label="anchor" href="#starburst-034-2026-02-14"></a></h2>
+<div class="section level3">
+<h3 id="code-quality-fix-0-3-4">Code Quality Fix<a class="anchor" aria-label="anchor" href="#code-quality-fix-0-3-4"></a></h3>
+<div class="section level4">
+<h4 id="changes-0-3-4">Changes<a class="anchor" aria-label="anchor" href="#changes-0-3-4"></a></h4>
+<ul><li>
+<strong>Fixed vapply calls</strong> (#b96ace1)
+<ul><li>Added missing <code>FUN.VALUE</code> parameters to all <code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply()</a></code> calls</li>
+<li>Ensures type safety in vectorized operations</li>
+<li>Follows R best practices for safe functional programming</li>
+</ul></li>
+</ul></div>
+<div class="section level4">
+<h4 id="assessment-0-3-4">Assessment<a class="anchor" aria-label="anchor" href="#assessment-0-3-4"></a></h4>
+<p>Quick patch release addressing R CMD check warnings about unsafe vapply usage.</p>
+<hr></div>
+</div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.3" id="starburst-033-2026-02-13">starburst 0.3.3 (2026-02-13)<a class="anchor" aria-label="anchor" href="#starburst-033-2026-02-13"></a></h2>
 <div class="section level3">
 <h3 id="zero-lints---idiomatic-r-code-quality-0-3-3">Zero Lints - Idiomatic R Code Quality<a class="anchor" aria-label="anchor" href="#zero-lints---idiomatic-r-code-quality-0-3-3"></a></h3>
@@ -225,7 +324,7 @@
 <li>
 <strong>Worker cost controls</strong> - Enforced maximum worker limits
 <ul><li>Hard limit of 500 workers per cluster (prevents accidental runaway costs)</li>
-<li>Validation at <code><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan()</a></code> time with helpful error messages</li>
+<li>Validation at <code><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan()</a></code> time with helpful error messages</li>
 <li>Clear guidance on requesting quota increases if needed</li>
 <li>Estimated cost validation before worker launch</li>
 </ul></li>

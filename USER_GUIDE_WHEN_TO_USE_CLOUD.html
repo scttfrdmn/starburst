@@ -145,7 +145,7 @@ c7a (spot):        $2.30/hr</code></pre>
 <span><span class="fu"><a href="reference/starburst_setup_ec2.html">starburst_setup_ec2</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Use c8a with spot (recommended)</span></span>
-<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>,</span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>,</span>
 <span>  workers <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  instance_type <span class="op">=</span> <span class="st">"c8a.xlarge"</span>,  <span class="co"># AMD 8th gen - BEST</span></span>
 <span>  use_spot <span class="op">=</span> <span class="cn">TRUE</span>,               <span class="co"># 70% savings</span></span>
@@ -328,14 +328,14 @@ Deadline-driven:
 <p><strong>Implementation</strong>:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Force AMD 8th gen (BEST)</span></span>
-<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>,</span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>,</span>
 <span>  workers <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  instance_type <span class="op">=</span> <span class="st">"c8a.xlarge"</span>,  <span class="co"># AMD 8th gen</span></span>
 <span>  use_spot <span class="op">=</span> <span class="cn">TRUE</span>                <span class="co"># 70% cheaper!</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Or Graviton4 (ARM64)</span></span>
-<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>,</span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>,</span>
 <span>  workers <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  instance_type <span class="op">=</span> <span class="st">"c8g.xlarge"</span>,  <span class="co"># Graviton4</span></span>
 <span>  use_spot <span class="op">=</span> <span class="cn">TRUE</span></span>
@@ -424,7 +424,7 @@ Solution: Split into smaller chunks</code></pre>
 <ol style="list-style-type: decimal"><li>
 <p><strong>Use spot instances</strong> (BIGGEST SAVINGS): 70% cheaper than on-demand</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>, instance_type <span class="op">=</span> <span class="st">"c8a.xlarge"</span>, use_spot <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/future/man/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">starburst</span>, instance_type <span class="op">=</span> <span class="st">"c8a.xlarge"</span>, use_spot <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </li>
 <li><p><strong>Choose c8a (AMD 8th gen)</strong>: Best price/performance ratio</p></li>
 <li>
