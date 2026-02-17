@@ -35,12 +35,18 @@ with a simple function call.
 
 ## Installation
 
-Currently available via GitHub. CRAN submission planned for v1.0.
+**CRAN submission in progress for v0.3.6** (expected within 2-4 weeks).
+
+Once available:
 
 ``` r
-# In the R console:
-> install.packages("remotes")
-> remotes::install_github("scttfrdmn/starburst")
+install.packages("starburst")
+```
+
+Development version from GitHub:
+
+``` r
+remotes::install_github("scttfrdmn/starburst")
 ```
 
 ## Quick Start
@@ -281,7 +287,7 @@ setup instructions.
 
 ## Roadmap
 
-### v0.3.6 (Current)
+### v0.3.6 (Current - CRAN Submission)
 
 - ✅ Direct API (`starburst_map`, `starburst_cluster`)
 - ✅ AWS Fargate integration
@@ -292,8 +298,9 @@ setup instructions.
 - ✅ Full `future` backend integration
 - ✅ Support for `future.apply`, `furrr`, `targets`
 - ✅ Comprehensive AWS integration testing
+- ✅ CRAN-ready (0 errors, 0 notes)
 
-### v1.0.0 (Planned - CRAN Release)
+### Future Releases
 
 - [ ] Performance optimizations
 - [ ] Enhanced error recovery
