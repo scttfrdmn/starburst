@@ -7,7 +7,7 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-A future backend that enables seamless execution of parallel R workloads on AWS Fargate. staRburst handles environment synchronization, data transfer, quota management, and worker orchestration automatically, allowing users to scale from local execution to 100+ cloud workers with a single line of code change.
+A future backend that enables seamless execution of parallel R workloads on AWS (EC2 and Fargate). 'staRburst' handles environment synchronization, data transfer, quota management, and worker orchestration automatically, allowing users to scale from local execution to 100+ cloud workers with a single line of code change.
 }
 \seealso{
 Useful links:

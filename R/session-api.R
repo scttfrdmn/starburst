@@ -59,9 +59,9 @@ starburst_session <- function(workers = 10,
                               timeout = 3600,
                               session_timeout = 3600,
                               absolute_timeout = 86400,
-                              launch_type = "FARGATE",
-                              instance_type = "c6a.large",
-                              use_spot = FALSE,
+                              launch_type = "EC2",
+                              instance_type = "c7g.xlarge",
+                              use_spot = TRUE,
                               warm_pool_timeout = 3600) {
 
   # Generate session ID

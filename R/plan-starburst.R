@@ -3,7 +3,7 @@
 
 #' staRburst Future Backend
 #'
-#' A future backend for running parallel R workloads on AWS Fargate
+#' A future backend for running parallel R workloads on AWS (EC2 or Fargate)
 #'
 #' @param strategy The starburst strategy marker (ignored, for S3 dispatch)
 #' @param workers Number of parallel workers
@@ -12,9 +12,9 @@
 #' @param region AWS region (default: from config or "us-east-1")
 #' @param timeout Maximum runtime in seconds (default: 3600)
 #' @param auto_quota_request Automatically request quota increases (default: interactive())
-#' @param launch_type Launch type: FARGATE or EC2 (default: FARGATE)
+#' @param launch_type Launch type: EC2 or FARGATE (default: EC2)
 #' @param instance_type EC2 instance type when using EC2 launch type (default: c7g.xlarge)
-#' @param use_spot Use EC2 Spot instances for cost savings (default: FALSE)
+#' @param use_spot Use EC2 Spot instances for cost savings (default: TRUE)
 #' @param warm_pool_timeout Timeout for warm pool in seconds (default: 3600)
 #' @param detached Use detached session mode (deprecated, use starburst_session instead)
 #' @param ... Additional arguments passed to future backend
@@ -37,9 +37,9 @@ plan.starburst <- function(strategy,
                            region = NULL,
                            timeout = 3600,
                            auto_quota_request = interactive(),
-                           launch_type = "FARGATE",
+                           launch_type = "EC2",
                            instance_type = "c7g.xlarge",
-                           use_spot = FALSE,
+                           use_spot = TRUE,
                            warm_pool_timeout = 3600,
                            detached = FALSE,
                            ...) {

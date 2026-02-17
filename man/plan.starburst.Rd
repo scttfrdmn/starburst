@@ -12,9 +12,9 @@
   region = NULL,
   timeout = 3600,
   auto_quota_request = interactive(),
-  launch_type = "FARGATE",
+  launch_type = "EC2",
   instance_type = "c7g.xlarge",
-  use_spot = FALSE,
+  use_spot = TRUE,
   warm_pool_timeout = 3600,
   detached = FALSE,
   ...
@@ -35,11 +35,11 @@
 
 \item{auto_quota_request}{Automatically request quota increases (default: interactive())}
 
-\item{launch_type}{Launch type: FARGATE or EC2 (default: FARGATE)}
+\item{launch_type}{Launch type: EC2 or FARGATE (default: EC2)}
 
 \item{instance_type}{EC2 instance type when using EC2 launch type (default: c7g.xlarge)}
 
-\item{use_spot}{Use EC2 Spot instances for cost savings (default: FALSE)}
+\item{use_spot}{Use EC2 Spot instances for cost savings (default: TRUE)}
 
 \item{warm_pool_timeout}{Timeout for warm pool in seconds (default: 3600)}
 
@@ -51,7 +51,7 @@
 A future plan object
 }
 \description{
-A future backend for running parallel R workloads on AWS Fargate
+A future backend for running parallel R workloads on AWS (EC2 or Fargate)
 }
 \examples{
 \dontrun{
