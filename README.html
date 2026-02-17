@@ -613,19 +613,20 @@ padding-top: 0px;
 <blockquote>
 <p>Seamless AWS cloud bursting for parallel R workloads</p>
 </blockquote>
-<p>staRburst lets you run parallel R code on AWS Fargate with zero
+<p>staRburst lets you run parallel R code on AWS with zero
 infrastructure management. Scale from your laptop to 100+ cloud workers
-with a simple function call.</p>
+with a single function call. Supports both EC2 (recommended for
+performance and cost) and Fargate (serverless) backends.</p>
 <h2 id="features">Features</h2>
 <ul>
 <li><strong>Simple Setup</strong>: One-time configuration (~2 minutes),
 then seamless operation</li>
 <li><strong>Simple API</strong>: Direct <code>starburst_map()</code>
 function - no new concepts to learn</li>
+<li><strong>Flexible Backends</strong>: EC2 (recommended - faster,
+cheaper, spot support) and Fargate (serverless)</li>
 <li><strong>Detached Sessions</strong>: Submit long-running jobs and
 detach - retrieve results anytime</li>
-<li><strong>Multiple Backends</strong>: Fargate (serverless) and EC2
-(cost-optimized) support</li>
 <li><strong>Automatic Environment Sync</strong>: Your packages and
 dependencies automatically available on workers</li>
 <li><strong>Smart Quota Management</strong>: Automatically handles AWS
