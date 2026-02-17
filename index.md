@@ -335,4 +335,4 @@ Built using the [paws](https://github.com/paws-r/paws) AWS SDK for R.
 Container management with [renv](https://rstudio.github.io/renv/) and
 [rocker](https://rocker-project.org/).
 
-Inspired by [Coiled](https://www.coiled.io/) for Python/Dask.
+Inspired by [Coiled](https://coiled.io/) for Python/Dask.
