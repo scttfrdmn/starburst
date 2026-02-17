@@ -7,7 +7,7 @@
 
 [![R-CMD-check](https://github.com/scttfrdmn/starburst/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/scttfrdmn/starburst/actions/workflows/R-CMD-check.yaml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Version](https://img.shields.io/badge/version-0.1.0-brightgreen.svg)](https://github.com/scttfrdmn/starburst/releases/tag/v0.1.0)
+[![Version](https://img.shields.io/badge/version-0.3.6-brightgreen.svg)](https://github.com/scttfrdmn/starburst/releases/tag/v0.3.6)
 <!-- badges: end -->
 
 > Seamless AWS cloud bursting for parallel R workloads
@@ -22,6 +22,10 @@ with a simple function call.
   operation
 - **Simple API**: Direct `starburst_map()` function - no new concepts to
   learn
+- **Detached Sessions**: Submit long-running jobs and detach - retrieve
+  results anytime
+- **Multiple Backends**: Fargate (serverless) and EC2 (cost-optimized)
+  support
 - **Automatic Environment Sync**: Your packages and dependencies
   automatically available on workers
 - **Smart Quota Management**: Automatically handles AWS quota limits
@@ -147,6 +151,31 @@ results <- starburst_map(
 )
 ```
 
+### Detached Sessions
+
+Run long jobs and disconnect - results persist in S3:
+
+``` r
+# Start detached session
+session <- starburst_session(workers = 50, detached = TRUE)
+
+# Submit work and get session ID
+session$submit(quote({
+  results <- starburst_map(huge_dataset, expensive_function)
+  saveRDS(results, "results.rds")
+}))
+session_id <- session$session_id
+
+# Disconnect - job continues running
+# Later (hours/days), reconnect:
+session <- starburst_session_attach(session_id)
+status <- session$status()  # Check progress
+results <- session$collect()  # Get results
+
+# Cleanup when done
+session$cleanup(force = TRUE)
+```
+
 ## How It Works
 
 1.  **Environment Snapshot**: Captures your R packages using renv
@@ -214,9 +243,17 @@ starburst_config(
 
 ## Documentation
 
-- [Getting Started](vignettes/getting-started.Rmd)
-- [Implementation Status](IMPLEMENTATION_STATUS.md)
-- [Examples](examples/)
+Full documentation available at
+**[starburst.ing](https://starburst.ing)**
+
+- [Getting Started
+  Guide](https://starburst.ing/articles/getting-started.html)
+- [Detached
+  Sessions](https://starburst.ing/articles/detached-sessions.html)
+- [Example Vignettes](https://starburst.ing/articles/)
+- [API Reference](https://starburst.ing/reference/)
+- [Security Guide](https://starburst.ing/articles/security.html)
+- [Troubleshooting](https://starburst.ing/articles/troubleshooting.html)
 
 ## Comparison
 
@@ -244,19 +281,24 @@ setup instructions.
 
 ## Roadmap
 
-### v0.1.0 (Current)
+### v0.3.6 (Current)
 
 - ✅ Direct API (`starburst_map`, `starburst_cluster`)
 - ✅ AWS Fargate integration
+- ✅ EC2 backend support with spot instances
+- ✅ Detached session mode for long-running jobs
 - ✅ Automatic environment management
 - ✅ Cost tracking and quota handling
+- ✅ Full `future` backend integration
+- ✅ Support for `future.apply`, `furrr`, `targets`
+- ✅ Comprehensive AWS integration testing
 
-### v0.2.0 (Planned)
+### v1.0.0 (Planned - CRAN Release)
 
-- [ ] Full `future` backend for furrr compatibility
-- [ ] Support for `future.apply`, `targets`, etc.
-- [ ] Enhanced retry logic
-- [ ] Spot instance support
+- [ ] Performance optimizations
+- [ ] Enhanced error recovery
+- [ ] Interactive progress monitoring
+- [ ] Multi-region support
 
 ## Contributing
 
@@ -275,8 +317,8 @@ Copyright 2026 Scott Friedman
   title = {staRburst: Seamless AWS Cloud Bursting for R},
   author = {Scott Friedman},
   year = {2026},
-  version = {0.1.0},
-  url = {https://github.com/scttfrdmn/starburst},
+  version = {0.3.6},
+  url = {https://starburst.ing},
   license = {Apache-2.0}
 }
 ```
