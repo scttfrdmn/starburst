@@ -89,6 +89,10 @@
 <li>
 <strong>Simple API</strong>: Direct <code><a href="reference/starburst_map.html">starburst_map()</a></code> function - no new concepts to learn</li>
 <li>
+<strong>Detached Sessions</strong>: Submit long-running jobs and detach - retrieve results anytime</li>
+<li>
+<strong>Multiple Backends</strong>: Fargate (serverless) and EC2 (cost-optimized) support</li>
+<li>
 <strong>Automatic Environment Sync</strong>: Your packages and dependencies automatically available on workers</li>
 <li>
 <strong>Smart Quota Management</strong>: Automatically handles AWS quota limits with wave execution</li>
@@ -215,6 +219,30 @@
 <span>  memory <span class="op">=</span> <span class="st">"8GB"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
+<div class="section level3">
+<h3 id="detached-sessions">Detached Sessions<a class="anchor" aria-label="anchor" href="#detached-sessions"></a>
+</h3>
+<p>Run long jobs and disconnect - results persist in S3:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Start detached session</span></span>
+<span><span class="va">session</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_session.html">starburst_session</a></span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">50</span>, detached <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Submit work and get session ID</span></span>
+<span><span class="va">session</span><span class="op">$</span><span class="fu">submit</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substitute.html" class="external-link">quote</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="va">huge_dataset</span>, <span class="va">expensive_function</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">results</span>, <span class="st">"results.rds"</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">session_id</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="va">session_id</span></span>
+<span></span>
+<span><span class="co"># Disconnect - job continues running</span></span>
+<span><span class="co"># Later (hours/days), reconnect:</span></span>
+<span><span class="va">session</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_session_attach.html">starburst_session_attach</a></span><span class="op">(</span><span class="va">session_id</span><span class="op">)</span></span>
+<span><span class="va">status</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="fu">status</span><span class="op">(</span><span class="op">)</span>  <span class="co"># Check progress</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="fu">collect</span><span class="op">(</span><span class="op">)</span>  <span class="co"># Get results</span></span>
+<span></span>
+<span><span class="co"># Cleanup when done</span></span>
+<span><span class="va">session</span><span class="op">$</span><span class="fu">cleanup</span><span class="op">(</span>force <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="how-it-works">How It Works<a class="anchor" aria-label="anchor" href="#how-it-works"></a>
@@ -241,7 +269,7 @@
 <div class="section level2">
 <h2 id="cost-management">Cost Management<a class="anchor" aria-label="anchor" href="#cost-management"></a>
 </h2>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Set cost limits</span></span>
 <span><span class="fu"><a href="reference/starburst_config.html">starburst_config</a></span><span class="op">(</span></span>
 <span>  max_cost_per_job <span class="op">=</span> <span class="fl">10</span>,      <span class="co"># Hard limit</span></span>
@@ -258,7 +286,7 @@
 <h2 id="quota-management">Quota Management<a class="anchor" aria-label="anchor" href="#quota-management"></a>
 </h2>
 <p>staRburst automatically handles AWS Fargate quota limitations:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">fn</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="co">#&gt; ⚠ Requested 100 workers (400 vCPUs) but quota allows 25 workers (100 vCPUs)</span></span>
 <span><span class="co">#&gt; ⚠ Using 25 workers instead</span></span>
@@ -287,7 +315,7 @@
 <div class="section level3">
 <h3 id="configuration-options">Configuration Options<a class="anchor" aria-label="anchor" href="#configuration-options"></a>
 </h3>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/starburst_config.html">starburst_config</a></span><span class="op">(</span></span>
 <span>  region <span class="op">=</span> <span class="st">"us-east-1"</span>,</span>
 <span>  max_cost_per_job <span class="op">=</span> <span class="fl">10</span>,</span>
@@ -298,10 +326,14 @@
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
+<p>Full documentation available at <strong><a href="https://starburst.ing">starburst.ing</a></strong></p>
 <ul>
-<li><a href="vignettes/getting-started.Rmd">Getting Started</a></li>
-<li><a href="IMPLEMENTATION_STATUS.html">Implementation Status</a></li>
-<li><a href="examples/">Examples</a></li>
+<li><a href="https://starburst.ing/articles/getting-started.html">Getting Started Guide</a></li>
+<li><a href="https://starburst.ing/articles/detached-sessions.html">Detached Sessions</a></li>
+<li><a href="https://starburst.ing/articles/">Example Vignettes</a></li>
+<li><a href="https://starburst.ing/reference/">API Reference</a></li>
+<li><a href="https://starburst.ing/articles/security.html">Security Guide</a></li>
+<li><a href="https://starburst.ing/articles/troubleshooting.html">Troubleshooting</a></li>
 </ul>
 </div>
 <div class="section level2">
@@ -386,23 +418,29 @@
 <h2 id="roadmap">Roadmap<a class="anchor" aria-label="anchor" href="#roadmap"></a>
 </h2>
 <div class="section level3">
-<h3 id="v010-current">v0.1.0 (Current)<a class="anchor" aria-label="anchor" href="#v010-current"></a>
+<h3 id="v036-current">v0.3.6 (Current)<a class="anchor" aria-label="anchor" href="#v036-current"></a>
 </h3>
 <ul>
 <li>✅ Direct API (<code>starburst_map</code>, <code>starburst_cluster</code>)</li>
 <li>✅ AWS Fargate integration</li>
+<li>✅ EC2 backend support with spot instances</li>
+<li>✅ Detached session mode for long-running jobs</li>
 <li>✅ Automatic environment management</li>
 <li>✅ Cost tracking and quota handling</li>
+<li>✅ Full <code>future</code> backend integration</li>
+<li>✅ Support for <code>future.apply</code>, <code>furrr</code>, <code>targets</code>
+</li>
+<li>✅ Comprehensive AWS integration testing</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="v020-planned">v0.2.0 (Planned)<a class="anchor" aria-label="anchor" href="#v020-planned"></a>
+<h3 id="v100-planned---cran-release">v1.0.0 (Planned - CRAN Release)<a class="anchor" aria-label="anchor" href="#v100-planned---cran-release"></a>
 </h3>
 <ul class="task-list">
-<li><label><input type="checkbox">Full <code>future</code> backend for furrr compatibility</label></li>
-<li><label><input type="checkbox">Support for <code>future.apply</code>, <code>targets</code>, etc.</label></li>
-<li><label><input type="checkbox">Enhanced retry logic</label></li>
-<li><label><input type="checkbox">Spot instance support</label></li>
+<li><label><input type="checkbox">Performance optimizations</label></li>
+<li><label><input type="checkbox">Enhanced error recovery</label></li>
+<li><label><input type="checkbox">Interactive progress monitoring</label></li>
+<li><label><input type="checkbox">Multi-region support</label></li>
 </ul>
 </div>
 </div>
@@ -420,14 +458,14 @@
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<div class="sourceCode" id="cb9"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co">@software{starburst,</span></span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">  title = {staRburst: Seamless AWS Cloud Bursting for R},</span></span>
-<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">  author = {Scott Friedman},</span></span>
-<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
-<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">  version = {0.1.0},</span></span>
-<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">  url = {https://github.com/scttfrdmn/starburst},</span></span>
-<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">  license = {Apache-2.0}</span></span>
-<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co">@software{starburst,</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">  title = {staRburst: Seamless AWS Cloud Bursting for R},</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">  author = {Scott Friedman},</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">  version = {0.3.6},</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">  url = {https://starburst.ing},</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">  license = {Apache-2.0}</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="credits">Credits<a class="anchor" aria-label="anchor" href="#credits"></a>
@@ -479,7 +517,7 @@
 <ul class="list-unstyled">
 <li><a href="https://github.com/scttfrdmn/starburst/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/scttfrdmn/starburst/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
 <li><a href="https://opensource.org/licenses/Apache-2.0" class="external-link"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a></li>
-<li><a href="https://github.com/scttfrdmn/starburst/releases/tag/v0.1.0" class="external-link"><img src="https://img.shields.io/badge/version-0.1.0-brightgreen.svg" alt="Version"></a></li>
+<li><a href="https://github.com/scttfrdmn/starburst/releases/tag/v0.3.6" class="external-link"><img src="https://img.shields.io/badge/version-0.3.6-brightgreen.svg" alt="Version"></a></li>
 </ul>
 </div>
 

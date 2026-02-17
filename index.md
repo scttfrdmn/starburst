@@ -13,6 +13,10 @@ with a simple function call.
 - **Simple API**: Direct
   [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
   function - no new concepts to learn
+- **Detached Sessions**: Submit long-running jobs and detach - retrieve
+  results anytime
+- **Multiple Backends**: Fargate (serverless) and EC2 (cost-optimized)
+  support
 - **Automatic Environment Sync**: Your packages and dependencies
   automatically available on workers
 - **Smart Quota Management**: Automatically handles AWS quota limits
@@ -138,6 +142,31 @@ results <- starburst_map(
 )
 ```
 
+### Detached Sessions
+
+Run long jobs and disconnect - results persist in S3:
+
+``` r
+# Start detached session
+session <- starburst_session(workers = 50, detached = TRUE)
+
+# Submit work and get session ID
+session$submit(quote({
+  results <- starburst_map(huge_dataset, expensive_function)
+  saveRDS(results, "results.rds")
+}))
+session_id <- session$session_id
+
+# Disconnect - job continues running
+# Later (hours/days), reconnect:
+session <- starburst_session_attach(session_id)
+status <- session$status()  # Check progress
+results <- session$collect()  # Get results
+
+# Cleanup when done
+session$cleanup(force = TRUE)
+```
+
 ## How It Works
 
 1.  **Environment Snapshot**: Captures your R packages using renv
@@ -207,10 +236,17 @@ starburst_config(
 
 ## Documentation
 
-- [Getting Started](https://starburst.ing/vignettes/getting-started.Rmd)
-- [Implementation
-  Status](https://starburst.ing/IMPLEMENTATION_STATUS.md)
-- [Examples](https://starburst.ing/examples/)
+Full documentation available at
+**[starburst.ing](https://starburst.ing)**
+
+- [Getting Started
+  Guide](https://starburst.ing/articles/getting-started.html)
+- [Detached
+  Sessions](https://starburst.ing/articles/detached-sessions.html)
+- [Example Vignettes](https://starburst.ing/articles/)
+- [API Reference](https://starburst.ing/reference/)
+- [Security Guide](https://starburst.ing/articles/security.html)
+- [Troubleshooting](https://starburst.ing/articles/troubleshooting.html)
 
 ## Comparison
 
@@ -239,22 +275,27 @@ for detailed setup instructions.
 
 ## Roadmap
 
-### v0.1.0 (Current)
+### v0.3.6 (Current)
 
 - ✅ Direct API (`starburst_map`, `starburst_cluster`)
 - ✅ AWS Fargate integration
+- ✅ EC2 backend support with spot instances
+- ✅ Detached session mode for long-running jobs
 - ✅ Automatic environment management
 - ✅ Cost tracking and quota handling
+- ✅ Full `future` backend integration
+- ✅ Support for `future.apply`, `furrr`, `targets`
+- ✅ Comprehensive AWS integration testing
 
-### v0.2.0 (Planned)
+### v1.0.0 (Planned - CRAN Release)
 
-Full `future` backend for furrr compatibility
+Performance optimizations
 
-Support for `future.apply`, `targets`, etc.
+Enhanced error recovery
 
-Enhanced retry logic
+Interactive progress monitoring
 
-Spot instance support
+Multi-region support
 
 ## Contributing
 
@@ -274,8 +315,8 @@ Copyright 2026 Scott Friedman
   title = {staRburst: Seamless AWS Cloud Bursting for R},
   author = {Scott Friedman},
   year = {2026},
-  version = {0.1.0},
-  url = {https://github.com/scttfrdmn/starburst},
+  version = {0.3.6},
+  url = {https://starburst.ing},
   license = {Apache-2.0}
 }
 ```
