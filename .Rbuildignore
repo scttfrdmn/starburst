@@ -25,6 +25,7 @@
 ^.*\.rds$
 ^CHANGELOG\.md$
 ^CONTRIBUTING\.md$
+^cran-comments\.md$
 ^IMPLEMENTATION_SUMMARY\.md$
 ^\.lintr$
 ^CLAUDE\.md$
