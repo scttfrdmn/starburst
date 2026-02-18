@@ -276,9 +276,8 @@ Full documentation available at
     - `starburstECSExecutionRole` - for ECS/ECR access
     - `starburstECSTaskRole` - for S3 access
 
-See
-[IMPLEMENTATION_STATUS.md](https://starburst.ing/IMPLEMENTATION_STATUS.md)
-for detailed setup instructions.
+For detailed setup instructions, see the [Getting
+Started](https://starburst.ing/articles/getting-started.html) guide.
 
 ## Roadmap
 
@@ -307,8 +306,9 @@ Multi-region support
 
 ## Contributing
 
-Contributions welcome! See
-[CONTRIBUTING.md](https://starburst.ing/CONTRIBUTING.md).
+Contributions welcome! See the [GitHub
+repository](https://github.com/scttfrdmn/starburst) for contribution
+guidelines.
 
 ## License
 
