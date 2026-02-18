@@ -495,9 +495,9 @@ plan(future_starburst, workers = 50, region = "us-west-2")
 
 ## Next Steps
 
-- Check out the [Advanced Usage](advanced-usage.html) vignette
-- Review [Performance Tuning](performance-tuning.html) guide
-- See [Example Workflows](examples.html) for real-world patterns
+- Learn about [Detached Sessions](detached-sessions.html) for long-running jobs
+- Explore [Example Vignettes](https://starburst.ing/articles/) for real-world patterns
+- Review [Security Best Practices](security.html) guide
 - Read [Troubleshooting Guide](troubleshooting.html) when stuck
 
 ## Getting Help
