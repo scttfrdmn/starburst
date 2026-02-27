@@ -99,18 +99,18 @@ get_local_hardware_specs <- function() {
 
   if (os == "Darwin") {
     # macOS
-    cpu_brand <- system("sysctl -n machdep.cpu.brand_string", intern = TRUE)
+    cpu_brand <- trimws(safe_system("sysctl", c("-n", "machdep.cpu.brand_string"), stdout = TRUE)$stdout)
 
     # Try to get performance cores (Apple Silicon)
     perf_cores <- tryCatch({
-      as.numeric(system("sysctl -n hw.perflevel0.physicalcpu", intern = TRUE))
+      as.numeric(trimws(safe_system("sysctl", c("-n", "hw.perflevel0.physicalcpu"), stdout = TRUE)$stdout))
     }, error = function(e) {
       # Fallback to total physical cores
-      as.numeric(system("sysctl -n hw.physicalcpu", intern = TRUE))
+      as.numeric(trimws(safe_system("sysctl", c("-n", "hw.physicalcpu"), stdout = TRUE)$stdout))
     })
 
     # Detect if ARM (Apple Silicon)
-    arch <- system("uname -m", intern = TRUE)
+    arch <- trimws(safe_system("uname", c("-m"), stdout = TRUE)$stdout)
 
     list(
       cpu_name = cpu_brand,
@@ -120,12 +120,14 @@ get_local_hardware_specs <- function() {
 
   } else if (os == "Linux") {
     # Linux
-    cpu_info <- system("cat /proc/cpuinfo | grep 'model name' | head -1", intern = TRUE)
-    cpu_name <- sub("model name\\s*:\\s*", "", cpu_info)
+    # Read CPU info directly (safer than shell pipeline)
+    cpu_info_lines <- readLines("/proc/cpuinfo")
+    model_line <- grep("^model name", cpu_info_lines, value = TRUE)[1]
+    cpu_name <- sub("model name\\s*:\\s*", "", model_line)
 
-    cores <- as.numeric(system("nproc", intern = TRUE))
+    cores <- as.numeric(trimws(safe_system("nproc", character(), stdout = TRUE)$stdout))
 
-    arch <- system("uname -m", intern = TRUE)
+    arch <- trimws(safe_system("uname", c("-m"), stdout = TRUE)$stdout)
 
     list(
       cpu_name = cpu_name,

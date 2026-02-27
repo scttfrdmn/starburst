@@ -60,3 +60,6 @@
 ^run_lintr\.R$
 ^test_ec2_.*\.R$
 ^test_multiplatform_rebuild\.R$
+^CRAN-SUBMISSION$
+^doc$
+^Meta$

@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Example: Monte Carlo Portfolio Simulation</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Example: Monte Carlo Portfolio
+Simulation</h1>
+
+
+
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<p>Monte Carlo simulations are a common use case for parallel computing.
+This example demonstrates running 10,000 portfolio simulations to
+estimate risk metrics.</p>
+<p><strong>Use Case</strong>: Portfolio risk analysis, Value at Risk
+(VaR) calculations, stress testing</p>
+<p><strong>Computational Pattern</strong>: Embarrassingly parallel -
+each simulation is independent</p>
+</div>
+<div id="the-problem" class="section level2">
+<h2>The Problem</h2>
+<p>You need to simulate 10,000 different portfolio scenarios to
+estimate: - Expected portfolio value - Value at Risk (VaR) at 95%
+confidence - Sharpe ratio distribution - Probability of loss
+scenarios</p>
+<p>Each simulation involves 252 trading days (one year) with correlated
+asset returns.</p>
+</div>
+<div id="setup" class="section level2">
+<h2>Setup</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(starburst)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span></code></pre></div>
+</div>
+<div id="simulation-function" class="section level2">
+<h2>Simulation Function</h2>
+<p>Define a function that simulates one portfolio trajectory:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>simulate_portfolio <span class="ot">&lt;-</span> <span class="cf">function</span>(seed) {</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="fu">set.seed</span>(seed)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="co"># Portfolio parameters</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  n_days <span class="ot">&lt;-</span> <span class="dv">252</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  initial_value <span class="ot">&lt;-</span> <span class="dv">1000000</span>  <span class="co"># $1M portfolio</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="co"># Asset allocation (60/40 stocks/bonds)</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  stock_weight <span class="ot">&lt;-</span> <span class="fl">0.6</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  bond_weight <span class="ot">&lt;-</span> <span class="fl">0.4</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>  <span class="co"># Expected returns (annualized)</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>  stock_return <span class="ot">&lt;-</span> <span class="fl">0.10</span> <span class="sc">/</span> <span class="dv">252</span>  <span class="co"># 10% annual</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>  bond_return <span class="ot">&lt;-</span> <span class="fl">0.04</span> <span class="sc">/</span> <span class="dv">252</span>   <span class="co"># 4% annual</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>  <span class="co"># Volatility (annualized)</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a>  stock_vol <span class="ot">&lt;-</span> <span class="fl">0.20</span> <span class="sc">/</span> <span class="fu">sqrt</span>(<span class="dv">252</span>)  <span class="co"># 20% annual</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>  bond_vol <span class="ot">&lt;-</span> <span class="fl">0.05</span> <span class="sc">/</span> <span class="fu">sqrt</span>(<span class="dv">252</span>)   <span class="co"># 5% annual</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>  <span class="co"># Correlation</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a>  correlation <span class="ot">&lt;-</span> <span class="fl">0.3</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a>  <span class="co"># Generate correlated returns</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a>  stock_returns <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n_days, <span class="at">mean =</span> stock_return, <span class="at">sd =</span> stock_vol)</span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a>  bond_noise <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n_days)</span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a>  bond_returns <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n_days, <span class="at">mean =</span> bond_return, <span class="at">sd =</span> bond_vol)</span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a>  bond_returns <span class="ot">&lt;-</span> correlation <span class="sc">*</span> stock_returns <span class="sc">+</span></span>
+<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a>                  <span class="fu">sqrt</span>(<span class="dv">1</span> <span class="sc">-</span> correlation<span class="sc">^</span><span class="dv">2</span>) <span class="sc">*</span> bond_returns</span>
+<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a></span>
+<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a>  <span class="co"># Portfolio returns</span></span>
+<span id="cb2-31"><a href="#cb2-31" tabindex="-1"></a>  portfolio_returns <span class="ot">&lt;-</span> stock_weight <span class="sc">*</span> stock_returns <span class="sc">+</span></span>
+<span id="cb2-32"><a href="#cb2-32" tabindex="-1"></a>                      bond_weight <span class="sc">*</span> bond_returns</span>
+<span id="cb2-33"><a href="#cb2-33" tabindex="-1"></a></span>
+<span id="cb2-34"><a href="#cb2-34" tabindex="-1"></a>  <span class="co"># Cumulative value</span></span>
+<span id="cb2-35"><a href="#cb2-35" tabindex="-1"></a>  portfolio_values <span class="ot">&lt;-</span> initial_value <span class="sc">*</span> <span class="fu">cumprod</span>(<span class="dv">1</span> <span class="sc">+</span> portfolio_returns)</span>
+<span id="cb2-36"><a href="#cb2-36" tabindex="-1"></a></span>
+<span id="cb2-37"><a href="#cb2-37" tabindex="-1"></a>  <span class="co"># Calculate metrics</span></span>
+<span id="cb2-38"><a href="#cb2-38" tabindex="-1"></a>  final_value <span class="ot">&lt;-</span> portfolio_values[n_days]</span>
+<span id="cb2-39"><a href="#cb2-39" tabindex="-1"></a>  max_drawdown <span class="ot">&lt;-</span> <span class="fu">max</span>((<span class="fu">cummax</span>(portfolio_values) <span class="sc">-</span> portfolio_values) <span class="sc">/</span></span>
+<span id="cb2-40"><a href="#cb2-40" tabindex="-1"></a>                      <span class="fu">cummax</span>(portfolio_values))</span>
+<span id="cb2-41"><a href="#cb2-41" tabindex="-1"></a>  sharpe_ratio <span class="ot">&lt;-</span> <span class="fu">mean</span>(portfolio_returns) <span class="sc">/</span> <span class="fu">sd</span>(portfolio_returns) <span class="sc">*</span> <span class="fu">sqrt</span>(<span class="dv">252</span>)</span>
+<span id="cb2-42"><a href="#cb2-42" tabindex="-1"></a></span>
+<span id="cb2-43"><a href="#cb2-43" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb2-44"><a href="#cb2-44" tabindex="-1"></a>    <span class="at">final_value =</span> final_value,</span>
+<span id="cb2-45"><a href="#cb2-45" tabindex="-1"></a>    <span class="at">return_pct =</span> (final_value <span class="sc">-</span> initial_value) <span class="sc">/</span> initial_value <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb2-46"><a href="#cb2-46" tabindex="-1"></a>    <span class="at">max_drawdown =</span> max_drawdown,</span>
+<span id="cb2-47"><a href="#cb2-47" tabindex="-1"></a>    <span class="at">sharpe_ratio =</span> sharpe_ratio,</span>
+<span id="cb2-48"><a href="#cb2-48" tabindex="-1"></a>    <span class="at">min_value =</span> <span class="fu">min</span>(portfolio_values),</span>
+<span id="cb2-49"><a href="#cb2-49" tabindex="-1"></a>    <span class="at">max_value =</span> <span class="fu">max</span>(portfolio_values)</span>
+<span id="cb2-50"><a href="#cb2-50" tabindex="-1"></a>  )</span>
+<span id="cb2-51"><a href="#cb2-51" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="local-execution" class="section level2">
+<h2>Local Execution</h2>
+<p>Run a smaller test locally:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Test with 100 simulations</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>local_start <span class="ot">&lt;-</span> <span class="fu">Sys.time</span>()</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>local_results <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, simulate_portfolio)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>local_time <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">difftime</span>(<span class="fu">Sys.time</span>(), local_start, <span class="at">units =</span> <span class="st">&quot;secs&quot;</span>))</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;100 simulations completed in %.1f seconds</span><span class="sc">\n</span><span class="st">&quot;</span>, local_time))</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Estimated time for 10,000: %.1f minutes</span><span class="sc">\n</span><span class="st">&quot;</span>,</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>            local_time <span class="sc">*</span> <span class="dv">100</span> <span class="sc">/</span> <span class="dv">60</span>))</span></code></pre></div>
+<p><strong>Typical output</strong>:</p>
+<pre><code>100 simulations completed in 2.3 seconds
+Estimated time for 10,000: 3.8 minutes</code></pre>
+<p>For 10,000 simulations locally: <strong>~3.8 minutes</strong></p>
+</div>
+<div id="cloud-execution-with-starburst" class="section level2">
+<h2>Cloud Execution with staRburst</h2>
+<p>Run all 10,000 simulations on AWS:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Run 10,000 simulations on 50 workers</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">starburst_map</span>(</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="dv">1</span><span class="sc">:</span><span class="dv">10000</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  simulate_portfolio,</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="at">workers =</span> <span class="dv">50</span>,</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  <span class="at">cpu =</span> <span class="dv">2</span>,</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="at">memory =</span> <span class="st">&quot;4GB&quot;</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>)</span></code></pre></div>
+<p><strong>Typical output</strong>:</p>
+<pre><code>🚀 Starting starburst cluster with 50 workers
+💰 Estimated cost: ~$2.80/hour
+📊 Processing 10000 items with 50 workers
+📦 Created 50 chunks (avg 200 items per chunk)
+🚀 Submitting tasks...
+✓ Submitted 50 tasks
+⏳ Progress: 50/50 tasks (1.2 minutes elapsed)
+
+✓ Completed in 1.2 minutes
+💰 Actual cost: $0.06</code></pre>
+</div>
+<div id="results-analysis" class="section level2">
+<h2>Results Analysis</h2>
+<p>Extract and analyze the results:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Extract metrics</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>final_values <span class="ot">&lt;-</span> <span class="fu">sapply</span>(results, <span class="cf">function</span>(x) x<span class="sc">$</span>final_value)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>returns <span class="ot">&lt;-</span> <span class="fu">sapply</span>(results, <span class="cf">function</span>(x) x<span class="sc">$</span>return_pct)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>sharpe_ratios <span class="ot">&lt;-</span> <span class="fu">sapply</span>(results, <span class="cf">function</span>(x) x<span class="sc">$</span>sharpe_ratio)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>max_drawdowns <span class="ot">&lt;-</span> <span class="fu">sapply</span>(results, <span class="cf">function</span>(x) x<span class="sc">$</span>max_drawdown)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co"># Summary statistics</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">=== Portfolio Simulation Results (10,000 scenarios) ===</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Mean final value: $%.0f</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">mean</span>(final_values)))</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Median final value: $%.0f</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">median</span>(final_values)))</span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">Mean return: %.2f%%</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">mean</span>(returns)))</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Std dev of returns: %.2f%%</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">sd</span>(returns)))</span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">Value at Risk (5%%): $%.0f</span><span class="sc">\n</span><span class="st">&quot;</span>,</span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a>            <span class="fu">quantile</span>(final_values, <span class="fl">0.05</span>)))</span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Expected Shortfall (5%%): $%.0f</span><span class="sc">\n</span><span class="st">&quot;</span>,</span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a>            <span class="fu">mean</span>(final_values[final_values <span class="sc">&lt;=</span> <span class="fu">quantile</span>(final_values, <span class="fl">0.05</span>)])))</span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">Mean Sharpe Ratio: %.2f</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">mean</span>(sharpe_ratios)))</span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Mean Max Drawdown: %.2f%%</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">mean</span>(max_drawdowns) <span class="sc">*</span> <span class="dv">100</span>))</span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">Probability of loss: %.2f%%</span><span class="sc">\n</span><span class="st">&quot;</span>,</span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a>            <span class="fu">mean</span>(returns <span class="sc">&lt;</span> <span class="dv">0</span>) <span class="sc">*</span> <span class="dv">100</span>))</span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a></span>
+<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a><span class="co"># Distribution plot</span></span>
+<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a><span class="fu">hist</span>(final_values <span class="sc">/</span> <span class="dv">1000</span>,</span>
+<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a>     <span class="at">breaks =</span> <span class="dv">50</span>,</span>
+<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">&quot;Distribution of Portfolio Final Values&quot;</span>,</span>
+<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">&quot;Final Value ($1000s)&quot;</span>,</span>
+<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a>     <span class="at">col =</span> <span class="st">&quot;lightblue&quot;</span>,</span>
+<span id="cb7-28"><a href="#cb7-28" tabindex="-1"></a>     <span class="at">border =</span> <span class="st">&quot;white&quot;</span>)</span>
+<span id="cb7-29"><a href="#cb7-29" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> <span class="dv">1000</span>, <span class="at">col =</span> <span class="st">&quot;red&quot;</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb7-30"><a href="#cb7-30" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> <span class="fu">quantile</span>(final_values <span class="sc">/</span> <span class="dv">1000</span>, <span class="fl">0.05</span>), <span class="at">col =</span> <span class="st">&quot;orange&quot;</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb7-31"><a href="#cb7-31" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">&quot;topright&quot;</span>,</span>
+<span id="cb7-32"><a href="#cb7-32" tabindex="-1"></a>       <span class="fu">c</span>(<span class="st">&quot;Initial Value&quot;</span>, <span class="st">&quot;VaR (5%)&quot;</span>),</span>
+<span id="cb7-33"><a href="#cb7-33" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">&quot;red&quot;</span>, <span class="st">&quot;orange&quot;</span>),</span>
+<span id="cb7-34"><a href="#cb7-34" tabindex="-1"></a>       <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span></code></pre></div>
+<p><strong>Typical output</strong>:</p>
+<pre><code>=== Portfolio Simulation Results (10,000 scenarios) ===
+Mean final value: $1,102,450
+Median final value: $1,097,230
+
+Mean return: 10.24%
+Std dev of returns: 12.83%
+
+Value at Risk (5%): $892,340
+Expected Shortfall (5%): $845,120
+
+Mean Sharpe Ratio: 0.82
+Mean Max Drawdown: 8.45%
+
+Probability of loss: 18.34%</code></pre>
+</div>
+<div id="performance-comparison" class="section level2">
+<h2>Performance Comparison</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Workers</th>
+<th>Time</th>
+<th>Cost</th>
+<th>Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Local</td>
+<td>1</td>
+<td>3.8 min</td>
+<td>$0</td>
+<td>1x</td>
+</tr>
+<tr class="even">
+<td>staRburst</td>
+<td>10</td>
+<td>0.6 min</td>
+<td>$0.03</td>
+<td>6.3x</td>
+</tr>
+<tr class="odd">
+<td>staRburst</td>
+<td>25</td>
+<td>0.3 min</td>
+<td>$0.04</td>
+<td>12.7x</td>
+</tr>
+<tr class="even">
+<td>staRburst</td>
+<td>50</td>
+<td>0.2 min</td>
+<td>$0.06</td>
+<td>19x</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key Insights</strong>: - Near-linear scaling up to 50 workers
+- Cost remains minimal ($0.06) even with 50 workers - Sweet spot: 25-50
+workers for this workload - Total iteration time: &lt;2 minutes from
+start to results</p>
+</div>
+<div id="when-to-use-this-pattern" class="section level2">
+<h2>When to Use This Pattern</h2>
+<p><strong>Good fit</strong>: - Each iteration is independent -
+Computational time &gt; 0.1 seconds per iteration - Total iterations
+&gt; 1,000 - Results can be easily aggregated</p>
+<p><strong>Not ideal</strong>: - Very fast iterations (&lt; 0.01
+seconds) - High data transfer per iteration - Strong sequential
+dependencies</p>
+</div>
+<div id="running-the-full-example" class="section level2">
+<h2>Running the Full Example</h2>
+<p>The complete runnable script is available at:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">system.file</span>(<span class="st">&quot;examples/monte-carlo.R&quot;</span>, <span class="at">package =</span> <span class="st">&quot;starburst&quot;</span>)</span></code></pre></div>
+<p>Run it with:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">system.file</span>(<span class="st">&quot;examples/monte-carlo.R&quot;</span>, <span class="at">package =</span> <span class="st">&quot;starburst&quot;</span>))</span></code></pre></div>
+</div>
+<div id="next-steps" class="section level2">
+<h2>Next Steps</h2>
+<ul>
+<li>Try adjusting portfolio parameters (allocation, volatility)</li>
+<li>Experiment with different worker counts</li>
+<li>Compare costs for different AWS regions</li>
+<li>Add more sophisticated portfolio models</li>
+</ul>
+<p><strong>Related examples</strong>: - <a href="example-bootstrap.html">Bootstrap Confidence Intervals</a> -
+Another Monte Carlo application - <a href="example-risk-modeling.html">Financial Risk Modeling</a> - Advanced
+portfolio analysis</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

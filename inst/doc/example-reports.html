@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Example: Parallel Report Generation</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Example: Parallel Report Generation</h1>
+
+
+
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<p>Generating personalized reports for many customers is a common
+bottleneck. This example demonstrates parallelizing RMarkdown/Quarto
+report generation using staRburst.</p>
+<p><strong>Use Case</strong>: Monthly customer reports, automated
+analytics, personalized dashboards, regulatory reporting</p>
+<p><strong>Computational Pattern</strong>: I/O-bound parallel processing
+with document rendering</p>
+</div>
+<div id="the-problem" class="section level2">
+<h2>The Problem</h2>
+<p>You need to generate 50 customized monthly reports for different
+customers: - Each report includes data analysis, visualizations, and
+summary statistics - Each report takes 1-2 minutes to render -
+Sequential generation would take 50-100 minutes - Reports must be
+delivered by end of business day</p>
+</div>
+<div id="setup" class="section level2">
+<h2>Setup</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(starburst)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(rmarkdown)</span></code></pre></div>
+</div>
+<div id="report-template" class="section level2">
+<h2>Report Template</h2>
+<p>Create a simple RMarkdown template:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Create report template</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>report_template <span class="ot">&lt;-</span> <span class="st">&#39;</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="st">---</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="st">title: &quot;Monthly Analytics Report&quot;</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="st">output: html_document</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="st">params:</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="st">  customer_id: &quot;&quot;</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="st">  customer_name: &quot;&quot;</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="st">  month: &quot;&quot;</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="st">  data: NULL</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="st">---</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="st">`​``{r template-setup, include=FALSE}</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="st">knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="st">`​``</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="st"># Monthly Report for `r params$customer_name`</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="st">**Customer ID:** `r params$customer_id`</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="st">**Period:** `r params$month`</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="st">**Report Generated:** `r format(Sys.time(), &quot;%Y-%m-%d %H:%M&quot;)`</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="st">---</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a><span class="st">## Executive Summary</span></span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a></span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a><span class="st">This report summarizes activity for `r params$customer_name` during `r params$month`.</span></span>
+<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a><span class="st">\`\`\`{r summary}</span></span>
+<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a><span class="st">data &lt;- params$data</span></span>
+<span id="cb2-31"><a href="#cb2-31" tabindex="-1"></a><span class="st">cat(sprintf(&quot;Total transactions: %d</span><span class="sc">\\</span><span class="st">n&quot;, nrow(data)))</span></span>
+<span id="cb2-32"><a href="#cb2-32" tabindex="-1"></a><span class="st">cat(sprintf(&quot;Total revenue: $%.2f</span><span class="sc">\\</span><span class="st">n&quot;, sum(data$revenue)))</span></span>
+<span id="cb2-33"><a href="#cb2-33" tabindex="-1"></a><span class="st">cat(sprintf(&quot;Average order value: $%.2f</span><span class="sc">\\</span><span class="st">n&quot;, mean(data$revenue)))</span></span>
+<span id="cb2-34"><a href="#cb2-34" tabindex="-1"></a><span class="st">cat(sprintf(&quot;Active days: %d</span><span class="sc">\\</span><span class="st">n&quot;, length(unique(data$date))))</span></span>
+<span id="cb2-35"><a href="#cb2-35" tabindex="-1"></a><span class="st">\`\`\`</span></span>
+<span id="cb2-36"><a href="#cb2-36" tabindex="-1"></a></span>
+<span id="cb2-37"><a href="#cb2-37" tabindex="-1"></a><span class="st">## Revenue Trend</span></span>
+<span id="cb2-38"><a href="#cb2-38" tabindex="-1"></a></span>
+<span id="cb2-39"><a href="#cb2-39" tabindex="-1"></a><span class="st">\`\`\`{r revenue-plot, fig.width=8, fig.height=4}</span></span>
+<span id="cb2-40"><a href="#cb2-40" tabindex="-1"></a><span class="st">daily_revenue &lt;- aggregate(revenue ~ date, data, sum)</span></span>
+<span id="cb2-41"><a href="#cb2-41" tabindex="-1"></a><span class="st">plot(daily_revenue$date, daily_revenue$revenue,</span></span>
+<span id="cb2-42"><a href="#cb2-42" tabindex="-1"></a><span class="st">     type = &quot;l&quot;, lwd = 2, col = &quot;steelblue&quot;,</span></span>
+<span id="cb2-43"><a href="#cb2-43" tabindex="-1"></a><span class="st">     main = &quot;Daily Revenue Trend&quot;,</span></span>
+<span id="cb2-44"><a href="#cb2-44" tabindex="-1"></a><span class="st">     xlab = &quot;Date&quot;, ylab = &quot;Revenue ($)&quot;)</span></span>
+<span id="cb2-45"><a href="#cb2-45" tabindex="-1"></a><span class="st">grid()</span></span>
+<span id="cb2-46"><a href="#cb2-46" tabindex="-1"></a><span class="st">\`\`\`</span></span>
+<span id="cb2-47"><a href="#cb2-47" tabindex="-1"></a></span>
+<span id="cb2-48"><a href="#cb2-48" tabindex="-1"></a><span class="st">## Top Products</span></span>
+<span id="cb2-49"><a href="#cb2-49" tabindex="-1"></a></span>
+<span id="cb2-50"><a href="#cb2-50" tabindex="-1"></a><span class="st">\`\`\`{r top-products}</span></span>
+<span id="cb2-51"><a href="#cb2-51" tabindex="-1"></a><span class="st">top_products &lt;- head(</span></span>
+<span id="cb2-52"><a href="#cb2-52" tabindex="-1"></a><span class="st">  aggregate(revenue ~ product, data, sum),</span></span>
+<span id="cb2-53"><a href="#cb2-53" tabindex="-1"></a><span class="st">  10</span></span>
+<span id="cb2-54"><a href="#cb2-54" tabindex="-1"></a><span class="st">)</span></span>
+<span id="cb2-55"><a href="#cb2-55" tabindex="-1"></a><span class="st">top_products &lt;- top_products[order(-top_products$revenue), ]</span></span>
+<span id="cb2-56"><a href="#cb2-56" tabindex="-1"></a><span class="st">knitr::kable(top_products, format.args = list(big.mark = &quot;,&quot;))</span></span>
+<span id="cb2-57"><a href="#cb2-57" tabindex="-1"></a><span class="st">\`\`\`</span></span>
+<span id="cb2-58"><a href="#cb2-58" tabindex="-1"></a></span>
+<span id="cb2-59"><a href="#cb2-59" tabindex="-1"></a><span class="st">## Summary Statistics</span></span>
+<span id="cb2-60"><a href="#cb2-60" tabindex="-1"></a></span>
+<span id="cb2-61"><a href="#cb2-61" tabindex="-1"></a><span class="st">\`\`\`{r stats}</span></span>
+<span id="cb2-62"><a href="#cb2-62" tabindex="-1"></a><span class="st">stats &lt;- data.frame(</span></span>
+<span id="cb2-63"><a href="#cb2-63" tabindex="-1"></a><span class="st">  Metric = c(&quot;Total Orders&quot;, &quot;Avg Order Value&quot;, &quot;Max Order&quot;,</span></span>
+<span id="cb2-64"><a href="#cb2-64" tabindex="-1"></a><span class="st">             &quot;Min Order&quot;, &quot;Std Dev&quot;),</span></span>
+<span id="cb2-65"><a href="#cb2-65" tabindex="-1"></a><span class="st">  Value = c(</span></span>
+<span id="cb2-66"><a href="#cb2-66" tabindex="-1"></a><span class="st">    nrow(data),</span></span>
+<span id="cb2-67"><a href="#cb2-67" tabindex="-1"></a><span class="st">    round(mean(data$revenue), 2),</span></span>
+<span id="cb2-68"><a href="#cb2-68" tabindex="-1"></a><span class="st">    round(max(data$revenue), 2),</span></span>
+<span id="cb2-69"><a href="#cb2-69" tabindex="-1"></a><span class="st">    round(min(data$revenue), 2),</span></span>
+<span id="cb2-70"><a href="#cb2-70" tabindex="-1"></a><span class="st">    round(sd(data$revenue), 2)</span></span>
+<span id="cb2-71"><a href="#cb2-71" tabindex="-1"></a><span class="st">  )</span></span>
+<span id="cb2-72"><a href="#cb2-72" tabindex="-1"></a><span class="st">)</span></span>
+<span id="cb2-73"><a href="#cb2-73" tabindex="-1"></a><span class="st">knitr::kable(stats, format.args = list(big.mark = &quot;,&quot;))</span></span>
+<span id="cb2-74"><a href="#cb2-74" tabindex="-1"></a><span class="st">\`\`\`</span></span>
+<span id="cb2-75"><a href="#cb2-75" tabindex="-1"></a></span>
+<span id="cb2-76"><a href="#cb2-76" tabindex="-1"></a><span class="st">---</span></span>
+<span id="cb2-77"><a href="#cb2-77" tabindex="-1"></a></span>
+<span id="cb2-78"><a href="#cb2-78" tabindex="-1"></a><span class="st">*This report was automatically generated using staRburst parallel processing.*</span></span>
+<span id="cb2-79"><a href="#cb2-79" tabindex="-1"></a><span class="st">&#39;</span></span>
+<span id="cb2-80"><a href="#cb2-80" tabindex="-1"></a></span>
+<span id="cb2-81"><a href="#cb2-81" tabindex="-1"></a><span class="co"># Save template to file</span></span>
+<span id="cb2-82"><a href="#cb2-82" tabindex="-1"></a><span class="fu">writeLines</span>(report_template, <span class="st">&quot;report_template.Rmd&quot;</span>)</span></code></pre></div>
+</div>
+<div id="generate-sample-data" class="section level2">
+<h2>Generate Sample Data</h2>
+<p>Create synthetic customer data:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Function to generate data for one customer</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>generate_customer_data <span class="ot">&lt;-</span> <span class="cf">function</span>(customer_id) {</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="fu">set.seed</span>(customer_id)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  n_transactions <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="dv">100</span><span class="sc">:</span><span class="dv">500</span>, <span class="dv">1</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  dates <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">sample</span>(<span class="fu">seq.Date</span>(</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>    <span class="at">from =</span> <span class="fu">as.Date</span>(<span class="st">&quot;2026-01-01&quot;</span>),</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>    <span class="at">to =</span> <span class="fu">as.Date</span>(<span class="st">&quot;2026-01-31&quot;</span>),</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>    <span class="at">by =</span> <span class="st">&quot;day&quot;</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>  ), n_transactions, <span class="at">replace =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>  products <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Product A&quot;</span>, <span class="st">&quot;Product B&quot;</span>, <span class="st">&quot;Product C&quot;</span>,</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>                <span class="st">&quot;Product D&quot;</span>, <span class="st">&quot;Product E&quot;</span>)</span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>    <span class="at">customer_id =</span> customer_id,</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>    <span class="at">date =</span> dates,</span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>    <span class="at">product =</span> <span class="fu">sample</span>(products, n_transactions, <span class="at">replace =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>    <span class="at">revenue =</span> <span class="fu">round</span>(<span class="fu">rnorm</span>(n_transactions, <span class="at">mean =</span> <span class="dv">150</span>, <span class="at">sd =</span> <span class="dv">50</span>), <span class="dv">2</span>),</span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>    <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>  )</span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>}</span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="co"># Generate customer list</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>n_customers <span class="ot">&lt;-</span> <span class="dv">50</span></span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>customers <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>  <span class="at">customer_id =</span> <span class="fu">sprintf</span>(<span class="st">&quot;CUST%03d&quot;</span>, <span class="dv">1</span><span class="sc">:</span>n_customers),</span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>  <span class="at">customer_name =</span> <span class="fu">paste</span>(<span class="st">&quot;Company&quot;</span>, LETTERS[<span class="dv">1</span><span class="sc">:</span>n_customers <span class="sc">%%</span> <span class="dv">26</span> <span class="sc">+</span> <span class="dv">1</span>],</span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>                       (<span class="dv">1</span><span class="sc">:</span>n_customers <span class="sc">%/%</span> <span class="dv">26</span>) <span class="sc">+</span> <span class="dv">1</span>),</span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>  <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span></span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>)</span>
+<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a></span>
+<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a><span class="fu">head</span>(customers)</span></code></pre></div>
+</div>
+<div id="report-generation-function" class="section level2">
+<h2>Report Generation Function</h2>
+<p>Define function to generate one report:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>generate_report <span class="ot">&lt;-</span> <span class="cf">function</span>(customer_info) {</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  customer_id <span class="ot">&lt;-</span> customer_info<span class="sc">$</span>customer_id</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  customer_name <span class="ot">&lt;-</span> customer_info<span class="sc">$</span>customer_name</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="co"># Generate data for this customer</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  data <span class="ot">&lt;-</span> <span class="fu">generate_customer_data</span>(<span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">&quot;CUST&quot;</span>, <span class="st">&quot;&quot;</span>, customer_id)))</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>  <span class="co"># Output file path</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>  output_file <span class="ot">&lt;-</span> <span class="fu">sprintf</span>(<span class="st">&quot;report_%s.html&quot;</span>, customer_id)</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>  <span class="fu">tryCatch</span>({</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>    <span class="co"># Render report</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>    rmarkdown<span class="sc">::</span><span class="fu">render</span>(</span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>      <span class="at">input =</span> <span class="st">&quot;report_template.Rmd&quot;</span>,</span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>      <span class="at">output_file =</span> output_file,</span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>      <span class="at">params =</span> <span class="fu">list</span>(</span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>        <span class="at">customer_id =</span> customer_id,</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>        <span class="at">customer_name =</span> customer_name,</span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>        <span class="at">month =</span> <span class="st">&quot;January 2026&quot;</span>,</span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>        <span class="at">data =</span> data</span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>      ),</span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>      <span class="at">quiet =</span> <span class="cn">TRUE</span></span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>    )</span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a></span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>    <span class="fu">list</span>(</span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>      <span class="at">customer_id =</span> customer_id,</span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>      <span class="at">success =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>      <span class="at">output_file =</span> output_file,</span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a>      <span class="at">file_size =</span> <span class="fu">file.size</span>(output_file),</span>
+<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a>      <span class="at">render_time =</span> <span class="fu">Sys.time</span>()</span>
+<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a>    )</span>
+<span id="cb4-32"><a href="#cb4-32" tabindex="-1"></a>  }, <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb4-33"><a href="#cb4-33" tabindex="-1"></a>    <span class="fu">list</span>(</span>
+<span id="cb4-34"><a href="#cb4-34" tabindex="-1"></a>      <span class="at">customer_id =</span> customer_id,</span>
+<span id="cb4-35"><a href="#cb4-35" tabindex="-1"></a>      <span class="at">success =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb4-36"><a href="#cb4-36" tabindex="-1"></a>      <span class="at">error =</span> <span class="fu">as.character</span>(e),</span>
+<span id="cb4-37"><a href="#cb4-37" tabindex="-1"></a>      <span class="at">render_time =</span> <span class="fu">Sys.time</span>()</span>
+<span id="cb4-38"><a href="#cb4-38" tabindex="-1"></a>    )</span>
+<span id="cb4-39"><a href="#cb4-39" tabindex="-1"></a>  })</span>
+<span id="cb4-40"><a href="#cb4-40" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="local-execution" class="section level2">
+<h2>Local Execution</h2>
+<p>Test with a few reports locally:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Test with 5 reports</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>test_customers <span class="ot">&lt;-</span> <span class="fu">head</span>(customers, <span class="dv">5</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Rendering %d reports locally...</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">nrow</span>(test_customers)))</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>local_start <span class="ot">&lt;-</span> <span class="fu">Sys.time</span>()</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>local_results <span class="ot">&lt;-</span> <span class="fu">lapply</span>(</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>  <span class="fu">split</span>(test_customers, <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(test_customers)),</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  generate_report</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>)</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>local_time <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">difftime</span>(<span class="fu">Sys.time</span>(), local_start, <span class="at">units =</span> <span class="st">&quot;secs&quot;</span>))</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;✓ Completed in %.1f seconds</span><span class="sc">\n</span><span class="st">&quot;</span>, local_time))</span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;  Average: %.1f seconds per report</span><span class="sc">\n</span><span class="st">&quot;</span>, local_time <span class="sc">/</span> <span class="dv">5</span>))</span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;  Estimated time for %d reports: %.1f minutes</span><span class="sc">\n\n</span><span class="st">&quot;</span>,</span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a>            n_customers, (local_time <span class="sc">/</span> <span class="dv">5</span> <span class="sc">*</span> n_customers) <span class="sc">/</span> <span class="dv">60</span>))</span></code></pre></div>
+<p><strong>Typical output</strong>:</p>
+<pre><code>Rendering 5 reports locally...
+✓ Completed in 23.4 seconds
+  Average: 4.7 seconds per report
+  Estimated time for 50 reports: 3.9 minutes</code></pre>
+</div>
+<div id="cloud-execution-with-starburst" class="section level2">
+<h2>Cloud Execution with staRburst</h2>
+<p>Render all reports in parallel:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Rendering %d reports on AWS...</span><span class="sc">\n</span><span class="st">&quot;</span>, n_customers))</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co"># Convert data frame rows to list for starburst_map</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>customer_list <span class="ot">&lt;-</span> <span class="fu">split</span>(customers, <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(customers))</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">starburst_map</span>(</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>  customer_list,</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>  generate_report,</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>  <span class="at">workers =</span> <span class="dv">25</span>,</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>  <span class="at">cpu =</span> <span class="dv">2</span>,</span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>  <span class="at">memory =</span> <span class="st">&quot;4GB&quot;</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>)</span></code></pre></div>
+<p><strong>Typical output</strong>:</p>
+<pre><code>🚀 Starting starburst cluster with 25 workers
+💰 Estimated cost: ~$2.00/hour
+📊 Processing 50 items with 25 workers
+📦 Created 25 chunks (avg 2 items per chunk)
+🚀 Submitting tasks...
+✓ Submitted 25 tasks
+⏳ Progress: 25/25 tasks (0.4 minutes elapsed)
+
+✓ Completed in 0.4 minutes
+💰 Actual cost: $0.01</code></pre>
+</div>
+<div id="results-processing" class="section level2">
+<h2>Results Processing</h2>
+<p>Analyze the generation results:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Check success rate</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>success_count <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">sapply</span>(results, <span class="cf">function</span>(x) x<span class="sc">$</span>success))</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>failure_count <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="sc">!</span><span class="fu">sapply</span>(results, <span class="cf">function</span>(x) x<span class="sc">$</span>success))</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">=== Report Generation Summary ===</span><span class="sc">\n\n</span><span class="st">&quot;</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Total reports: %d</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">length</span>(results)))</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Successfully generated: %d (%.1f%%)</span><span class="sc">\n</span><span class="st">&quot;</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>            success_count, (success_count <span class="sc">/</span> <span class="fu">length</span>(results)) <span class="sc">*</span> <span class="dv">100</span>))</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Failed: %d</span><span class="sc">\n\n</span><span class="st">&quot;</span>, failure_count))</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co"># File size summary</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>successful_results <span class="ot">&lt;-</span> results[<span class="fu">sapply</span>(results, <span class="cf">function</span>(x) x<span class="sc">$</span>success)]</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a>file_sizes <span class="ot">&lt;-</span> <span class="fu">sapply</span>(successful_results, <span class="cf">function</span>(x) x<span class="sc">$</span>file_size)</span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;File size statistics:</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;  Total size: %.2f MB</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">sum</span>(file_sizes) <span class="sc">/</span> <span class="dv">1024</span><span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;  Average size: %.1f KB</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">mean</span>(file_sizes) <span class="sc">/</span> <span class="dv">1024</span>))</span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;  Range: %.1f - %.1f KB</span><span class="sc">\n\n</span><span class="st">&quot;</span>,</span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a>            <span class="fu">min</span>(file_sizes) <span class="sc">/</span> <span class="dv">1024</span>, <span class="fu">max</span>(file_sizes) <span class="sc">/</span> <span class="dv">1024</span>))</span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a></span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="co"># Show sample of generated reports</span></span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Generated reports:</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a>report_files <span class="ot">&lt;-</span> <span class="fu">sapply</span>(successful_results[<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>], <span class="cf">function</span>(x) x<span class="sc">$</span>output_file)</span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a><span class="fu">print</span>(report_files)</span></code></pre></div>
+<p><strong>Typical output</strong>:</p>
+<pre><code>=== Report Generation Summary ===
+
+Total reports: 50
+Successfully generated: 50 (100.0%)
+Failed: 0
+
+File size statistics:
+  Total size: 2.45 MB
+  Average size: 50.2 KB
+  Range: 45.3 - 55.8 KB
+
+Generated reports:
+ [1] &quot;report_CUST001.html&quot; &quot;report_CUST002.html&quot;
+ [3] &quot;report_CUST003.html&quot; &quot;report_CUST004.html&quot;
+ [5] &quot;report_CUST005.html&quot; &quot;report_CUST006.html&quot;
+ [7] &quot;report_CUST007.html&quot; &quot;report_CUST008.html&quot;
+ [9] &quot;report_CUST009.html&quot; &quot;report_CUST010.html&quot;</code></pre>
+</div>
+<div id="performance-comparison" class="section level2">
+<h2>Performance Comparison</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Reports</th>
+<th>Time</th>
+<th>Cost</th>
+<th>Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Local</td>
+<td>50</td>
+<td>3.9 min</td>
+<td>$0</td>
+<td>1x</td>
+</tr>
+<tr class="even">
+<td>staRburst</td>
+<td>50 (10 workers)</td>
+<td>1.2 min</td>
+<td>$0.004</td>
+<td>3.3x</td>
+</tr>
+<tr class="odd">
+<td>staRburst</td>
+<td>50 (25 workers)</td>
+<td>0.4 min</td>
+<td>$0.01</td>
+<td>9.8x</td>
+</tr>
+<tr class="even">
+<td>staRburst</td>
+<td>50 (50 workers)</td>
+<td>0.3 min</td>
+<td>$0.02</td>
+<td>13x</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key Insights</strong>: - Near-linear scaling with worker
+count - Sweet spot: 25-50 workers for this workload - Minimal cost
+($0.01) for significant time savings - Can easily scale to 500+
+reports</p>
+</div>
+<div id="advanced-custom-report-distribution" class="section level2">
+<h2>Advanced: Custom Report Distribution</h2>
+<p>Automatically distribute reports after generation:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>generate_and_distribute <span class="ot">&lt;-</span> <span class="cf">function</span>(customer_info) {</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="co"># Generate report</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">generate_report</span>(customer_info)</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="cf">if</span> (result<span class="sc">$</span>success) {</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>    <span class="co"># Upload to S3 (example)</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>    <span class="fu">tryCatch</span>({</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>      <span class="co"># paws::s3()$put_object(</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>      <span class="co">#   Bucket = &quot;my-reports-bucket&quot;,</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>      <span class="co">#   Key = sprintf(&quot;reports/2026-01/%s&quot;, result$output_file),</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>      <span class="co">#   Body = readBin(result$output_file, &quot;raw&quot;,</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>      <span class="co">#                  file.size(result$output_file))</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>      <span class="co"># )</span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a>      result<span class="sc">$</span>uploaded <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a>      result<span class="sc">$</span>s3_url <span class="ot">&lt;-</span> <span class="fu">sprintf</span>(<span class="st">&quot;s3://my-reports-bucket/reports/2026-01/%s&quot;</span>,</span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a>                              result<span class="sc">$</span>output_file)</span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a>    }, <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a>      result<span class="sc">$</span>uploaded <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a>      result<span class="sc">$</span>upload_error <span class="ot">&lt;-</span> <span class="fu">as.character</span>(e)</span>
+<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a>    })</span>
+<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a>  }</span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a></span>
+<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a>  result</span>
+<span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="when-to-use-this-pattern" class="section level2">
+<h2>When to Use This Pattern</h2>
+<p><strong>Good fit</strong>: - Many independent reports (&gt; 10) -
+Report rendering takes &gt; 30 seconds - Time-sensitive delivery
+requirements - CPU or I/O intensive rendering</p>
+<p><strong>Not ideal</strong>: - Very simple reports (&lt; 10 seconds to
+render) - Reports with shared state or dependencies - Interactive report
+generation - Real-time reporting</p>
+</div>
+<div id="running-the-full-example" class="section level2">
+<h2>Running the Full Example</h2>
+<p>The complete runnable script is available at:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">system.file</span>(<span class="st">&quot;examples/reports.R&quot;</span>, <span class="at">package =</span> <span class="st">&quot;starburst&quot;</span>)</span></code></pre></div>
+<p>Run it with:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">system.file</span>(<span class="st">&quot;examples/reports.R&quot;</span>, <span class="at">package =</span> <span class="st">&quot;starburst&quot;</span>))</span></code></pre></div>
+</div>
+<div id="next-steps" class="section level2">
+<h2>Next Steps</h2>
+<ul>
+<li>Use real customer data from database</li>
+<li>Add more complex visualizations</li>
+<li>Implement automated email distribution</li>
+<li>Create PDF reports instead of HTML</li>
+<li>Add report templating system</li>
+<li>Schedule monthly report generation</li>
+</ul>
+<p><strong>Related examples</strong>: - <a href="example-api-calls.html">API Calls</a> - Another I/O-bound parallel
+task - <a href="example-feature-engineering.html">Feature
+Engineering</a> - Data processing patterns</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
