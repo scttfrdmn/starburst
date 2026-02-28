@@ -22,7 +22,6 @@
 ^debug.*\.R$
 ^test-.*\.R$
 ^run-.*\.sh$
-^.*\.rds$
 ^CHANGELOG\.md$
 ^CONTRIBUTING\.md$
 ^cran-comments\.md$

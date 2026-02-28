@@ -53,3 +53,5 @@ extracted/
 starburst.zip
 /doc/
 /Meta/
+vignettes/*.R
+inst/doc/index.html
