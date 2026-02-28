@@ -19,6 +19,11 @@ test_that("safe_system validates command whitelist", {
 
 test_that("safe_system prevents command injection in arguments", {
   skip_if_not(Sys.which("docker") != "", "Docker not installed")
+  skip_if_not(
+    tryCatch({ processx::run("docker", "info", error_on_status = FALSE)$status == 0 },
+             error = function(e) FALSE),
+    "Docker daemon not running"
+  )
 
   # Malicious arguments with shell metacharacters should be safely escaped
   # This should NOT execute the injected command
