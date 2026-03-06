@@ -5,10 +5,12 @@
 #' @param last_n Number of last log lines to show (default: 50)
 #' @param region AWS region (default: from config)
 #'
+#' @return Invisibly returns the list of log events, or \code{NULL} if no
+#'   events were found.
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # View recent logs
 #' starburst_logs()
 #'
@@ -92,10 +94,12 @@ starburst_logs <- function(task_id = NULL,
 #' @param region AWS region (default: from config)
 #' @param force Force rebuild even if current environment hasn't changed
 #'
+#' @return Invisibly returns \code{NULL}. Called for its side effect of
+#'   rebuilding and pushing the Docker environment image.
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' starburst_rebuild_environment()
 #' }
 starburst_rebuild_environment <- function(region = NULL, force = FALSE) {

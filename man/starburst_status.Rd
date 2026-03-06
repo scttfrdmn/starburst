@@ -6,6 +6,9 @@
 \usage{
 starburst_status()
 }
+\value{
+Invisibly returns a list with current configuration and quota information.
+}
 \description{
 Show staRburst status
 }

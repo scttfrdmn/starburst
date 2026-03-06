@@ -15,11 +15,15 @@ starburst_logs(task_id = NULL, cluster_id = NULL, last_n = 50, region = NULL)
 
 \item{region}{AWS region (default: from config)}
 }
+\value{
+Invisibly returns the list of log events, or \code{NULL} if no
+  events were found.
+}
 \description{
 View worker logs
 }
 \examples{
-\dontrun{
+\donttest{
 # View recent logs
 starburst_logs()
 

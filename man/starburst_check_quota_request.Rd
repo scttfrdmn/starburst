@@ -11,11 +11,14 @@ starburst_check_quota_request(case_id, region = NULL)
 
 \item{region}{AWS region}
 }
+\value{
+Invisibly returns the quota request details, or \code{NULL} on error.
+}
 \description{
 Monitor quota increase request
 }
 \examples{
-\dontrun{
+\donttest{
 starburst_check_quota_request("case-12345")
 }
 }

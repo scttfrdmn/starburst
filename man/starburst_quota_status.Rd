@@ -9,11 +9,15 @@ starburst_quota_status(region = NULL)
 \arguments{
 \item{region}{AWS region (default: from config)}
 }
+\value{
+Invisibly returns a list with quota information including current
+  limit, usage, and any pending requests.
+}
 \description{
 Show quota status
 }
 \examples{
-\dontrun{
+\donttest{
 starburst_quota_status()
 }
 }

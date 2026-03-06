@@ -18,7 +18,7 @@ A StarburstSession object
 Reattach to a previously created detached session
 }
 \examples{
-\dontrun{
+\donttest{
 session <- starburst_session_attach("session-abc123")
 status <- session$status()
 results <- session$collect()

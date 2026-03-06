@@ -17,22 +17,6 @@ NULL
 #'
 #' @return Error condition with class "starburst_error"
 #' @keywords internal
-#'
-#' @examples
-#' \dontrun{
-#' if (vcpus_needed > vcpus_available) {
-#'   stop(starburst_error(
-#'     "Insufficient Fargate vCPU quota",
-#'     context = list(
-#'       workers_requested = workers,
-#'       vcpus_needed = vcpus_needed,
-#'       vcpus_available = vcpus_available,
-#'       region = region
-#'     ),
-#'     solution = "Request quota increase or reduce workers"
-#'   ))
-#' }
-#' }
 starburst_error <- function(message,
                            context = list(),
                            solution = NULL,

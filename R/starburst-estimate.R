@@ -17,7 +17,7 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Estimate before running
 #' starburst_estimate(1:1000, expensive_function, workers = 50)
 #'

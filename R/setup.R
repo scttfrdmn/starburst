@@ -12,10 +12,11 @@
 #'   Recommended: 30 days for regular users, 7 days for occasional users.
 #'   When images are deleted, they will be rebuilt on next use (adds 3-5 min).
 #'
+#' @return Invisibly returns the configuration list.
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Default: keep images forever (~$0.50/month idle cost)
 #' starburst_setup()
 #'
@@ -225,10 +226,11 @@ config_path <- function() {
 #' @param auto_cleanup_s3 Automatically clean up S3 files after completion
 #' @param ... Additional configuration options
 #'
+#' @return Invisibly returns the updated configuration list.
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' starburst_config(
 #'   max_cost_per_job = 10,
 #'   cost_alert_threshold = 5
@@ -269,6 +271,7 @@ starburst_config <- function(max_cost_per_job = NULL,
 
 #' Show staRburst status
 #'
+#' @return Invisibly returns a list with current configuration and quota information.
 #' @export
 starburst_status <- function() {
   config <- get_starburst_config()
@@ -513,10 +516,12 @@ cat_error <- function(...) {
 #' @param instance_types Character vector of instance types to setup (default: c("c7g.xlarge", "c7i.xlarge"))
 #' @param force Force re-setup even if already configured
 #'
+#' @return Invisibly returns \code{TRUE} on success or \code{FALSE} on failure
+#'   or cancellation.
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Setup with default instance types (Graviton and Intel)
 #' starburst_setup_ec2()
 #'
@@ -612,10 +617,12 @@ starburst_setup_ec2 <- function(region = "us-east-1",
 #' @param force Delete all images immediately, ignoring TTL
 #' @param region AWS region (default: from config)
 #'
+#' @return Invisibly returns \code{TRUE} on success or \code{FALSE} if not
+#'   configured.
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Delete images past TTL
 #' starburst_cleanup_ecr()
 #'

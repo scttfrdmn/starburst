@@ -33,7 +33,7 @@ A starburst_cluster object
 Creates a cluster object for managing AWS Fargate workers using Future backend
 }
 \examples{
-\dontrun{
+\donttest{
 cluster <- starburst_cluster(workers = 20)
 results <- cluster$map(data, function(x) x * 2)
 }

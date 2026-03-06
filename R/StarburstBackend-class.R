@@ -139,6 +139,8 @@ StarburstBackend <- function(workers = 10,
 #' This function should never be called directly. Use plan(starburst, ...) instead.
 #'
 #' @param ... Arguments passed to StarburstBackend()
+#' @return Does not return a value; always signals an error if called directly.
+#'   This object exists as a strategy marker for \code{\link[future]{plan}}.
 #' @export
 starburst <- function(...) {
   stop("INTERNAL ERROR: The starburst() function must never be called directly. Use plan(starburst, ...) instead.")

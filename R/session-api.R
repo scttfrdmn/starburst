@@ -34,7 +34,7 @@ NULL
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Create detached session
 #' session <- starburst_session(workers = 10)
 #'
@@ -109,7 +109,7 @@ starburst_session <- function(workers = 10,
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' session <- starburst_session_attach("session-abc123")
 #' status <- session$status()
 #' results <- session$collect()
@@ -150,7 +150,7 @@ starburst_session_attach <- function(session_id, region = NULL) {
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' sessions <- starburst_list_sessions()
 #' print(sessions)
 #' }
@@ -671,6 +671,7 @@ cleanup_session <- function(session, stop_workers = TRUE, force = FALSE) {
 #'
 #' @param x A StarburstSessionStatus object
 #' @param ... Additional arguments (ignored)
+#' @return Invisibly returns \code{x}.
 #'
 #' @export
 print.StarburstSessionStatus <- function(x, ...) {

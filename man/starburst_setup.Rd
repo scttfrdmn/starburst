@@ -25,11 +25,14 @@ This prevents surprise costs if you stop using staRburst.
 Recommended: 30 days for regular users, 7 days for occasional users.
 When images are deleted, they will be rebuilt on next use (adds 3-5 min).}
 }
+\value{
+Invisibly returns the configuration list.
+}
 \description{
 One-time configuration to set up AWS resources for staRburst
 }
 \examples{
-\dontrun{
+\donttest{
 # Default: keep images forever (~$0.50/month idle cost)
 starburst_setup()
 

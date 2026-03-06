@@ -114,7 +114,7 @@ knitr::opts_chunk$set(
 # 
 # # Submit mix of fast and slow tasks
 # lapply(1:5, function(i) session$submit(quote(i * 2)))        # Fast
-# lapply(1:5, function(i) session$submit(quote(Sys.sleep(60); i)))  # Slow
+# lapply(1:5, function(i) session$submit(quote({ Sys.sleep(60); i })))  # Slow
 # 
 # Sys.sleep(10)
 # 

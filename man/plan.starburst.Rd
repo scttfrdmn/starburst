@@ -54,9 +54,8 @@ A future plan object
 A future backend for running parallel R workloads on AWS (EC2 or Fargate)
 }
 \examples{
-\dontrun{
-library(furrr)
-plan(starburst, workers = 50)
-results <- future_map(1:1000, expensive_function)
+\donttest{
+future::plan(starburst, workers = 50)
+results <- future.apply::future_lapply(1:100, function(i) i^2)
 }
 }

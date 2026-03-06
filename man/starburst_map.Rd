@@ -45,7 +45,7 @@ A list of results, one per element of .x
 Parallel map function that executes on AWS Fargate using the Future backend
 }
 \examples{
-\dontrun{
+\donttest{
 # Simple parallel computation
 results <- starburst_map(1:100, function(x) x^2, workers = 10)
 

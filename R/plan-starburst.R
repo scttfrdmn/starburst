@@ -25,10 +25,9 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' library(furrr)
-#' plan(starburst, workers = 50)
-#' results <- future_map(1:1000, expensive_function)
+#' \donttest{
+#' future::plan(starburst, workers = 50)
+#' results <- future.apply::future_lapply(1:100, function(i) i^2)
 #' }
 plan.starburst <- function(strategy,
                            workers = 10,
@@ -454,10 +453,9 @@ parse_memory <- function(memory) {
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' library(furrr)
-#' plan(starburst, workers = 50)
-#' results <- future_map(1:1000, expensive_function)
+#' \donttest{
+#' future::plan(starburst, workers = 50)
+#' results <- future.apply::future_lapply(1:100, function(i) i^2)
 #' }
 
 # Starburst marker now defined in StarburstBackend-class.R

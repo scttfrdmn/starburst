@@ -20,11 +20,14 @@ starburst_config(
 
 \item{...}{Additional configuration options}
 }
+\value{
+Invisibly returns the updated configuration list.
+}
 \description{
 Configure staRburst options
 }
 \examples{
-\dontrun{
+\donttest{
 starburst_config(
   max_cost_per_job = 10,
   cost_alert_threshold = 5

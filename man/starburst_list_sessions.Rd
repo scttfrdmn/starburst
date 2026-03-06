@@ -16,7 +16,7 @@ Data frame with session information
 List all detached sessions in S3
 }
 \examples{
-\dontrun{
+\donttest{
 sessions <- starburst_list_sessions()
 print(sessions)
 }

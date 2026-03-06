@@ -43,7 +43,7 @@ Runs a small sample of tasks locally to estimate cloud execution time and cost.
 Provides informed prediction before spending money on cloud execution.
 }
 \examples{
-\dontrun{
+\donttest{
 # Estimate before running
 starburst_estimate(1:1000, expensive_function, workers = 50)
 

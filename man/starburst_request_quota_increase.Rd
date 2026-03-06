@@ -11,11 +11,15 @@ starburst_request_quota_increase(vcpus = 500, region = NULL)
 
 \item{region}{AWS region (default: from config)}
 }
+\value{
+Invisibly returns \code{TRUE} if the increase was requested,
+  \code{FALSE} if already sufficient or cancelled.
+}
 \description{
 Request quota increase (user-facing)
 }
 \examples{
-\dontrun{
+\donttest{
 starburst_request_quota_increase(vcpus = 500)
 }
 }

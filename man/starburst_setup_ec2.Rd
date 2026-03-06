@@ -17,12 +17,16 @@ starburst_setup_ec2(
 
 \item{force}{Force re-setup even if already configured}
 }
+\value{
+Invisibly returns \code{TRUE} on success or \code{FALSE} on failure
+  or cancellation.
+}
 \description{
 One-time setup for EC2 launch type. Creates IAM roles, instance profiles,
 and capacity providers for specified instance types.
 }
 \examples{
-\dontrun{
+\donttest{
 # Setup with default instance types (Graviton and Intel)
 starburst_setup_ec2()
 

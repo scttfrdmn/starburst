@@ -11,11 +11,15 @@ starburst_rebuild_environment(region = NULL, force = FALSE)
 
 \item{force}{Force rebuild even if current environment hasn't changed}
 }
+\value{
+Invisibly returns \code{NULL}. Called for its side effect of
+  rebuilding and pushing the Docker environment image.
+}
 \description{
 Rebuild environment image
 }
 \examples{
-\dontrun{
+\donttest{
 starburst_rebuild_environment()
 }
 }

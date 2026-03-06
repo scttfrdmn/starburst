@@ -490,7 +490,7 @@ idle</li>
 <span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a></span>
 <span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co"># Submit mix of fast and slow tasks</span></span>
 <span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="cf">function</span>(i) session<span class="sc">$</span><span class="fu">submit</span>(<span class="fu">quote</span>(i <span class="sc">*</span> <span class="dv">2</span>)))        <span class="co"># Fast</span></span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="cf">function</span>(i) session<span class="sc">$</span><span class="fu">submit</span>(<span class="fu">quote</span>(<span class="fu">Sys.sleep</span>(<span class="dv">60</span>); i)))  <span class="co"># Slow</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="cf">function</span>(i) session<span class="sc">$</span><span class="fu">submit</span>(<span class="fu">quote</span>({ <span class="fu">Sys.sleep</span>(<span class="dv">60</span>); i })))  <span class="co"># Slow</span></span>
 <span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a></span>
 <span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="fu">Sys.sleep</span>(<span class="dv">10</span>)</span>
 <span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a></span>

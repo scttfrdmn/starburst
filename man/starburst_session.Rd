@@ -56,7 +56,7 @@ Creates a new detached session that can run computations independently
 of your R session. You can close R and reattach later to collect results.
 }
 \examples{
-\dontrun{
+\donttest{
 # Create detached session
 session <- starburst_session(workers = 10)
 

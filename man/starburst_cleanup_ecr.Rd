@@ -11,12 +11,16 @@ starburst_cleanup_ecr(force = FALSE, region = NULL)
 
 \item{region}{AWS region (default: from config)}
 }
+\value{
+Invisibly returns \code{TRUE} on success or \code{FALSE} if not
+  configured.
+}
 \description{
 Manually delete Docker images from ECR to save storage costs.
 Images will be rebuilt on next use (adds 3-5 min delay).
 }
 \examples{
-\dontrun{
+\donttest{
 # Delete images past TTL
 starburst_cleanup_ecr()
 

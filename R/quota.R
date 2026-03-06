@@ -95,10 +95,12 @@ request_quota_increase <- function(service,
 #' @param vcpus Desired vCPU quota
 #' @param region AWS region (default: from config)
 #'
+#' @return Invisibly returns \code{TRUE} if the increase was requested,
+#'   \code{FALSE} if already sufficient or cancelled.
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' starburst_request_quota_increase(vcpus = 500)
 #' }
 starburst_request_quota_increase <- function(vcpus = 500, region = NULL) {
@@ -168,10 +170,12 @@ starburst_request_quota_increase <- function(vcpus = 500, region = NULL) {
 #'
 #' @param region AWS region (default: from config)
 #'
+#' @return Invisibly returns a list with quota information including current
+#'   limit, usage, and any pending requests.
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' starburst_quota_status()
 #' }
 starburst_quota_status <- function(region = NULL) {
@@ -376,10 +380,11 @@ check_quota_sufficient <- function(workers, cpu, region) {
 #' @param case_id Case ID from quota increase request
 #' @param region AWS region
 #'
+#' @return Invisibly returns the quota request details, or \code{NULL} on error.
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' starburst_check_quota_request("case-12345")
 #' }
 starburst_check_quota_request <- function(case_id, region = NULL) {
