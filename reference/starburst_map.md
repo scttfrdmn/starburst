@@ -70,18 +70,18 @@ A list of results, one per element of .x
 
 ``` r
 # \donttest{
-# Simple parallel computation
-results <- starburst_map(1:100, function(x) x^2, workers = 10)
-#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+if (starburst_is_configured()) {
+  # Simple parallel computation
+  results <- starburst_map(1:100, function(x) x^2, workers = 10)
 
-# With custom configuration
-results <- starburst_map(
-  data_list,
-  expensive_function,
-  workers = 50,
-  cpu = 4,
-  memory = "8GB"
-)
-#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+  # With custom configuration
+  results <- starburst_map(
+    data_list,
+    expensive_function,
+    workers = 50,
+    cpu = 4,
+    memory = "8GB"
+  )
+}
 # }
 ```

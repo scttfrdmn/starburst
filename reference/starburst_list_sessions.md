@@ -22,9 +22,9 @@ Data frame with session information
 
 ``` r
 # \donttest{
-sessions <- starburst_list_sessions()
-#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
-print(sessions)
-#> Error: object 'sessions' not found
+if (starburst_is_configured()) {
+  sessions <- starburst_list_sessions()
+  print(sessions)
+}
 # }
 ```

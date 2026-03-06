@@ -27,7 +27,8 @@ already sufficient or cancelled.
 
 ``` r
 # \donttest{
-starburst_request_quota_increase(vcpus = 500)
-#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+if (starburst_is_configured()) {
+  starburst_request_quota_increase(vcpus = 500)
+}
 # }
 ```

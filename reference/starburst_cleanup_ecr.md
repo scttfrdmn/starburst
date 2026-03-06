@@ -27,14 +27,12 @@ Invisibly returns `TRUE` on success or `FALSE` if not configured.
 
 ``` r
 # \donttest{
-# Delete images past TTL
-starburst_cleanup_ecr()
-#> [ERROR] staRburst not configured. Run starburst_setup() first.
-#> 
+if (starburst_is_configured()) {
+  # Delete images past TTL
+  starburst_cleanup_ecr()
 
-# Delete all images immediately (save $0.50/month)
-starburst_cleanup_ecr(force = TRUE)
-#> [ERROR] staRburst not configured. Run starburst_setup() first.
-#> 
+  # Delete all images immediately (save $0.50/month)
+  starburst_cleanup_ecr(force = TRUE)
+}
 # }
 ```

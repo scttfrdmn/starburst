@@ -37,22 +37,12 @@ cancellation.
 
 ``` r
 # \donttest{
-# Setup with default instance types (Graviton and Intel)
-starburst_setup_ec2()
-#> 
-#> [Start] staRburst EC2 Setup
-#> 
-#> [ERROR] Basic staRburst setup not complete
-#>   Run starburst_setup() first
-#> 
+if (starburst_is_configured()) {
+  # Setup with default instance types (Graviton and Intel)
+  starburst_setup_ec2()
 
-# Setup with custom instance types
-starburst_setup_ec2(instance_types = c("c7g.2xlarge", "r7g.xlarge"))
-#> 
-#> [Start] staRburst EC2 Setup
-#> 
-#> [ERROR] Basic staRburst setup not complete
-#>   Run starburst_setup() first
-#> 
+  # Setup with custom instance types
+  starburst_setup_ec2(instance_types = c("c7g.2xlarge", "r7g.xlarge"))
+}
 # }
 ```

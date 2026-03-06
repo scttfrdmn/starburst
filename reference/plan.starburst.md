@@ -86,13 +86,9 @@ A future plan object
 
 ``` r
 # \donttest{
-future::plan(starburst, workers = 50)
-#>    * Using instance resources: 2 vCPUs, 3GB memory
-#> 
-#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
-results <- future.apply::future_lapply(1:100, function(i) i^2)
-#>    * Using instance resources: 2 vCPUs, 3GB memory
-#> 
-#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+if (starburst_is_configured()) {
+  future::plan(starburst, workers = 50)
+  results <- future.apply::future_lapply(1:100, function(i) i^2)
+}
 # }
 ```

@@ -83,15 +83,13 @@ Images will be rebuilt on next use (adds 3-5 min delay).</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="co"># Delete images past TTL</span></span></span>
-<span class="r-in"><span><span class="fu">starburst_cleanup_ecr</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BB0000;">[ERROR] staRburst not configured. Run starburst_setup() first.</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="starburst_is_configured.html">starburst_is_configured</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="co"># Delete images past TTL</span></span></span>
+<span class="r-in"><span>  <span class="fu">starburst_cleanup_ecr</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Delete all images immediately (save $0.50/month)</span></span></span>
-<span class="r-in"><span><span class="fu">starburst_cleanup_ecr</span><span class="op">(</span>force <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BB0000;">[ERROR] staRburst not configured. Run starburst_setup() first.</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span>  <span class="co"># Delete all images immediately (save $0.50/month)</span></span></span>
+<span class="r-in"><span>  <span class="fu">starburst_cleanup_ecr</span><span class="op">(</span>force <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

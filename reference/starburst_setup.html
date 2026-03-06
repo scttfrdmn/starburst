@@ -97,71 +97,16 @@ When images are deleted, they will be rebuilt on next use (adds 3-5 min).</p></d
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="co"># Default: keep images forever (~$0.50/month idle cost)</span></span></span>
-<span class="r-in"><span><span class="fu">starburst_setup</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">[Start] staRburst Setup</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">This will configure AWS resources for staRburst:</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  * S3 bucket for data transfer</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  * ECR repository for Docker images</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  * ECS cluster for Fargate tasks</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  * VPC resources (subnets, security groups)</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">[1/5] Checking AWS credentials...</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BB0000;">AWS credentials not found</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">Please configure AWS credentials using one of:</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  1. AWS CLI: aws configure</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  2. Environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  3. AWS credentials file: ~/.aws/credentials</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in starburst_setup():</span> AWS credentials required</span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="starburst_is_configured.html">starburst_is_configured</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="co"># Default: keep images forever (~$0.50/month idle cost)</span></span></span>
+<span class="r-in"><span>  <span class="fu">starburst_setup</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Auto-delete images after 30 days (saves money if you stop using it)</span></span></span>
-<span class="r-in"><span><span class="fu">starburst_setup</span><span class="op">(</span>ecr_image_ttl_days <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">[Start] staRburst Setup</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">This will configure AWS resources for staRburst:</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  * S3 bucket for data transfer</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  * ECR repository for Docker images</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  * ECS cluster for Fargate tasks</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  * VPC resources (subnets, security groups)</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">[1/5] Checking AWS credentials...</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BB0000;">AWS credentials not found</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">Please configure AWS credentials using one of:</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  1. AWS CLI: aws configure</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  2. Environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  3. AWS credentials file: ~/.aws/credentials</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in starburst_setup(ecr_image_ttl_days = 30):</span> AWS credentials required</span>
+<span class="r-in"><span>  <span class="co"># Auto-delete images after 30 days (saves money if you stop using it)</span></span></span>
+<span class="r-in"><span>  <span class="fu">starburst_setup</span><span class="op">(</span>ecr_image_ttl_days <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Use private base images with 7-day cleanup</span></span></span>
-<span class="r-in"><span><span class="fu">starburst_setup</span><span class="op">(</span>use_public_base <span class="op">=</span> <span class="cn">FALSE</span>, ecr_image_ttl_days <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">[Start] staRburst Setup</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">This will configure AWS resources for staRburst:</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  * S3 bucket for data transfer</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  * ECR repository for Docker images</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  * ECS cluster for Fargate tasks</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  * VPC resources (subnets, security groups)</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">[1/5] Checking AWS credentials...</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BB0000;">AWS credentials not found</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">Please configure AWS credentials using one of:</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  1. AWS CLI: aws configure</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  2. Environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">  3. AWS credentials file: ~/.aws/credentials</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in starburst_setup(use_public_base = FALSE, ecr_image_ttl_days = 7):</span> AWS credentials required</span>
+<span class="r-in"><span>  <span class="co"># Use private base images with 7-day cleanup</span></span></span>
+<span class="r-in"><span>  <span class="fu">starburst_setup</span><span class="op">(</span>use_public_base <span class="op">=</span> <span class="cn">FALSE</span>, ecr_image_ttl_days <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

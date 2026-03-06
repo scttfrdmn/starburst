@@ -26,7 +26,8 @@ Invisibly returns the quota request details, or `NULL` on error.
 
 ``` r
 # \donttest{
-starburst_check_quota_request("case-12345")
-#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+if (starburst_is_configured()) {
+  starburst_check_quota_request("case-12345")
+}
 # }
 ```

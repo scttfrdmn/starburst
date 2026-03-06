@@ -35,16 +35,15 @@ found.
 
 ``` r
 # \donttest{
-# View recent logs
-starburst_logs()
-#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+if (starburst_is_configured()) {
+  # View recent logs
+  starburst_logs()
 
-# View logs for specific task
-starburst_logs(task_id = "abc-123")
-#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+  # View logs for specific task
+  starburst_logs(task_id = "abc-123")
 
-# View last 100 lines
-starburst_logs(last_n = 100)
-#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+  # View last 100 lines
+  starburst_logs(last_n = 100)
+}
 # }
 ```

@@ -45,70 +45,15 @@ Invisibly returns the configuration list.
 
 ``` r
 # \donttest{
-# Default: keep images forever (~$0.50/month idle cost)
-starburst_setup()
-#> 
-#> [Start] staRburst Setup
-#> 
-#> 
-#> This will configure AWS resources for staRburst:
-#>   * S3 bucket for data transfer
-#>   * ECR repository for Docker images
-#>   * ECS cluster for Fargate tasks
-#>   * VPC resources (subnets, security groups)
-#> 
-#> [1/5] Checking AWS credentials...
-#> AWS credentials not found
-#> 
-#> Please configure AWS credentials using one of:
-#>   1. AWS CLI: aws configure
-#>   2. Environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-#>   3. AWS credentials file: ~/.aws/credentials
-#> 
-#> Error in starburst_setup(): AWS credentials required
+if (starburst_is_configured()) {
+  # Default: keep images forever (~$0.50/month idle cost)
+  starburst_setup()
 
-# Auto-delete images after 30 days (saves money if you stop using it)
-starburst_setup(ecr_image_ttl_days = 30)
-#> 
-#> [Start] staRburst Setup
-#> 
-#> 
-#> This will configure AWS resources for staRburst:
-#>   * S3 bucket for data transfer
-#>   * ECR repository for Docker images
-#>   * ECS cluster for Fargate tasks
-#>   * VPC resources (subnets, security groups)
-#> 
-#> [1/5] Checking AWS credentials...
-#> AWS credentials not found
-#> 
-#> Please configure AWS credentials using one of:
-#>   1. AWS CLI: aws configure
-#>   2. Environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-#>   3. AWS credentials file: ~/.aws/credentials
-#> 
-#> Error in starburst_setup(ecr_image_ttl_days = 30): AWS credentials required
+  # Auto-delete images after 30 days (saves money if you stop using it)
+  starburst_setup(ecr_image_ttl_days = 30)
 
-# Use private base images with 7-day cleanup
-starburst_setup(use_public_base = FALSE, ecr_image_ttl_days = 7)
-#> 
-#> [Start] staRburst Setup
-#> 
-#> 
-#> This will configure AWS resources for staRburst:
-#>   * S3 bucket for data transfer
-#>   * ECR repository for Docker images
-#>   * ECS cluster for Fargate tasks
-#>   * VPC resources (subnets, security groups)
-#> 
-#> [1/5] Checking AWS credentials...
-#> AWS credentials not found
-#> 
-#> Please configure AWS credentials using one of:
-#>   1. AWS CLI: aws configure
-#>   2. Environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-#>   3. AWS credentials file: ~/.aws/credentials
-#> 
-#> Error in starburst_setup(use_public_base = FALSE, ecr_image_ttl_days = 7): AWS credentials required
+  # Use private base images with 7-day cleanup
+  starburst_setup(use_public_base = FALSE, ecr_image_ttl_days = 7)
+}
 # }
 ```

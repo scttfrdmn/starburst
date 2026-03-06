@@ -376,6 +376,8 @@ Inspired by [Coiled](https://coiled.io/) for Python/Dask.
   : Configure staRburst options
 - [`starburst_estimate()`](https://starburst.ing/reference/starburst_estimate.md)
   : Estimate Cloud Performance and Cost
+- [`starburst_is_configured()`](https://starburst.ing/reference/starburst_is_configured.md)
+  : Check if staRburst is configured
 - [`starburst_list_sessions()`](https://starburst.ing/reference/starburst_list_sessions.md)
   : List All Sessions
 - [`starburst_logs()`](https://starburst.ing/reference/starburst_logs.md)

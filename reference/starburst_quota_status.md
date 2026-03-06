@@ -23,7 +23,8 @@ usage, and any pending requests.
 
 ``` r
 # \donttest{
-starburst_quota_status()
-#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+if (starburst_is_configured()) {
+  starburst_quota_status()
+}
 # }
 ```

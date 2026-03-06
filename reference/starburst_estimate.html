@@ -120,15 +120,13 @@ Provides informed prediction before spending money on cloud execution.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="co"># Estimate before running</span></span></span>
-<span class="r-in"><span><span class="fu">starburst_estimate</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, <span class="va">expensive_function</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">[Check] Running local calibration with 10 sample tasks...</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> <span style="color: #BBBB00;">!</span> stdout must be a string (length 1 character) or NULL</span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="starburst_is_configured.html">starburst_is_configured</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="co"># Estimate before running</span></span></span>
+<span class="r-in"><span>  <span class="fu">starburst_estimate</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, <span class="va">expensive_function</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Then decide whether to proceed</span></span></span>
-<span class="r-in"><span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, <span class="va">expensive_function</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in get_starburst_config():</span> staRburst not configured. Run starburst_setup() first.</span>
+<span class="r-in"><span>  <span class="co"># Then decide whether to proceed</span></span></span>
+<span class="r-in"><span>  <span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, <span class="va">expensive_function</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

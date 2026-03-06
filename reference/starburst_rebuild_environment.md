@@ -27,7 +27,8 @@ pushing the Docker environment image.
 
 ``` r
 # \donttest{
-starburst_rebuild_environment()
-#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+if (starburst_is_configured()) {
+  starburst_rebuild_environment()
+}
 # }
 ```
