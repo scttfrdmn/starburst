@@ -7,12 +7,12 @@
 starburst_is_configured()
 }
 \value{
-\code{TRUE} if configured, \code{FALSE} otherwise.
+\code{TRUE} if configured and credentials are available, \code{FALSE} otherwise.
 }
 \description{
-Returns \code{TRUE} if \code{starburst_setup()} has been run and the
-configuration file exists. Useful for guarding example code that requires
-AWS credentials.
+Returns \code{TRUE} if \code{starburst_setup()} has been run, the
+configuration file exists, and AWS credentials are available.
+Useful for guarding example code that requires AWS credentials.
 }
 \examples{
 starburst_is_configured()

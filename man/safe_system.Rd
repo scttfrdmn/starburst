@@ -9,6 +9,8 @@ safe_system(
   args = character(),
   allowed_commands = c("docker", "aws", "uname", "sysctl", "cat", "nproc"),
   stdin = NULL,
+  stdout = "|",
+  stderr = "|",
   ...
 )
 }

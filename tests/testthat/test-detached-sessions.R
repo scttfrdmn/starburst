@@ -131,8 +131,8 @@ test_that("session submit and collect workflow", {
   skip_on_cran()
   skip_if_not(check_aws_credentials(), "AWS credentials not available")
 
-  # Create session
-  session <- starburst_session(workers = 2, cpu = 1, memory = "2GB")
+  # Create session (FARGATE - no EC2 ASG required)
+  session <- starburst_session(workers = 2, cpu = 1, memory = "2GB", launch_type = "FARGATE")
 
   # Submit tasks
   task_ids <- lapply(1:5, function(i) {
@@ -146,9 +146,8 @@ test_that("session submit and collect workflow", {
   expect_s3_class(status, "StarburstSessionStatus")
   expect_equal(status$total, 5)
 
-  # Wait and collect
-  Sys.sleep(60)  # Give workers time to process
-  results <- session$collect(wait = FALSE)
+  # Wait and collect (Fargate cold start takes ~2-3 min)
+  results <- session$collect(wait = TRUE, timeout = 300)
 
   expect_true(length(results) > 0)
 
@@ -160,8 +159,8 @@ test_that("session attach workflow", {
   skip_on_cran()
   skip_if_not(check_aws_credentials(), "AWS credentials not available")
 
-  # Create session
-  session <- starburst_session(workers = 2, cpu = 1, memory = "2GB")
+  # Create session (FARGATE - no EC2 ASG required)
+  session <- starburst_session(workers = 2, cpu = 1, memory = "2GB", launch_type = "FARGATE")
   session_id <- session$session_id
 
   # Submit tasks
@@ -180,8 +179,8 @@ test_that("session attach workflow", {
   status <- session$status()
   expect_equal(status$total, 10)
 
-  # Collect results
-  results <- session$collect(wait = TRUE, timeout = 180)
+  # Collect results (Fargate cold start takes ~2-3 min)
+  results <- session$collect(wait = TRUE, timeout = 300)
   expect_equal(length(results), 10)
 
   # Cleanup

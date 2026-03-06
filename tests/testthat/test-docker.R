@@ -2,11 +2,13 @@ test_that("build_environment_image validates Docker installation", {
   skip_on_cran()
   skip_if_not_installed("mockery")
 
-  # Mock system2 to simulate Docker not installed
+  # Mock safe_system to simulate Docker not installed
   mockery::stub(
     build_environment_image,
-    "system2",
-    list(status = 1)
+    "safe_system",
+    function(command, args, ...) {
+      stop("docker: command not found")
+    }
   )
 
   expect_error(

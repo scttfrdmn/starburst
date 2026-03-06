@@ -17,6 +17,8 @@ safe_system <- function(command,
                        args = character(),
                        allowed_commands = c("docker", "aws", "uname", "sysctl", "cat", "nproc"),
                        stdin = NULL,
+                       stdout = "|",
+                       stderr = "|",
                        ...) {
   # Validate command whitelist
   if (!command %in% allowed_commands) {
@@ -24,11 +26,29 @@ safe_system <- function(command,
                  command, paste(allowed_commands, collapse = ", ")))
   }
 
+  # Convert boolean stdout/stderr to processx format (TRUE = capture, FALSE = discard)
+  if (isTRUE(stdout)) stdout <- "|"
+  if (isFALSE(stdout)) stdout <- ""
+  if (isTRUE(stderr)) stderr <- "|"
+  if (isFALSE(stderr)) stderr <- ""
+
+  # If stdin is a string that isn't a file path, write it to a temp file
+  # processx::run() treats stdin as a file path, not file content
+  stdin_file <- NULL
+  if (!is.null(stdin) && stdin != "|" && !file.exists(stdin)) {
+    stdin_file <- tempfile()
+    writeLines(stdin, stdin_file)
+    on.exit(unlink(stdin_file), add = TRUE)
+    stdin <- stdin_file
+  }
+
   # Use processx - automatically escapes, no shell
   result <- processx::run(
     command = command,
     args = args,
     stdin = stdin,
+    stdout = stdout,
+    stderr = stderr,
     error_on_status = FALSE,
     ...
   )

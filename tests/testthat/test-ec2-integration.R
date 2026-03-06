@@ -99,6 +99,12 @@ test_that("ECR image age checking works", {
 test_that("Multi-platform detection from manifest works", {
   skip_on_cran()
   skip_if_not(check_aws_credentials(), "AWS credentials not available")
+  skip_if(Sys.which("docker") == "", "Docker not installed")
+  skip_if_not(
+    tryCatch({ processx::run("docker", "info", error_on_status = FALSE)$status == 0 },
+             error = function(e) FALSE),
+    "Docker daemon not running"
+  )
 
   config <- get_starburst_config()
   account_id <- config$aws_account_id

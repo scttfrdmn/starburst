@@ -32,7 +32,7 @@ RUN R -e "install.packages(c(\
     'globals', \
     'listenv', \
     'parallelly', \
-    'qs', \
+    'qs2', \
     'paws.common', \
     'paws.storage', \
     'paws.compute' \

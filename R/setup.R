@@ -208,16 +208,17 @@ is_setup_complete <- function() {
 
 #' Check if staRburst is configured
 #'
-#' Returns \code{TRUE} if \code{starburst_setup()} has been run and the
-#' configuration file exists. Useful for guarding example code that requires
-#' AWS credentials.
+#' Returns \code{TRUE} if \code{starburst_setup()} has been run, the
+#' configuration file exists, and AWS credentials are available.
+#' Useful for guarding example code that requires AWS credentials.
 #'
-#' @return \code{TRUE} if configured, \code{FALSE} otherwise.
+#' @return \code{TRUE} if configured and credentials are available, \code{FALSE} otherwise.
 #' @export
 #' @examples
 #' starburst_is_configured()
 starburst_is_configured <- function() {
-  is_setup_complete()
+  if (!is_setup_complete()) return(FALSE)
+  check_aws_credentials()
 }
 
 #' Get configuration directory

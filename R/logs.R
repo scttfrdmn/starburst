@@ -116,10 +116,7 @@ starburst_rebuild_environment <- function(region = NULL, force = FALSE) {
     cat_info("Force rebuild requested\n")
   }
 
-  # Take new snapshot
-  renv::snapshot(prompt = FALSE)
-
-  # Calculate new hash
+  # Use existing renv.lock (do not auto-snapshot to avoid including dev packages)
   lock_file <- renv::paths$lockfile()
   env_hash <- digest::digest(file = lock_file, algo = "md5")
 
