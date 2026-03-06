@@ -1,21 +1,40 @@
-## Resubmission (2nd)
+## Resubmission (3rd)
 
-This resubmission addresses all NOTEs from previous CRAN auto-checks.
+This resubmission addresses all feedback from CRAN reviewer Beni Altmann
+(2026-03-05).
 
-### Previous rejection (2026-02-18):
-> Package has a VignetteBuilder field but no prebuilt vignette index.
+### Changes made:
 
-**Root cause:** The `.Rbuildignore` rule `^.*\.rds$` was inadvertently
-excluding `build/vignette.rds` (the prebuilt vignette index) from the
-package tarball. Fixed by removing that rule and committing
-`build/vignette.rds` directly.
+1. **DESCRIPTION**: Expanded 'AWS' acronym to 'Amazon Web Services' ('AWS')
+   with link `<https://aws.amazon.com>`; quoted 'EC2' as a software name;
+   removed `| file LICENSE` (standard Apache 2.0, no additional restrictions);
+   bumped version to 0.3.7.
 
-**win-builder (R-devel, 2026-02-27):** 0 errors | 0 warnings | 1 NOTE
-(only "New submission" — VignetteBuilder NOTE is resolved).
+2. **Vignette syntax error**: Fixed unexecutable code in
+   `vignettes/detached-sessions.Rmd` — `quote(Sys.sleep(60); i)` →
+   `quote({ Sys.sleep(60); i })`.
+
+3. **Examples for unexported functions**: Removed `@examples` from
+   `starburst_error()` and `with_aws_retry()` (both `@keywords internal`).
+
+4. **`\dontrun{}` → `\donttest{}`**: Replaced throughout all 17 exported
+   function documentation blocks. Examples in `\donttest{}` require AWS
+   credentials and infrastructure, which users with AWS accounts can run
+   interactively.
+
+5. **Missing `\value` tags**: Added `@return` documentation to all 12
+   flagged exported functions.
+
+### Note on `\donttest{}` examples
+
+All examples require live AWS credentials, an S3 bucket, and ECR/ECS
+infrastructure. Local `R CMD check --run-donttest` fails these examples
+as expected (no AWS available during check). CRAN's automated incoming
+check does not run `\donttest{}` examples.
 
 ## Test environments
 
-* local: macOS 14.2 (Tahoe), R 4.5.2
+* local: macOS 26.3 (Tahoe), R 4.5.2
 * GitHub Actions:
   - Ubuntu 22.04, R oldrel-1, release, devel
   - Windows latest, R release
@@ -41,12 +60,12 @@ There are currently no downstream dependencies for this package.
 
 ## CRAN submission notes
 
-The package provides seamless AWS cloud bursting for parallel R workloads
-on AWS (EC2 and Fargate backends).
+The package provides seamless 'Amazon Web Services' ('AWS') cloud bursting
+for parallel R workloads on 'EC2' and 'Fargate'.
 
 Key points for reviewers:
 - All tests requiring AWS credentials are gated with `skip_if_offline()`
   and will not run on CRAN's test servers
 - Package includes 12 vignettes with real-world examples in `inst/doc/`
-- Default backend is EC2 with spot instances for cost optimization
+- Default backend is 'EC2' with spot instances for cost optimization
 - Fully documented with 29+ exported functions
