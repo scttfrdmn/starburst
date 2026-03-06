@@ -49,8 +49,10 @@ A starburst_cluster object
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 cluster <- starburst_cluster(workers = 20)
+#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
 results <- cluster$map(data, function(x) x * 2)
-} # }
+#> Error: object 'cluster' not found
+# }
 ```

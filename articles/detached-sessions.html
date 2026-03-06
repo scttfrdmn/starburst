@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -256,22 +256,23 @@ idle</li>
 <h4 id="partial-collection">Partial Collection<a class="anchor" aria-label="anchor" href="#partial-collection"></a>
 </h4>
 <p>Collect results as they complete:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>session <span class="ot">&lt;-</span> <span class="fu">starburst_session</span>(<span class="at">workers =</span> <span class="dv">10</span>)</span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a></span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co"># Submit mix of fast and slow tasks</span></span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="cf">function</span>(i) session<span class="sc">$</span><span class="fu">submit</span>(<span class="fu">quote</span>(i <span class="sc">*</span> <span class="dv">2</span>)))        <span class="co"># Fast</span></span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="cf">function</span>(i) session<span class="sc">$</span><span class="fu">submit</span>(<span class="fu">quote</span>(<span class="fu">Sys.sleep</span>(<span class="dv">60</span>); i)))  <span class="co"># Slow</span></span>
-<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a></span>
-<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="fu">Sys.sleep</span>(<span class="dv">10</span>)</span>
-<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a></span>
-<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co"># Get fast results immediately</span></span>
-<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a>results <span class="ot">&lt;-</span> session<span class="sc">$</span><span class="fu">collect</span>(<span class="at">wait =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="fu">length</span>(results)  <span class="co"># 5 (fast tasks done)</span></span>
-<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a></span>
-<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co"># Later, get remaining results</span></span>
-<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="fu">Sys.sleep</span>(<span class="dv">60</span>)</span>
-<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a>results <span class="ot">&lt;-</span> session<span class="sc">$</span><span class="fu">collect</span>(<span class="at">wait =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="fu">length</span>(results)  <span class="co"># 10 (all done)</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">session</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/starburst_session.html">starburst_session</a></span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Submit mix of fast and slow tasks</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="va">session</span><span class="op">$</span><span class="fu">submit</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substitute.html" class="external-link">quote</a></span><span class="op">(</span><span class="va">i</span> <span class="op">*</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>        <span class="co"># Fast</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="va">session</span><span class="op">$</span><span class="fu">submit</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substitute.html" class="external-link">quote</a></span><span class="op">(</span><span class="op">{</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">60</span><span class="op">)</span>; <span class="va">i</span> <span class="op">}</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Slow</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Get fast results immediately</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="fu">collect</span><span class="op">(</span>wait <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span>  <span class="co"># 5 (fast tasks done)</span></span>
+<span></span>
+<span><span class="co"># Later, get remaining results</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">60</span><span class="op">)</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="fu">collect</span><span class="op">(</span>wait <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span>  <span class="co"># 10 (all done)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">

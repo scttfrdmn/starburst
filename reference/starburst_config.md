@@ -31,13 +31,18 @@ starburst_config(
 
   Additional configuration options
 
+## Value
+
+Invisibly returns the updated configuration list.
+
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 starburst_config(
   max_cost_per_job = 10,
   cost_alert_threshold = 5
 )
-} # }
+#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+# }
 ```

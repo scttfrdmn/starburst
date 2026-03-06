@@ -14,10 +14,16 @@ starburst_quota_status(region = NULL)
 
   AWS region (default: from config)
 
+## Value
+
+Invisibly returns a list with quota information including current limit,
+usage, and any pending requests.
+
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 starburst_quota_status()
-} # }
+#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+# }
 ```

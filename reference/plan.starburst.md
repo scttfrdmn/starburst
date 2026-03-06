@@ -85,9 +85,14 @@ A future plan object
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-library(furrr)
-plan(starburst, workers = 50)
-results <- future_map(1:1000, expensive_function)
-} # }
+# \donttest{
+future::plan(starburst, workers = 50)
+#>    * Using instance resources: 2 vCPUs, 3GB memory
+#> 
+#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+results <- future.apply::future_lapply(1:100, function(i) i^2)
+#>    * Using instance resources: 2 vCPUs, 3GB memory
+#> 
+#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+# }
 ```

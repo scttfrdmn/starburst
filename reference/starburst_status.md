@@ -7,3 +7,8 @@ Show staRburst status
 ``` r
 starburst_status()
 ```
+
+## Value
+
+Invisibly returns a list with current configuration and quota
+information.

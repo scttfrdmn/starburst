@@ -47,23 +47,3 @@ with_aws_retry(
 ## Value
 
 Result of expression
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-# Retry S3 upload
-with_aws_retry({
-  s3$put_object(Bucket = "bucket", Key = "key", Body = "data")
-})
-
-# Retry with custom parameters
-with_aws_retry(
-  {
-    ecs$run_task(...)
-  },
-  max_attempts = 5,
-  operation_name = "ECS RunTask"
-)
-} # }
-```

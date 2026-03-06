@@ -25,9 +25,12 @@ A StarburstSession object
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 session <- starburst_session_attach("session-abc123")
+#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
 status <- session$status()
+#> Error: object 'session' not found
 results <- session$collect()
-} # }
+#> Error: object 'session' not found
+# }
 ```

@@ -28,14 +28,31 @@ starburst_setup_ec2(
 
   Force re-setup even if already configured
 
+## Value
+
+Invisibly returns `TRUE` on success or `FALSE` on failure or
+cancellation.
+
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 # Setup with default instance types (Graviton and Intel)
 starburst_setup_ec2()
+#> 
+#> [Start] staRburst EC2 Setup
+#> 
+#> [ERROR] Basic staRburst setup not complete
+#>   Run starburst_setup() first
+#> 
 
 # Setup with custom instance types
 starburst_setup_ec2(instance_types = c("c7g.2xlarge", "r7g.xlarge"))
-} # }
+#> 
+#> [Start] staRburst EC2 Setup
+#> 
+#> [ERROR] Basic staRburst setup not complete
+#>   Run starburst_setup() first
+#> 
+# }
 ```

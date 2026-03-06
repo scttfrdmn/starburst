@@ -65,11 +65,15 @@ Invisible list with estimates, prints summary to console
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 # Estimate before running
 starburst_estimate(1:1000, expensive_function, workers = 50)
+#> [Check] Running local calibration with 10 sample tasks...
+#> 
+#> Error: ! stdout must be a string (length 1 character) or NULL
 
 # Then decide whether to proceed
 results <- starburst_map(1:1000, expensive_function, workers = 50)
-} # }
+#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+# }
 ```

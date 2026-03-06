@@ -85,22 +85,30 @@ A StarburstSession object with methods:
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 # Create detached session
 session <- starburst_session(workers = 10)
+#> [Package] Creating detached session: session-040f387d361645a9b4d015b4f141b783
+#>    * Using instance resources: 4 vCPUs, 7GB memory
+#> 
+#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
 
 # Submit tasks
 task_ids <- lapply(1:100, function(i) {
   session$submit(quote(expensive_computation(i)))
 })
+#> Error in FUN(X[[i]], ...): object 'session' not found
 
 # Close R and come back later...
 session_id <- session$session_id
+#> Error: object 'session' not found
 
 # Reattach
 session <- starburst_session_attach(session_id)
+#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
 
 # Collect results
 results <- session$collect(wait = TRUE)
-} # }
+#> Error: object 'session' not found
+# }
 ```

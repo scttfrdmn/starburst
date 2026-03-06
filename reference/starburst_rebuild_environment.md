@@ -18,10 +18,16 @@ starburst_rebuild_environment(region = NULL, force = FALSE)
 
   Force rebuild even if current environment hasn't changed
 
+## Value
+
+Invisibly returns `NULL`. Called for its side effect of rebuilding and
+pushing the Docker environment image.
+
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 starburst_rebuild_environment()
-} # }
+#> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
+# }
 ```

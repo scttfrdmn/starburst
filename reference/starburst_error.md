@@ -35,22 +35,3 @@ starburst_error(
 ## Value
 
 Error condition with class "starburst_error"
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-if (vcpus_needed > vcpus_available) {
-  stop(starburst_error(
-    "Insufficient Fargate vCPU quota",
-    context = list(
-      workers_requested = workers,
-      vcpus_needed = vcpus_needed,
-      vcpus_available = vcpus_available,
-      region = region
-    ),
-    solution = "Request quota increase or reduce workers"
-  ))
-}
-} # }
-```
