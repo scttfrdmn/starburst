@@ -18,11 +18,13 @@
 #'
 #' @examples
 #' \donttest{
-#' # Estimate before running
-#' starburst_estimate(1:1000, expensive_function, workers = 50)
+#' if (starburst_is_configured()) {
+#'   # Estimate before running
+#'   starburst_estimate(1:1000, expensive_function, workers = 50)
 #'
-#' # Then decide whether to proceed
-#' results <- starburst_map(1:1000, expensive_function, workers = 50)
+#'   # Then decide whether to proceed
+#'   results <- starburst_map(1:1000, expensive_function, workers = 50)
+#' }
 #' }
 starburst_estimate <- function(.x, .f, workers = 10, cpu = 2, memory = "8GB",
                                platform = "X86_64", sample_size = 10,

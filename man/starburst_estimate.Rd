@@ -44,10 +44,12 @@ Provides informed prediction before spending money on cloud execution.
 }
 \examples{
 \donttest{
-# Estimate before running
-starburst_estimate(1:1000, expensive_function, workers = 50)
+if (starburst_is_configured()) {
+  # Estimate before running
+  starburst_estimate(1:1000, expensive_function, workers = 50)
 
-# Then decide whether to proceed
-results <- starburst_map(1:1000, expensive_function, workers = 50)
+  # Then decide whether to proceed
+  results <- starburst_map(1:1000, expensive_function, workers = 50)
+}
 }
 }

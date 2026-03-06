@@ -26,8 +26,10 @@
 #'
 #' @examples
 #' \donttest{
-#' future::plan(starburst, workers = 50)
-#' results <- future.apply::future_lapply(1:100, function(i) i^2)
+#' if (starburst_is_configured()) {
+#'   future::plan(starburst, workers = 50)
+#'   results <- future.apply::future_lapply(1:100, function(i) i^2)
+#' }
 #' }
 plan.starburst <- function(strategy,
                            workers = 10,
@@ -454,8 +456,10 @@ parse_memory <- function(memory) {
 #'
 #' @examples
 #' \donttest{
-#' future::plan(starburst, workers = 50)
-#' results <- future.apply::future_lapply(1:100, function(i) i^2)
+#' if (starburst_is_configured()) {
+#'   future::plan(starburst, workers = 50)
+#'   results <- future.apply::future_lapply(1:100, function(i) i^2)
+#' }
 #' }
 
 # Starburst marker now defined in StarburstBackend-class.R

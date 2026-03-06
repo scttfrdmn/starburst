@@ -101,7 +101,9 @@ request_quota_increase <- function(service,
 #'
 #' @examples
 #' \donttest{
-#' starburst_request_quota_increase(vcpus = 500)
+#' if (starburst_is_configured()) {
+#'   starburst_request_quota_increase(vcpus = 500)
+#' }
 #' }
 starburst_request_quota_increase <- function(vcpus = 500, region = NULL) {
 
@@ -176,7 +178,9 @@ starburst_request_quota_increase <- function(vcpus = 500, region = NULL) {
 #'
 #' @examples
 #' \donttest{
-#' starburst_quota_status()
+#' if (starburst_is_configured()) {
+#'   starburst_quota_status()
+#' }
 #' }
 starburst_quota_status <- function(region = NULL) {
 
@@ -385,7 +389,9 @@ check_quota_sufficient <- function(workers, cpu, region) {
 #'
 #' @examples
 #' \donttest{
-#' starburst_check_quota_request("case-12345")
+#' if (starburst_is_configured()) {
+#'   starburst_check_quota_request("case-12345")
+#' }
 #' }
 starburst_check_quota_request <- function(case_id, region = NULL) {
   config <- get_starburst_config()

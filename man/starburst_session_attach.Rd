@@ -19,8 +19,10 @@ Reattach to a previously created detached session
 }
 \examples{
 \donttest{
-session <- starburst_session_attach("session-abc123")
-status <- session$status()
-results <- session$collect()
+if (starburst_is_configured()) {
+  session <- starburst_session_attach("session-abc123")
+  status <- session$status()
+  results <- session$collect()
+}
 }
 }

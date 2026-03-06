@@ -11,14 +11,16 @@
 #'
 #' @examples
 #' \donttest{
-#' # View recent logs
-#' starburst_logs()
+#' if (starburst_is_configured()) {
+#'   # View recent logs
+#'   starburst_logs()
 #'
-#' # View logs for specific task
-#' starburst_logs(task_id = "abc-123")
+#'   # View logs for specific task
+#'   starburst_logs(task_id = "abc-123")
 #'
-#' # View last 100 lines
-#' starburst_logs(last_n = 100)
+#'   # View last 100 lines
+#'   starburst_logs(last_n = 100)
+#' }
 #' }
 starburst_logs <- function(task_id = NULL,
                           cluster_id = NULL,
@@ -100,7 +102,9 @@ starburst_logs <- function(task_id = NULL,
 #'
 #' @examples
 #' \donttest{
-#' starburst_rebuild_environment()
+#' if (starburst_is_configured()) {
+#'   starburst_rebuild_environment()
+#' }
 #' }
 starburst_rebuild_environment <- function(region = NULL, force = FALSE) {
   config <- get_starburst_config()

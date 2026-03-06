@@ -17,7 +17,9 @@ List all detached sessions in S3
 }
 \examples{
 \donttest{
-sessions <- starburst_list_sessions()
-print(sessions)
+if (starburst_is_configured()) {
+  sessions <- starburst_list_sessions()
+  print(sessions)
+}
 }
 }

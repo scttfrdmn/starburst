@@ -57,21 +57,23 @@ of your R session. You can close R and reattach later to collect results.
 }
 \examples{
 \donttest{
-# Create detached session
-session <- starburst_session(workers = 10)
+if (starburst_is_configured()) {
+  # Create detached session
+  session <- starburst_session(workers = 10)
 
-# Submit tasks
-task_ids <- lapply(1:100, function(i) {
-  session$submit(quote(expensive_computation(i)))
-})
+  # Submit tasks
+  task_ids <- lapply(1:100, function(i) {
+    session$submit(quote(expensive_computation(i)))
+  })
 
-# Close R and come back later...
-session_id <- session$session_id
+  # Close R and come back later...
+  session_id <- session$session_id
 
-# Reattach
-session <- starburst_session_attach(session_id)
+  # Reattach
+  session <- starburst_session_attach(session_id)
 
-# Collect results
-results <- session$collect(wait = TRUE)
+  # Collect results
+  results <- session$collect(wait = TRUE)
+}
 }
 }

@@ -34,7 +34,9 @@ Creates a cluster object for managing AWS Fargate workers using Future backend
 }
 \examples{
 \donttest{
-cluster <- starburst_cluster(workers = 20)
-results <- cluster$map(data, function(x) x * 2)
+if (starburst_is_configured()) {
+  cluster <- starburst_cluster(workers = 20)
+  results <- cluster$map(data, function(x) x * 2)
+}
 }
 }

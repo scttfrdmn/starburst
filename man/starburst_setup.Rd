@@ -33,13 +33,15 @@ One-time configuration to set up AWS resources for staRburst
 }
 \examples{
 \donttest{
-# Default: keep images forever (~$0.50/month idle cost)
-starburst_setup()
+if (starburst_is_configured()) {
+  # Default: keep images forever (~$0.50/month idle cost)
+  starburst_setup()
 
-# Auto-delete images after 30 days (saves money if you stop using it)
-starburst_setup(ecr_image_ttl_days = 30)
+  # Auto-delete images after 30 days (saves money if you stop using it)
+  starburst_setup(ecr_image_ttl_days = 30)
 
-# Use private base images with 7-day cleanup
-starburst_setup(use_public_base = FALSE, ecr_image_ttl_days = 7)
+  # Use private base images with 7-day cleanup
+  starburst_setup(use_public_base = FALSE, ecr_image_ttl_days = 7)
+}
 }
 }

@@ -19,6 +19,8 @@ Monitor quota increase request
 }
 \examples{
 \donttest{
-starburst_check_quota_request("case-12345")
+if (starburst_is_configured()) {
+  starburst_check_quota_request("case-12345")
+}
 }
 }

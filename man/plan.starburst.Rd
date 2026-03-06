@@ -55,7 +55,9 @@ A future backend for running parallel R workloads on AWS (EC2 or Fargate)
 }
 \examples{
 \donttest{
-future::plan(starburst, workers = 50)
-results <- future.apply::future_lapply(1:100, function(i) i^2)
+if (starburst_is_configured()) {
+  future::plan(starburst, workers = 50)
+  results <- future.apply::future_lapply(1:100, function(i) i^2)
+}
 }
 }

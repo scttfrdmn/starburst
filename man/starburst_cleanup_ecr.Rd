@@ -21,10 +21,12 @@ Images will be rebuilt on next use (adds 3-5 min delay).
 }
 \examples{
 \donttest{
-# Delete images past TTL
-starburst_cleanup_ecr()
+if (starburst_is_configured()) {
+  # Delete images past TTL
+  starburst_cleanup_ecr()
 
-# Delete all images immediately (save $0.50/month)
-starburst_cleanup_ecr(force = TRUE)
+  # Delete all images immediately (save $0.50/month)
+  starburst_cleanup_ecr(force = TRUE)
+}
 }
 }

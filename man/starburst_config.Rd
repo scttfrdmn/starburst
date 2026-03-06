@@ -28,9 +28,11 @@ Configure staRburst options
 }
 \examples{
 \donttest{
-starburst_config(
-  max_cost_per_job = 10,
-  cost_alert_threshold = 5
-)
+if (starburst_is_configured()) {
+  starburst_config(
+    max_cost_per_job = 10,
+    cost_alert_threshold = 5
+  )
+}
 }
 }

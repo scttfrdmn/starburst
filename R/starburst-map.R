@@ -18,17 +18,19 @@
 #'
 #' @examples
 #' \donttest{
-#' # Simple parallel computation
-#' results <- starburst_map(1:100, function(x) x^2, workers = 10)
+#' if (starburst_is_configured()) {
+#'   # Simple parallel computation
+#'   results <- starburst_map(1:100, function(x) x^2, workers = 10)
 #'
-#' # With custom configuration
-#' results <- starburst_map(
-#'   data_list,
-#'   expensive_function,
-#'   workers = 50,
-#'   cpu = 4,
-#'   memory = "8GB"
-#' )
+#'   # With custom configuration
+#'   results <- starburst_map(
+#'     data_list,
+#'     expensive_function,
+#'     workers = 50,
+#'     cpu = 4,
+#'     memory = "8GB"
+#'   )
+#' }
 #' }
 starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
                           platform = "X86_64", region = NULL, timeout = 3600,
@@ -178,8 +180,10 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 #'
 #' @examples
 #' \donttest{
-#' cluster <- starburst_cluster(workers = 20)
-#' results <- cluster$map(data, function(x) x * 2)
+#' if (starburst_is_configured()) {
+#'   cluster <- starburst_cluster(workers = 20)
+#'   results <- cluster$map(data, function(x) x * 2)
+#' }
 #' }
 starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
                               platform = "X86_64", region = NULL, timeout = 3600) {

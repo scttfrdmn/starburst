@@ -27,10 +27,12 @@ and capacity providers for specified instance types.
 }
 \examples{
 \donttest{
-# Setup with default instance types (Graviton and Intel)
-starburst_setup_ec2()
+if (starburst_is_configured()) {
+  # Setup with default instance types (Graviton and Intel)
+  starburst_setup_ec2()
 
-# Setup with custom instance types
-starburst_setup_ec2(instance_types = c("c7g.2xlarge", "r7g.xlarge"))
+  # Setup with custom instance types
+  starburst_setup_ec2(instance_types = c("c7g.2xlarge", "r7g.xlarge"))
+}
 }
 }

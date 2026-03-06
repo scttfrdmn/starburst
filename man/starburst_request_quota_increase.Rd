@@ -20,6 +20,8 @@ Request quota increase (user-facing)
 }
 \examples{
 \donttest{
-starburst_request_quota_increase(vcpus = 500)
+if (starburst_is_configured()) {
+  starburst_request_quota_increase(vcpus = 500)
+}
 }
 }

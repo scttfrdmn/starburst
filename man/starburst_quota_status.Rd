@@ -18,6 +18,8 @@ Show quota status
 }
 \examples{
 \donttest{
-starburst_quota_status()
+if (starburst_is_configured()) {
+  starburst_quota_status()
+}
 }
 }

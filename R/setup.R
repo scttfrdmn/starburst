@@ -17,14 +17,16 @@
 #'
 #' @examples
 #' \donttest{
-#' # Default: keep images forever (~$0.50/month idle cost)
-#' starburst_setup()
+#' if (starburst_is_configured()) {
+#'   # Default: keep images forever (~$0.50/month idle cost)
+#'   starburst_setup()
 #'
-#' # Auto-delete images after 30 days (saves money if you stop using it)
-#' starburst_setup(ecr_image_ttl_days = 30)
+#'   # Auto-delete images after 30 days (saves money if you stop using it)
+#'   starburst_setup(ecr_image_ttl_days = 30)
 #'
-#' # Use private base images with 7-day cleanup
-#' starburst_setup(use_public_base = FALSE, ecr_image_ttl_days = 7)
+#'   # Use private base images with 7-day cleanup
+#'   starburst_setup(use_public_base = FALSE, ecr_image_ttl_days = 7)
+#' }
 #' }
 starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base = TRUE, ecr_image_ttl_days = NULL) {
 
@@ -204,6 +206,20 @@ is_setup_complete <- function() {
   file.exists(config_file)
 }
 
+#' Check if staRburst is configured
+#'
+#' Returns \code{TRUE} if \code{starburst_setup()} has been run and the
+#' configuration file exists. Useful for guarding example code that requires
+#' AWS credentials.
+#'
+#' @return \code{TRUE} if configured, \code{FALSE} otherwise.
+#' @export
+#' @examples
+#' starburst_is_configured()
+starburst_is_configured <- function() {
+  is_setup_complete()
+}
+
 #' Get configuration directory
 #'
 #' @keywords internal
@@ -231,10 +247,12 @@ config_path <- function() {
 #'
 #' @examples
 #' \donttest{
-#' starburst_config(
-#'   max_cost_per_job = 10,
-#'   cost_alert_threshold = 5
-#' )
+#' if (starburst_is_configured()) {
+#'   starburst_config(
+#'     max_cost_per_job = 10,
+#'     cost_alert_threshold = 5
+#'   )
+#' }
 #' }
 starburst_config <- function(max_cost_per_job = NULL,
                              cost_alert_threshold = NULL,
@@ -522,11 +540,13 @@ cat_error <- function(...) {
 #'
 #' @examples
 #' \donttest{
-#' # Setup with default instance types (Graviton and Intel)
-#' starburst_setup_ec2()
+#' if (starburst_is_configured()) {
+#'   # Setup with default instance types (Graviton and Intel)
+#'   starburst_setup_ec2()
 #'
-#' # Setup with custom instance types
-#' starburst_setup_ec2(instance_types = c("c7g.2xlarge", "r7g.xlarge"))
+#'   # Setup with custom instance types
+#'   starburst_setup_ec2(instance_types = c("c7g.2xlarge", "r7g.xlarge"))
+#' }
 #' }
 starburst_setup_ec2 <- function(region = "us-east-1",
                                 instance_types = c("c7g.xlarge", "c7i.xlarge"),
@@ -623,11 +643,13 @@ starburst_setup_ec2 <- function(region = "us-east-1",
 #'
 #' @examples
 #' \donttest{
-#' # Delete images past TTL
-#' starburst_cleanup_ecr()
+#' if (starburst_is_configured()) {
+#'   # Delete images past TTL
+#'   starburst_cleanup_ecr()
 #'
-#' # Delete all images immediately (save $0.50/month)
-#' starburst_cleanup_ecr(force = TRUE)
+#'   # Delete all images immediately (save $0.50/month)
+#'   starburst_cleanup_ecr(force = TRUE)
+#' }
 #' }
 starburst_cleanup_ecr <- function(force = FALSE, region = NULL) {
   if (!is_setup_complete()) {

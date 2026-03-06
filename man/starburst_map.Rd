@@ -46,16 +46,18 @@ Parallel map function that executes on AWS Fargate using the Future backend
 }
 \examples{
 \donttest{
-# Simple parallel computation
-results <- starburst_map(1:100, function(x) x^2, workers = 10)
+if (starburst_is_configured()) {
+  # Simple parallel computation
+  results <- starburst_map(1:100, function(x) x^2, workers = 10)
 
-# With custom configuration
-results <- starburst_map(
-  data_list,
-  expensive_function,
-  workers = 50,
-  cpu = 4,
-  memory = "8GB"
-)
+  # With custom configuration
+  results <- starburst_map(
+    data_list,
+    expensive_function,
+    workers = 50,
+    cpu = 4,
+    memory = "8GB"
+  )
+}
 }
 }

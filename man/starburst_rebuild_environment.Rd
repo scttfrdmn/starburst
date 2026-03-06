@@ -20,6 +20,8 @@ Rebuild environment image
 }
 \examples{
 \donttest{
-starburst_rebuild_environment()
+if (starburst_is_configured()) {
+  starburst_rebuild_environment()
+}
 }
 }

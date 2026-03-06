@@ -35,22 +35,24 @@ NULL
 #'
 #' @examples
 #' \donttest{
-#' # Create detached session
-#' session <- starburst_session(workers = 10)
+#' if (starburst_is_configured()) {
+#'   # Create detached session
+#'   session <- starburst_session(workers = 10)
 #'
-#' # Submit tasks
-#' task_ids <- lapply(1:100, function(i) {
-#'   session$submit(quote(expensive_computation(i)))
-#' })
+#'   # Submit tasks
+#'   task_ids <- lapply(1:100, function(i) {
+#'     session$submit(quote(expensive_computation(i)))
+#'   })
 #'
-#' # Close R and come back later...
-#' session_id <- session$session_id
+#'   # Close R and come back later...
+#'   session_id <- session$session_id
 #'
-#' # Reattach
-#' session <- starburst_session_attach(session_id)
+#'   # Reattach
+#'   session <- starburst_session_attach(session_id)
 #'
-#' # Collect results
-#' results <- session$collect(wait = TRUE)
+#'   # Collect results
+#'   results <- session$collect(wait = TRUE)
+#' }
 #' }
 starburst_session <- function(workers = 10,
                               cpu = 4,
@@ -110,9 +112,11 @@ starburst_session <- function(workers = 10,
 #'
 #' @examples
 #' \donttest{
-#' session <- starburst_session_attach("session-abc123")
-#' status <- session$status()
-#' results <- session$collect()
+#' if (starburst_is_configured()) {
+#'   session <- starburst_session_attach("session-abc123")
+#'   status <- session$status()
+#'   results <- session$collect()
+#' }
 #' }
 starburst_session_attach <- function(session_id, region = NULL) {
   config <- get_starburst_config()
@@ -151,8 +155,10 @@ starburst_session_attach <- function(session_id, region = NULL) {
 #'
 #' @examples
 #' \donttest{
-#' sessions <- starburst_list_sessions()
-#' print(sessions)
+#' if (starburst_is_configured()) {
+#'   sessions <- starburst_list_sessions()
+#'   print(sessions)
+#' }
 #' }
 starburst_list_sessions <- function(region = NULL) {
   config <- get_starburst_config()

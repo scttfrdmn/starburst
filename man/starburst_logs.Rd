@@ -24,13 +24,15 @@ View worker logs
 }
 \examples{
 \donttest{
-# View recent logs
-starburst_logs()
+if (starburst_is_configured()) {
+  # View recent logs
+  starburst_logs()
 
-# View logs for specific task
-starburst_logs(task_id = "abc-123")
+  # View logs for specific task
+  starburst_logs(task_id = "abc-123")
 
-# View last 100 lines
-starburst_logs(last_n = 100)
+  # View last 100 lines
+  starburst_logs(last_n = 100)
+}
 }
 }
