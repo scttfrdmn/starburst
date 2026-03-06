@@ -88,7 +88,7 @@ A StarburstSession object with methods:
 # \donttest{
 # Create detached session
 session <- starburst_session(workers = 10)
-#> [Package] Creating detached session: session-040f387d361645a9b4d015b4f141b783
+#> [Package] Creating detached session: session-55c03a6a684b4341abc5d41e203478c4
 #>    * Using instance resources: 4 vCPUs, 7GB memory
 #> 
 #> Error in get_starburst_config(): staRburst not configured. Run starburst_setup() first.
