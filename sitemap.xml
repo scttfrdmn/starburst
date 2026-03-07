@@ -65,6 +65,7 @@
 <url><loc>https://starburst.ing/reference/cleanup_s3_files.html</loc></url>
 <url><loc>https://starburst.ing/reference/cleanup_session.html</loc></url>
 <url><loc>https://starburst.ing/reference/collect_session_results.html</loc></url>
+<url><loc>https://starburst.ing/reference/compute_env_hash.html</loc></url>
 <url><loc>https://starburst.ing/reference/config_dir.html</loc></url>
 <url><loc>https://starburst.ing/reference/config_path.html</loc></url>
 <url><loc>https://starburst.ing/reference/create_ecr_lifecycle_policy.html</loc></url>

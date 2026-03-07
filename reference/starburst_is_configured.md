@@ -2,8 +2,9 @@
 
 Returns `TRUE` if
 [`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md)
-has been run and the configuration file exists. Useful for guarding
-example code that requires AWS credentials.
+has been run, the configuration file exists, and AWS credentials are
+available. Useful for guarding example code that requires AWS
+credentials.
 
 ## Usage
 
@@ -13,7 +14,7 @@ starburst_is_configured()
 
 ## Value
 
-`TRUE` if configured, `FALSE` otherwise.
+`TRUE` if configured and credentials are available, `FALSE` otherwise.
 
 ## Examples
 
