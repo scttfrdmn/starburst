@@ -21,11 +21,10 @@ main <- function() {
     library(paws.storage)
     library(qs2)
 
-    # Create S3 client with timeouts to prevent hanging
+    # Create S3 client with connect timeout to prevent hanging
     s3 <- paws.storage::s3(config = list(
       region = region,
-      connect_timeout = 60,    # 60 seconds to establish connection
-      timeout = 300            # 5 minutes for operations
+      connect_timeout = 60    # 60 seconds to establish connection
     ))
 
     # Download task from S3
