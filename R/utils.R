@@ -771,9 +771,28 @@ ensure_environment <- function(region) {
   lock_file <- renv::paths$lockfile()
 
   if (!file.exists(lock_file)) {
-    # Create renv snapshot
-    # force = TRUE allows locally installed packages like starburst itself
-    renv::snapshot(prompt = FALSE, force = TRUE)
+    # Lockfile not found in current project directory.
+    # Walk up directory tree to find the nearest existing renv.lock
+    # (handles cases where tests run from a subdirectory like tests/testthat/)
+    search_dir <- dirname(lock_file)
+    found <- FALSE
+    for (i in seq_len(10)) {  # max 10 levels up
+      parent <- dirname(search_dir)
+      if (parent == search_dir) break  # reached filesystem root
+      candidate <- file.path(parent, "renv.lock")
+      if (file.exists(candidate)) {
+        lock_file <- candidate
+        found <- TRUE
+        break
+      }
+      search_dir <- parent
+    }
+
+    if (!found) {
+      # No lockfile found anywhere - create a new snapshot as fallback
+      # force = TRUE allows locally installed packages like starburst itself
+      renv::snapshot(prompt = FALSE, force = TRUE)
+    }
   }
 
   # Calculate hash using shared helper
