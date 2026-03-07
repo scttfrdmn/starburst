@@ -33,16 +33,10 @@ test_that("ensure_environment returns proper structure", {
     "test.lock"
   })
   mockery::stub(ensure_environment, "file.exists", function(...) TRUE)
-  mockery::stub(ensure_environment, "readLines", function(file, warn = FALSE) {
-    # Return mock renv.lock content
-    c(
-      "{",
-      "  \"R\": { \"Version\": \"4.3.0\" },",
-      "  \"Packages\": {}",
-      "}"
-    )
-  })
-  mockery::stub(ensure_environment, "digest::digest", function(...) {
+  mockery::stub(ensure_environment, "dir.exists", function(...) FALSE)
+  # Mock compute_env_hash (readLines/digest are in a nested function, not reachable
+  # directly via mockery::stub on ensure_environment)
+  mockery::stub(ensure_environment, "compute_env_hash", function(...) {
     "abc123hash"
   })
   mockery::stub(ensure_environment, "get_starburst_config", function() {
@@ -93,16 +87,9 @@ test_that("image URI format is correct", {
 
   mockery::stub(ensure_environment, "renv::paths$lockfile", function() "test.lock")
   mockery::stub(ensure_environment, "file.exists", function(...) TRUE)
-  mockery::stub(ensure_environment, "readLines", function(file, warn = FALSE) {
-    # Return mock renv.lock content
-    c(
-      "{",
-      "  \"R\": { \"Version\": \"4.3.0\" },",
-      "  \"Packages\": {}",
-      "}"
-    )
-  })
-  mockery::stub(ensure_environment, "digest::digest", function(...) "deadbeef123")
+  mockery::stub(ensure_environment, "dir.exists", function(...) FALSE)
+  # Mock compute_env_hash (readLines/digest are in a nested function)
+  mockery::stub(ensure_environment, "compute_env_hash", function(...) "deadbeef123")
   mockery::stub(ensure_environment, "get_starburst_config", function() {
     list(aws_account_id = "999888777666")
   })

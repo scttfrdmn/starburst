@@ -74,16 +74,13 @@ test_that("ensure_environment returns hash and image URI", {
     "test-lock.file"
   })
 
-  # Mock file.exists
+  # Mock file.exists and dir.exists so walk-up logic terminates quickly
   mockery::stub(ensure_environment, "file.exists", function(...) TRUE)
+  mockery::stub(ensure_environment, "dir.exists", function(...) FALSE)
 
-  # Mock readLines to return mock renv.lock content
-  mockery::stub(ensure_environment, "readLines", function(file, warn = FALSE) {
-    c("{", "  \"R\": { \"Version\": \"4.3.0\" },", "  \"Packages\": {}", "}")
-  })
-
-  # Mock digest::digest
-  mockery::stub(ensure_environment, "digest::digest", function(...) {
+  # Mock compute_env_hash (replaces readLines + digest mocking since those
+  # are now in a separate function that mockery stubs don't reach)
+  mockery::stub(ensure_environment, "compute_env_hash", function(...) {
     "abc123hash"
   })
 
@@ -113,16 +110,13 @@ test_that("ensure_environment builds image if not exists", {
     "test-lock.file"
   })
 
-  # Mock file.exists
+  # Mock file.exists and dir.exists so walk-up logic terminates quickly
   mockery::stub(ensure_environment, "file.exists", function(...) TRUE)
+  mockery::stub(ensure_environment, "dir.exists", function(...) FALSE)
 
-  # Mock readLines to return mock renv.lock content
-  mockery::stub(ensure_environment, "readLines", function(file, warn = FALSE) {
-    c("{", "  \"R\": { \"Version\": \"4.3.0\" },", "  \"Packages\": {}", "}")
-  })
-
-  # Mock digest::digest
-  mockery::stub(ensure_environment, "digest::digest", function(...) {
+  # Mock compute_env_hash (replaces readLines + digest mocking since those
+  # are now in a separate function that mockery stubs don't reach)
+  mockery::stub(ensure_environment, "compute_env_hash", function(...) {
     "abc123hash"
   })
 
