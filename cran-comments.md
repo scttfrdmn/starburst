@@ -1,36 +1,27 @@
-## Resubmission (3rd)
+## Resubmission (4th)
 
-This resubmission addresses all feedback from CRAN reviewer Beni Altmann
-(2026-03-05).
+This resubmission bumps the version to 0.3.8 and fixes critical bugs
+discovered during integration testing after the v0.3.7 submission.
 
-### Changes made:
+### Changes made in v0.3.8:
 
-1. **DESCRIPTION**: Expanded 'AWS' acronym to 'Amazon Web Services' ('AWS')
-   with link `<https://aws.amazon.com>`; quoted 'EC2' as a software name;
-   removed `| file LICENSE` (standard Apache 2.0, no additional restrictions);
-   bumped version to 0.3.7.
+1. **Worker script fix**: Removed invalid `timeout` parameter from
+   `paws.storage::s3()` config in `inst/templates/worker.R`. The paws
+   package only accepts `connect_timeout`, not `timeout`. Workers were
+   crashing immediately on startup with "invalid name: timeout".
 
-2. **Vignette syntax error**: Fixed unexecutable code in
-   `vignettes/detached-sessions.Rmd` — `quote(Sys.sleep(60); i)` →
-   `quote({ Sys.sleep(60); i })`.
+2. **Environment hash consistency**: Added `compute_env_hash()` helper to
+   ensure consistent hash computation across `ensure_environment()` and
+   `starburst_rebuild_environment()`. This prevents unnecessary Docker
+   image rebuilds and ensures workers always use the correct image.
 
-3. **Examples for unexported functions**: Removed `@examples` from
-   `starburst_error()` and `with_aws_retry()` (both `@keywords internal`).
+3. **Lockfile discovery fix**: `ensure_environment()` now correctly finds
+   the package root `renv.lock` when called from test subdirectories.
+   testthat sets CWD to `tests/testthat/` which caused `renv::paths$lockfile()`
+   to find a test-specific lockfile instead of the package root one.
 
-4. **`\dontrun{}` → `\donttest{}`**: Replaced throughout all 17 exported
-   function documentation blocks. Examples in `\donttest{}` require AWS
-   credentials and infrastructure, which users with AWS accounts can run
-   interactively.
-
-5. **Missing `\value` tags**: Added `@return` documentation to all 12
-   flagged exported functions.
-
-### Note on `\donttest{}` examples
-
-All examples require live AWS credentials, an S3 bucket, and ECR/ECS
-infrastructure. Local `R CMD check --run-donttest` fails these examples
-as expected (no AWS available during check). CRAN's automated incoming
-check does not run `\donttest{}` examples.
+4. **Version bump**: v0.3.7 → v0.3.8 to trigger environment image rebuild
+   with the fixed worker script.
 
 ## Test environments
 
