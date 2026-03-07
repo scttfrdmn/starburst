@@ -741,6 +741,28 @@ cleanup_s3_files <- function(plan) {
   invisible(NULL)
 }
 
+#' Compute environment image hash
+#'
+#' Computes the hash used to tag environment Docker images, combining the
+#' renv.lock file contents with the starburst package version. This ensures
+#' new images are built when either the R package environment or the starburst
+#' worker script changes.
+#'
+#' @param lock_file Path to renv.lock file
+#' @return MD5 hash string
+#' @keywords internal
+compute_env_hash <- function(lock_file) {
+  # Read version from DESCRIPTION to handle dev vs installed discrepancies
+  desc_path <- system.file("DESCRIPTION", package = "starburst")
+  if (nzchar(desc_path)) {
+    pkg_version <- read.dcf(desc_path, fields = "Version")[1, "Version"]
+  } else {
+    pkg_version <- as.character(utils::packageVersion("starburst"))
+  }
+  hash_input <- paste0(readLines(lock_file, warn = FALSE), collapse = "\n", pkg_version)
+  digest::digest(hash_input, algo = "md5")
+}
+
 #' Ensure environment is ready
 #'
 #' @keywords internal
@@ -754,11 +776,8 @@ ensure_environment <- function(region) {
     renv::snapshot(prompt = FALSE, force = TRUE)
   }
 
-  # Calculate hash including renv.lock AND starburst package version
-  # This ensures new images are built when starburst is updated (e.g., worker script fixes)
-  pkg_version <- as.character(utils::packageVersion("starburst"))
-  hash_input <- paste0(readLines(lock_file, warn = FALSE), collapse = "\n", pkg_version)
-  env_hash <- digest::digest(hash_input, algo = "md5")
+  # Calculate hash using shared helper
+  env_hash <- compute_env_hash(lock_file)
 
   # Get configuration for ECR URI
   config <- get_starburst_config()

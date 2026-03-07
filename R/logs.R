@@ -118,7 +118,7 @@ starburst_rebuild_environment <- function(region = NULL, force = FALSE) {
 
   # Use existing renv.lock (do not auto-snapshot to avoid including dev packages)
   lock_file <- renv::paths$lockfile()
-  env_hash <- digest::digest(file = lock_file, algo = "md5")
+  env_hash <- compute_env_hash(lock_file)
 
   # Build image
   build_environment_image(env_hash, region)
