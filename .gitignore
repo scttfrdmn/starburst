@@ -55,3 +55,6 @@ starburst.zip
 /Meta/
 vignettes/*.R
 inst/doc/index.html
+
+# Test-specific renv lockfiles (auto-created by testthat, should not be committed)
+tests/testthat/renv.lock

@@ -770,29 +770,31 @@ ensure_environment <- function(region) {
   # Get renv lock file hash
   lock_file <- renv::paths$lockfile()
 
-  if (!file.exists(lock_file)) {
-    # Lockfile not found in current project directory.
-    # Walk up directory tree to find the nearest existing renv.lock
-    # (handles cases where tests run from a subdirectory like tests/testthat/)
-    search_dir <- dirname(lock_file)
-    found <- FALSE
-    for (i in seq_len(10)) {  # max 10 levels up
-      parent <- dirname(search_dir)
-      if (parent == search_dir) break  # reached filesystem root
-      candidate <- file.path(parent, "renv.lock")
-      if (file.exists(candidate)) {
-        lock_file <- candidate
-        found <- TRUE
-        break
-      }
-      search_dir <- parent
+  # Walk up directory tree to find the canonical package root renv.lock.
+  # This is needed because testthat sets CWD to tests/testthat/ during tests,
+  # causing renv::paths$lockfile() to return tests/testthat/renv.lock instead
+  # of the package root renv.lock. We prefer the renv.lock closest to an R/
+  # directory (indicating an R package root).
+  search_dir <- dirname(lock_file)
+  found_root_lock <- FALSE
+  for (i in seq_len(10)) {
+    parent <- dirname(search_dir)
+    if (parent == search_dir) break  # reached filesystem root
+    candidate <- file.path(parent, "renv.lock")
+    if (file.exists(candidate) && dir.exists(file.path(parent, "R"))) {
+      # Found a renv.lock next to an R/ directory - this is the package root
+      lock_file <- candidate
+      found_root_lock <- TRUE
+      break
     }
+    search_dir <- parent
+  }
 
-    if (!found) {
-      # No lockfile found anywhere - create a new snapshot as fallback
-      # force = TRUE allows locally installed packages like starburst itself
-      renv::snapshot(prompt = FALSE, force = TRUE)
-    }
+  if (!file.exists(lock_file)) {
+    # No lockfile found anywhere - create a new snapshot as fallback
+    # force = TRUE allows locally installed packages like starburst itself
+    renv::snapshot(prompt = FALSE, force = TRUE)
+    lock_file <- renv::paths$lockfile()
   }
 
   # Calculate hash using shared helper
