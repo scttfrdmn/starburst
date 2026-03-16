@@ -27,6 +27,10 @@ and Fargate (serverless) backends.
 
 ## Installation
 
+**CRAN submission in progress for v0.3.6** (expected within 2-4 weeks).
+
+Once available:
+
 ``` r
 install.packages("starburst")
 ```
@@ -277,7 +281,7 @@ Started](https://starburst.ing/articles/getting-started.html) guide.
 
 ## Roadmap
 
-### v0.3.8 (Current - on CRAN)
+### v0.3.6 (Current - CRAN Submission)
 
 - ✅ Direct API (`starburst_map`, `starburst_cluster`)
 - ✅ AWS Fargate integration
@@ -288,8 +292,7 @@ Started](https://starburst.ing/articles/getting-started.html) guide.
 - ✅ Full `future` backend integration
 - ✅ Support for `future.apply`, `furrr`, `targets`
 - ✅ Comprehensive AWS integration testing
-- ✅ Security hardening (safe command execution, worker limits)
-- ✅ Published on CRAN (0 errors, 0 warnings, 0 notes)
+- ✅ CRAN-ready (0 errors, 0 notes)
 
 ### Future Releases
 
@@ -309,8 +312,7 @@ guidelines.
 
 ## License
 
-Apache License 2.0 - see
-[LICENSE](https://github.com/scttfrdmn/starburst/blob/main/LICENSE)
+Apache License 2.0 - see [LICENSE](https://starburst.ing/LICENSE)
 
 Copyright 2026 Scott Friedman
 
