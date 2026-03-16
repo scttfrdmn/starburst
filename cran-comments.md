@@ -1,27 +1,16 @@
-## Resubmission (4th)
+## Resubmission (5th)
 
-This resubmission bumps the version to 0.3.8 and fixes critical bugs
-discovered during integration testing after the v0.3.7 submission.
+This resubmission fixes the invalid file URI flagged by CRAN's pretest in v0.3.8.
 
-### Changes made in v0.3.8:
+### Changes made in this resubmission:
 
-1. **Worker script fix**: Removed invalid `timeout` parameter from
-   `paws.storage::s3()` config in `inst/templates/worker.R`. The paws
-   package only accepts `connect_timeout`, not `timeout`. Workers were
-   crashing immediately on startup with "invalid name: timeout".
+1. **Fixed invalid LICENSE URI in README.md**: Replaced relative file URI
+   `[LICENSE](LICENSE)` with full GitHub URL
+   `[LICENSE](https://github.com/scttfrdmn/starburst/blob/main/LICENSE)`.
+   CRAN's pretest flagged: "Found the following (possibly) invalid file URI:
+   URI: LICENSE From: README.md"
 
-2. **Environment hash consistency**: Added `compute_env_hash()` helper to
-   ensure consistent hash computation across `ensure_environment()` and
-   `starburst_rebuild_environment()`. This prevents unnecessary Docker
-   image rebuilds and ensures workers always use the correct image.
-
-3. **Lockfile discovery fix**: `ensure_environment()` now correctly finds
-   the package root `renv.lock` when called from test subdirectories.
-   testthat sets CWD to `tests/testthat/` which caused `renv::paths$lockfile()`
-   to find a test-specific lockfile instead of the package root one.
-
-4. **Version bump**: v0.3.7 → v0.3.8 to trigger environment image rebuild
-   with the fixed worker script.
+No other changes were made. Version remains 0.3.8.
 
 ## Test environments
 

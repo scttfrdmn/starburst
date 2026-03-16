@@ -5,9 +5,9 @@
 
 <!-- badges: start -->
 
+[![CRAN status](https://www.r-pkg.org/badges/version/starburst)](https://cran.r-project.org/package=starburst)
 [![R-CMD-check](https://github.com/scttfrdmn/starburst/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/scttfrdmn/starburst/actions/workflows/R-CMD-check.yaml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/license/apache-2-0)
-[![Version](https://img.shields.io/badge/version-0.3.6-brightgreen.svg)](https://github.com/scttfrdmn/starburst/releases/tag/v0.3.6)
 <!-- badges: end -->
 
 > Seamless AWS cloud bursting for parallel R workloads
@@ -35,10 +35,6 @@ and Fargate (serverless) backends.
 - **Auto Cleanup**: Workers shut down automatically when done
 
 ## Installation
-
-**CRAN submission in progress for v0.3.6** (expected within 2-4 weeks).
-
-Once available:
 
 ``` r
 install.packages("starburst")
@@ -288,7 +284,7 @@ Started](https://starburst.ing/articles/getting-started.html) guide.
 
 ## Roadmap
 
-### v0.3.6 (Current - CRAN Submission)
+### v0.3.8 (Current - on CRAN)
 
 - ✅ Direct API (`starburst_map`, `starburst_cluster`)
 - ✅ AWS Fargate integration
@@ -299,7 +295,8 @@ Started](https://starburst.ing/articles/getting-started.html) guide.
 - ✅ Full `future` backend integration
 - ✅ Support for `future.apply`, `furrr`, `targets`
 - ✅ Comprehensive AWS integration testing
-- ✅ CRAN-ready (0 errors, 0 notes)
+- ✅ Security hardening (safe command execution, worker limits)
+- ✅ Published on CRAN (0 errors, 0 warnings, 0 notes)
 
 ### Future Releases
 
@@ -316,7 +313,7 @@ guidelines.
 
 ## License
 
-Apache License 2.0 - see [LICENSE](LICENSE)
+Apache License 2.0 - see [LICENSE](https://github.com/scttfrdmn/starburst/blob/main/LICENSE)
 
 Copyright 2026 Scott Friedman
 
