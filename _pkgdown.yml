@@ -48,6 +48,10 @@ navbar:
         href: articles/example-bootstrap.html
       - text: "Report Generation"
         href: articles/example-reports.html
+      - text: "---"
+      - text: "Guides"
+      - text: "Performance & When to Use Cloud"
+        href: articles/performance.html
     examples:
       text: Runnable Scripts
       href: reference/examples.html
@@ -88,9 +92,10 @@ articles:
   - example-bootstrap
   - example-reports
 
-- title: "Operations & Troubleshooting"
-  desc: "Security, debugging, and maintenance"
+- title: "Guides"
+  desc: "Performance, security, and operations"
   contents:
+  - performance
   - security
   - troubleshooting
 
