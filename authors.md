@@ -7,7 +7,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/scttfrdmn/starburst/blob/v0.3.8-cran/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/scttfrdmn/starburst/blob/main/DESCRIPTION)
 
 Friedman S (2026). *starburst: Seamless AWS Cloud Bursting for Parallel
 R Workloads*. R package version 0.3.8, <https://starburst.ing>.
