@@ -434,10 +434,12 @@ Real-world business applications
 - [Example: Parallel Report
   Generation](https://starburst.ing/articles/example-reports.md):
 
-### Operations & Troubleshooting
+### Guides
 
-Security, debugging, and maintenance
+Performance, security, and operations
 
+- [Performance Guide: When to Use Cloud vs
+  Local](https://starburst.ing/articles/performance.md):
 - [Security Best Practices for
   staRburst](https://starburst.ing/articles/security.md):
 - [Troubleshooting

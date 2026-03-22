@@ -4,31 +4,8 @@
 <url><loc>https://starburst.ing/CHANGELOG.html</loc></url>
 <url><loc>https://starburst.ing/CLAUDE.html</loc></url>
 <url><loc>https://starburst.ing/CONTRIBUTING.html</loc></url>
-<url><loc>https://starburst.ing/DETACHED_SESSIONS_IMPLEMENTATION.html</loc></url>
-<url><loc>https://starburst.ing/DETACHED_SESSIONS_ISSUES.html</loc></url>
-<url><loc>https://starburst.ing/EXAMPLE_TESTS.html</loc></url>
-<url><loc>https://starburst.ing/FARGATE_REMOVAL_PLAN.html</loc></url>
-<url><loc>https://starburst.ing/FIXES_APPLIED.html</loc></url>
-<url><loc>https://starburst.ing/IMPLEMENTATION_CHECKLIST.html</loc></url>
-<url><loc>https://starburst.ing/IMPLEMENTATION_STATUS.html</loc></url>
-<url><loc>https://starburst.ing/IMPLEMENTATION_SUMMARY.html</loc></url>
 <url><loc>https://starburst.ing/LICENSE-text.html</loc></url>
-<url><loc>https://starburst.ing/PACKAGE_STRUCTURE.html</loc></url>
-<url><loc>https://starburst.ing/PERFORMANCE_GUIDELINES.html</loc></url>
-<url><loc>https://starburst.ing/PROFILING_PLAN.html</loc></url>
-<url><loc>https://starburst.ing/REAL_SCIENCE_EXAMPLES.html</loc></url>
-<url><loc>https://starburst.ing/REAL_SCIENCE_RESULTS.html</loc></url>
 <url><loc>https://starburst.ing/ROADMAP.html</loc></url>
-<url><loc>https://starburst.ing/SESSION_SUMMARY.html</loc></url>
-<url><loc>https://starburst.ing/TESTING.html</loc></url>
-<url><loc>https://starburst.ing/TESTING_GUIDE.html</loc></url>
-<url><loc>https://starburst.ing/TESTING_STATUS.html</loc></url>
-<url><loc>https://starburst.ing/TESTING_SUMMARY.html</loc></url>
-<url><loc>https://starburst.ing/TEST_RESULTS.html</loc></url>
-<url><loc>https://starburst.ing/TEST_RESULTS_FINAL.html</loc></url>
-<url><loc>https://starburst.ing/ULTIMATE_SHOWDOWN_RESULTS.html</loc></url>
-<url><loc>https://starburst.ing/USER_GUIDE_WHEN_TO_USE_CLOUD.html</loc></url>
-<url><loc>https://starburst.ing/WAVE_QUEUE_FIX.html</loc></url>
 <url><loc>https://starburst.ing/articles/detached-sessions.html</loc></url>
 <url><loc>https://starburst.ing/articles/example-api-calls.html</loc></url>
 <url><loc>https://starburst.ing/articles/example-bootstrap.html</loc></url>
@@ -40,6 +17,7 @@
 <url><loc>https://starburst.ing/articles/example-risk-modeling.html</loc></url>
 <url><loc>https://starburst.ing/articles/getting-started.html</loc></url>
 <url><loc>https://starburst.ing/articles/index.html</loc></url>
+<url><loc>https://starburst.ing/articles/performance.html</loc></url>
 <url><loc>https://starburst.ing/articles/security.html</loc></url>
 <url><loc>https://starburst.ing/articles/troubleshooting.html</loc></url>
 <url><loc>https://starburst.ing/authors.html</loc></url>
@@ -196,6 +174,5 @@
 <url><loc>https://starburst.ing/reference/with_ecs_retry.html</loc></url>
 <url><loc>https://starburst.ing/reference/with_s3_retry.html</loc></url>
 <url><loc>https://starburst.ing/reference/worker_validation_error.html</loc></url>
-<url><loc>https://starburst.ing/starburst-chat.html</loc></url>
 </urlset>
 

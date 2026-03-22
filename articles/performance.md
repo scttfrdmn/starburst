@@ -1,0 +1,323 @@
+# Performance Guide: When to Use Cloud vs Local
+
+## The Honest Truth
+
+Cloud is not magic. It has overhead, costs money, and AWS CPUs are
+slower per-core than a modern laptop like an M4 Pro. But with the right
+instance types and spot pricing, cloud can be both faster and cheaper
+than you expect.
+
+**Cloud wins when:**
+
+- Total workload \> 2–4 hours sequential
+- You run the same analysis multiple times (parameter sweeps, recurring
+  jobs)
+- You need results faster than local parallel can deliver
+- Your laptop needs to stay usable
+- Budget allows \$1–5 per job (often less with spot instances)
+
+**Local wins when:**
+
+- Workload \< 1 hour
+- One-time quick analysis
+- You have a powerful multi-core machine (16+ cores)
+- Data is too sensitive for cloud
+- Zero budget
+
+------------------------------------------------------------------------
+
+## Real Performance Data
+
+**Workload**: 500M Monte Carlo iterations (9.7 hours sequential)
+
+    Sequential (1 core):        9.7 hours
+    M4 Pro (10 perf cores):     67.5 minutes
+    AWS EC2 c8a (50 workers):   ~30 minutes    ← winner
+
+    Cloud speedup: 2.2x vs M4 Pro parallel, 19x vs sequential
+    Cost: ~$1.10 (spot instances)
+
+**Why 2.2x and not 5x?**
+
+1.  **Per-core gap**: c8a AMD is ~65–70% of M4 Pro speed (3.0 GHz AMD
+    EPYC vs 3.5–4.0 GHz Apple Silicon)
+2.  **Startup overhead**: ~2 minutes for first result (pool warmup + S3
+    transfer) — amortized across subsequent runs
+3.  **Straggler effect**: some variation in task completion time across
+    workers
+
+------------------------------------------------------------------------
+
+## Per-Task Overhead
+
+Once workers are running, each task incurs a small fixed overhead from
+S3 data transfer:
+
+| Task Duration | Overhead % | Efficiency |
+|---------------|------------|------------|
+| 1 second      | 200–300%   | Negative   |
+| 10 seconds    | 20–30%     | Moderate   |
+| 30 seconds    | 7–10%      | Good       |
+| 60 seconds    | 3–5%       | Excellent  |
+| 5 minutes     | \<1%       | Optimal    |
+
+**Sweet spot**: tasks that run for 2–10 minutes each. For faster tasks,
+batch them.
+
+------------------------------------------------------------------------
+
+## Batching
+
+The most important optimization. Instead of sending 10,000 tiny tasks,
+group them:
+
+``` r
+# Bad: 10,000 tasks of 0.1s each — overhead dominates
+starburst_map(1:10000, quick_fn, workers = 100)
+```
+
+``` r
+# Good: 100 tasks of 100s each — overhead is negligible
+batches <- split(1:10000, ceiling(seq_along(1:10000) / 100))
+starburst_map(batches, function(batch) lapply(batch, quick_fn), workers = 100)
+```
+
+**Batch size formula:**
+
+``` r
+# Profile your function first
+per_item_time <- 0.5   # seconds, from local profiling
+target_task_duration <- 60  # aim for 60s minimum per task
+
+batch_size <- ceiling(target_task_duration / per_item_time)
+# Result: 120 items per batch
+```
+
+------------------------------------------------------------------------
+
+## Choosing Instance Types
+
+| Instance | Architecture  | Price/Perf | Best For                 |
+|----------|---------------|------------|--------------------------|
+| **c8a**  | AMD 8th gen   | ★★★★★      | Default — best overall   |
+| **c8g**  | Graviton4 ARM | ★★★★       | Best ARM64 option        |
+| **c7a**  | AMD 7th gen   | ★★★★       | Proven, stable           |
+| **c8i**  | Intel 8th gen | ★★★        | High single-thread needs |
+
+``` r
+# Recommended: c8a with spot instances
+plan(starburst,
+  workers     = 50,
+  instance_type = "c8a.xlarge",  # AMD 8th gen — best price/performance
+  use_spot    = TRUE             # 70% cheaper than on-demand
+)
+```
+
+**Spot vs on-demand (50 workers, us-east-1):**
+
+    c8a on-demand:  $7.20/hr
+    c8a spot:       $2.16/hr   ← 70% savings, low interruption risk
+
+------------------------------------------------------------------------
+
+## The Startup Cost Problem
+
+Workers need ~2 minutes to start cold (pool warmup + environment sync).
+This cost is **fixed** — it doesn’t scale with job size. The key is to
+amortize it.
+
+### Run once — marginal value
+
+    Local parallel (M4 Pro):  67.5 min, $0
+    Cloud 50 workers (cold):  46.5 min, $3.82
+      → Saved 21 min for $3.82 = $10.91/hr saved
+      → Marginal
+
+### Run 10 times (parameter sweep) — much better
+
+    Local parallel:            675 min (10 × 67.5), laptop tied up
+    Cloud (workers stay warm): 375 min (10 min startup once + 10 × 36.5)
+      → Saved 5 hours for $38 = $7.64/hr saved
+      → Good value, laptop stays usable
+
+### Daily recurring job — excellent
+
+    100 runs/month
+    Local:   6,750 min, laptop tied up 4.7 hrs/day
+    Cloud:   3,660 min, 0.1% startup overhead
+      → ~$380/month, 51 hours saved
+
+------------------------------------------------------------------------
+
+## Decision Framework
+
+**How long is the workload?**
+
+    < 30 min:     Don't bother
+    30–60 min:    Local probably better
+    1–4 hours:    Cloud starts to make sense
+    4–8 hours:    Cloud clearly better
+    > 8 hours:    Easy choice
+
+**How many times will you run it?**
+
+    Once:          Startup is ~20% of job time
+    2–5 times:     Startup amortizes to ~5–10%
+    10+ times:     Startup < 2%
+    Daily:         Keep warm pool, effectively zero
+
+**What’s your local hardware?**
+
+    4–6 cores:         Cloud dominates
+    8–10 cores (M4):   Cloud wins but it's closer
+    16+ cores:         Cloud might not win on speed
+    HPC cluster:       Use your cluster
+
+------------------------------------------------------------------------
+
+## Common Patterns
+
+### Pattern: One-shot analysis — use local
+
+``` r
+library(parallel)
+cl <- makeCluster(detectCores() - 1)
+results <- parLapply(cl, data, your_function)
+stopCluster(cl)
+```
+
+### Pattern: Parameter sweep — use cloud
+
+``` r
+# Pay startup cost once, run many combinations
+for (alpha in seq(0.1, 1.0, 0.1)) {
+  for (beta in seq(0.1, 1.0, 0.1)) {
+    results <- starburst_map(
+      data,
+      function(x) model(x, alpha = alpha, beta = beta),
+      workers = 50
+    )
+  }
+}
+```
+
+### Pattern: Daily production job — keep warm pool
+
+``` r
+# Start warm pool once in the morning
+plan(starburst, workers = 50, warm_pool_timeout = 28800)  # 8 hours
+
+# All runs during the day start in < 30s
+results_am <- starburst_map(morning_data, process)
+results_pm <- starburst_map(afternoon_data, process)
+# Pool shuts down automatically after 8 hours of inactivity
+```
+
+### Pattern: Hybrid — develop local, scale on cloud
+
+``` r
+# Iterate quickly on a small sample locally
+results_test <- lapply(data[1:100], your_function)
+
+# When logic is right, scale to full dataset on cloud
+results_full <- starburst_map(data, your_function, workers = 100)
+```
+
+------------------------------------------------------------------------
+
+## Cost Estimation
+
+**Quick formula (EC2 spot, us-east-1):**
+
+    Cost ≈ workers × hours × $0.044/worker/hour
+
+| Job size                 | Workers | Wall time | Spot cost |
+|--------------------------|---------|-----------|-----------|
+| Small (1 hr sequential)  | 10      | ~6 min    | ~\$0.04   |
+| Medium (5 hr sequential) | 25      | ~12 min   | ~\$0.22   |
+| Large (10 hr sequential) | 50      | ~25 min   | ~\$0.92   |
+
+Use
+[`starburst_estimate()`](https://starburst.ing/reference/starburst_estimate.md)
+for a precise estimate before running.
+
+------------------------------------------------------------------------
+
+## Common Pitfalls
+
+**Too many small tasks:**
+
+``` r
+# Bad: each task is 0.1s — overhead is 20-30x the work
+starburst_map(1:10000, function(x) sqrt(x), workers = 100)
+
+# Good: batch into groups of 100
+batches <- split(1:10000, ceiling(seq_along(1:10000) / 100))
+starburst_map(batches, function(b) sapply(b, sqrt), workers = 100)
+```
+
+**More workers than tasks:**
+
+``` r
+# Bad: 40 workers sit idle
+starburst_map(1:10, fn, workers = 50)
+
+# Good: match workers to workload
+starburst_map(1:100, fn, workers = 25)  # 4 tasks per worker
+```
+
+**Sending large data to every worker:**
+
+``` r
+# Bad: huge_matrix serialized and sent to each of 50 workers
+huge_matrix <- matrix(rnorm(1e8), ncol = 1000)
+starburst_map(1:50, function(i) process(huge_matrix, i), workers = 50)
+
+# Good: generate data inside the worker
+starburst_map(1:50, function(i) {
+  data <- generate_chunk(i)  # create data on the worker
+  process(data)
+}, workers = 50)
+```
+
+------------------------------------------------------------------------
+
+## Use Case Quick Reference
+
+| Use Case          | Task Duration | Batch Size      | Workers | Expected Speedup |
+|-------------------|---------------|-----------------|---------|------------------|
+| Fast calculations | 0.001s        | 1000+ per task  | 20–50   | 3–8x             |
+| API calls         | 0.5–2s        | 20–100 per task | 20–50   | 8–15x            |
+| Data processing   | 10–60s        | 5–20 per task   | 20–50   | 12–20x           |
+| Report generation | 60–300s       | 1–5 per task    | 20–50   | 15–25x           |
+| Model training    | 2–10 min      | 1–2 per task    | 20–50   | 18–30x           |
+
+------------------------------------------------------------------------
+
+## AWS Authentication
+
+staRburst uses the [paws](https://github.com/paws-r/paws) AWS SDK, which
+supports the full AWS credential chain:
+
+- **Environment variables**: `AWS_ACCESS_KEY_ID`,
+  `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`
+- **Named profiles**: set `AWS_PROFILE=myprofile` to select a profile
+  from `~/.aws/credentials`
+- **AWS SSO / `aws login`**: supported via named profiles configured
+  with SSO in `~/.aws/config` (requires AWS CLI v2, `aws login`
+  available since November 2025)
+- **IAM instance roles**: automatic when running on EC2 or ECS
+
+``` bash
+# Standard profile
+export AWS_PROFILE=my-aws-account
+Rscript -e "library(starburst); starburst_setup_ec2()"
+
+# SSO profile (AWS CLI v2)
+aws login --profile my-sso-profile
+export AWS_PROFILE=my-sso-profile
+Rscript -e "library(starburst); starburst_setup_ec2()"
+```
+
+No explicit configuration is required in staRburst — it defers entirely
+to paws credential discovery.
