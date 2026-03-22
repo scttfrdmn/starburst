@@ -5,7 +5,8 @@
 
 <!-- badges: start -->
 
-[![CRAN status](https://www.r-pkg.org/badges/version/starburst)](https://cran.r-project.org/package=starburst)
+[![CRAN
+status](https://www.r-pkg.org/badges/version/starburst)](https://cran.r-project.org/package=starburst)
 [![R-CMD-check](https://github.com/scttfrdmn/starburst/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/scttfrdmn/starburst/actions/workflows/R-CMD-check.yaml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/license/apache-2-0)
 <!-- badges: end -->
@@ -313,7 +314,8 @@ guidelines.
 
 ## License
 
-Apache License 2.0 - see [LICENSE](https://github.com/scttfrdmn/starburst/blob/main/LICENSE)
+Apache License 2.0 - see
+[LICENSE](https://github.com/scttfrdmn/starburst/blob/main/LICENSE)
 
 Copyright 2026 Scott Friedman
 
@@ -324,7 +326,7 @@ Copyright 2026 Scott Friedman
   title = {staRburst: Seamless AWS Cloud Bursting for R},
   author = {Scott Friedman},
   year = {2026},
-  version = {0.3.6},
+  version = {0.3.8},
   url = {https://starburst.ing},
   license = {Apache-2.0}
 }
