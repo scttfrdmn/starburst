@@ -233,6 +233,64 @@ get_base_image_uri <- function(region) {
 #' Build base Docker image with common dependencies
 #'
 #' @keywords internal
+#' Ensure a buildx builder with the docker-container driver exists and is usable
+#'
+#' Idempotent across repeated runs and cross-platform (Windows/macOS/Linux).
+#' Probes for an existing builder via \code{docker buildx inspect}; creates it
+#' only when missing; bootstraps it so it is ready to build. A docker-container
+#' driver is required for multi-platform (\code{linux/amd64,linux/arm64})
+#' builds. Does not mutate the user's default buildx context (no \code{--use});
+#' the build pins the builder explicitly via \code{--builder}.
+#'
+#' Returns TRUE if the named builder is usable, FALSE otherwise, and never
+#' throws -- callers decide policy. This fixes the failure mode where
+#' \code{buildx create} errored on an already-existing builder, the error was
+#' swallowed, and the subsequent \code{buildx build} failed with "existing
+#' instance for <name> but no append mode" (GitHub #24).
+#'
+#' @param builder_name Name of the buildx builder (default "starburst-builder")
+#' @return TRUE if the named builder is usable, FALSE otherwise
+#' @keywords internal
+ensure_buildx_builder <- function(builder_name = "starburst-builder") {
+  # 1. Does it already exist? inspect returns non-zero (-> error) if not;
+  #    --bootstrap also boots an existing-but-stopped builder.
+  exists <- tryCatch({
+    safe_system("docker", c("buildx", "inspect", "--bootstrap", builder_name),
+                stdout = FALSE, stderr = FALSE)
+    TRUE
+  }, error = function(e) FALSE)
+
+  if (exists) {
+    return(TRUE)
+  }
+
+  # 2. Missing: create it with the docker-container driver and bootstrap it.
+  created <- tryCatch({
+    safe_system(
+      "docker",
+      c("buildx", "create", "--name", builder_name,
+        "--driver", "docker-container", "--bootstrap"),
+      stdout = FALSE, stderr = FALSE
+    )
+    TRUE
+  }, error = function(e) {
+    cat_warn(sprintf("Warning: failed to create buildx builder '%s': %s\n",
+                     builder_name, conditionMessage(e)))
+    FALSE
+  })
+
+  if (!created) {
+    return(FALSE)
+  }
+
+  # 3. Confirm it is now usable (defensive; create + bootstrap should suffice).
+  tryCatch({
+    safe_system("docker", c("buildx", "inspect", "--bootstrap", builder_name),
+                stdout = FALSE, stderr = FALSE)
+    TRUE
+  }, error = function(e) FALSE)
+}
+
 build_base_image <- function(region) {
   cat_info("[Docker] Building staRburst base image...\n")
 
@@ -324,25 +382,15 @@ build_base_image <- function(region) {
     cat_info(sprintf("   * Building multi-platform base image: %s\n", image_tag))
     cat_info("   * Platforms: linux/amd64, linux/arm64\n")
 
-    # Ensure buildx builder exists with docker-container driver (required for multi-platform)
-    # Per Docker docs: use --bootstrap flag and set as default with --use
-    # Try to create builder, if it exists, use it
-    tryCatch({
-      safe_system(
-        "docker",
-        c("buildx", "create", "--name", "starburst-builder",
-          "--driver", "docker-container", "--bootstrap", "--use"),
-        stdout = FALSE, stderr = FALSE
-      )
-    }, error = function(e) {
-      # Builder might already exist, try to use it
-      tryCatch({
-        safe_system("docker", c("buildx", "use", "starburst-builder"),
-                   stdout = FALSE, stderr = FALSE)
-      }, error = function(e2) {
-        cat_warn("Warning: Failed to setup buildx builder, will try default\n")
-      })
-    })
+    # Ensure a docker-container buildx builder exists (required for multi-platform).
+    if (!ensure_buildx_builder("starburst-builder")) {
+      stop(paste0(
+        "Could not create or access the 'starburst-builder' buildx builder, ",
+        "which is required for multi-platform (linux/amd64, linux/arm64) builds. ",
+        "Ensure Docker is running and that 'docker buildx' is available, then retry. ",
+        "Inspect builders with: docker buildx ls"
+      ))
+    }
 
     # Build and push multi-platform image (no cache for clean multi-platform build)
     safe_system(
@@ -527,25 +575,15 @@ build_environment_image <- function(tag, region, use_public = NULL) {
     cat_info(sprintf("   * Building multi-platform image: %s\n", image_tag))
     cat_info("   * Platforms: linux/amd64, linux/arm64\n")
 
-    # Ensure buildx builder exists with docker-container driver (required for multi-platform)
-    # Per Docker docs: use --bootstrap flag and set as default with --use
-    # Try to create builder, if it exists, use it
-    tryCatch({
-      safe_system(
-        "docker",
-        c("buildx", "create", "--name", "starburst-builder",
-          "--driver", "docker-container", "--bootstrap", "--use"),
-        stdout = FALSE, stderr = FALSE
-      )
-    }, error = function(e) {
-      # Builder might already exist, try to use it
-      tryCatch({
-        safe_system("docker", c("buildx", "use", "starburst-builder"),
-                   stdout = FALSE, stderr = FALSE)
-      }, error = function(e2) {
-        cat_warn("Warning: Failed to setup buildx builder, will try default\n")
-      })
-    })
+    # Ensure a docker-container buildx builder exists (required for multi-platform).
+    if (!ensure_buildx_builder("starburst-builder")) {
+      stop(paste0(
+        "Could not create or access the 'starburst-builder' buildx builder, ",
+        "which is required for multi-platform (linux/amd64, linux/arm64) builds. ",
+        "Ensure Docker is running and that 'docker buildx' is available, then retry. ",
+        "Inspect builders with: docker buildx ls"
+      ))
+    }
 
     # Build and push multi-platform image (no cache for clean multi-platform build)
     safe_system(

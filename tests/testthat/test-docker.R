@@ -138,3 +138,103 @@ test_that("ensure_environment builds image if not exists", {
 
   expect_true(build_called)
 })
+
+test_that("ensure_buildx_builder uses existing builder without creating", {
+  skip_on_cran()
+  skip_if_not_installed("mockery")
+
+  calls <- list()
+  mockery::stub(ensure_buildx_builder, "safe_system",
+    function(command, args, ...) {
+      calls[[length(calls) + 1]] <<- args
+      # inspect succeeds -> builder already exists
+      invisible(list(status = 0))
+    })
+
+  result <- ensure_buildx_builder("starburst-builder")
+
+  expect_true(result)
+  # Exactly one call, and it is an inspect (no create)
+  expect_length(calls, 1)
+  expect_true(all(c("buildx", "inspect") %in% calls[[1]]))
+  expect_false(any(vapply(calls, function(a) "create" %in% a, logical(1))))
+})
+
+test_that("ensure_buildx_builder creates builder when missing", {
+  skip_on_cran()
+  skip_if_not_installed("mockery")
+
+  calls <- list()
+  mockery::stub(ensure_buildx_builder, "safe_system",
+    function(command, args, ...) {
+      calls[[length(calls) + 1]] <<- args
+      # The first call is the existence probe (inspect) -> fail = missing.
+      # Subsequent calls (create, confirming inspect) succeed.
+      is_first <- length(calls) == 1
+      if (is_first && "inspect" %in% args) {
+        stop("no builder named starburst-builder")
+      }
+      invisible(list(status = 0))
+    })
+
+  result <- ensure_buildx_builder("starburst-builder")
+
+  expect_true(result)
+  # Must have attempted a create with the docker-container driver
+  create_call <- Filter(function(a) "create" %in% a, calls)
+  expect_length(create_call, 1)
+  expect_true(all(c("--driver", "docker-container", "--bootstrap")
+                  %in% create_call[[1]]))
+  expect_true(all(c("--name", "starburst-builder") %in% create_call[[1]]))
+})
+
+test_that("ensure_buildx_builder returns FALSE when create fails", {
+  skip_on_cran()
+  skip_if_not_installed("mockery")
+
+  mockery::stub(ensure_buildx_builder, "safe_system",
+    function(command, args, ...) {
+      # Both the existence probe and the create attempt fail
+      stop("buildx error")
+    })
+
+  expect_false(ensure_buildx_builder("starburst-builder"))
+})
+
+test_that("build_environment_image aborts when builder is unusable", {
+  skip_on_cran()
+  skip_if_not_installed("mockery")
+
+  # Docker --version check passes; buildx build must never be reached.
+  mockery::stub(build_environment_image, "safe_system",
+    function(command, args, ...) {
+      if (any(grepl("--version", args))) {
+        return(list(status = 0, stdout = "Docker version 20.10.0"))
+      }
+      if (any(args == "build")) stop("buildx build must not be called")
+      list(status = 0)
+    })
+  mockery::stub(build_environment_image, "get_starburst_config",
+                function() list(aws_account_id = "123456789012"))
+  mockery::stub(build_environment_image, "ensure_base_image",
+                function(...) "mock-base-image:latest")
+  mockery::stub(build_environment_image, "file.exists", function(path) TRUE)
+  mockery::stub(build_environment_image, "jsonlite::fromJSON",
+                function(...) list(Packages = list()))
+  mockery::stub(build_environment_image, "jsonlite::write_json", function(...) invisible())
+  mockery::stub(build_environment_image, "file.copy", function(...) TRUE)
+  mockery::stub(build_environment_image, "readLines", function(...) "FROM {{BASE_IMAGE}}")
+  mockery::stub(build_environment_image, "writeLines", function(...) invisible())
+  mockery::stub(build_environment_image, "get_ecr_client",
+                function(...) list(get_authorization_token = function()
+                  list(authorizationData = list(list(
+                    authorizationToken = base64enc::base64encode(charToRaw("AWS:pw")),
+                    proxyEndpoint = "https://example")))))
+  # Builder cannot be made usable
+  mockery::stub(build_environment_image, "ensure_buildx_builder", function(...) FALSE)
+
+  expect_error(
+    build_environment_image("test-tag", "us-east-1"),
+    "starburst-builder"
+  )
+})
