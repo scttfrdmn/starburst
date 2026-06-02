@@ -105,6 +105,8 @@ jobs:
 
       - name: Run detached session tests
         if: github.event.inputs.test_suite == 'detached-sessions' || github.event.inputs.test_suite == 'all'
+        env:
+          RUN_INTEGRATION_TESTS: "TRUE"  # opt-in gate for tests that launch real Fargate workers
         run: |
           Rscript -e "
             devtools::load_all()
