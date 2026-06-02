@@ -434,9 +434,7 @@ parse_memory <- function(memory) {
   stop("memory must be numeric (GB) or string like '8GB'")
 }
 
-`%||%` <- function(a, b) {
-  if (is.null(a)) b else a
-}
+# `%||%` is defined in R/utils.R (single source of truth).
 
 #' staRburst Future Strategy
 #'

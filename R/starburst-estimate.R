@@ -323,25 +323,9 @@ print_estimate_summary <- function(pred, local_specs) {
   cat("\n")
 }
 
-#' Estimate Cost
-#'
-#' @keywords internal
-estimate_cost <- function(workers, cpu, memory, time_seconds) {
-  hours <- time_seconds / 3600
-
-  # Fargate pricing (us-east-1)
-  # TODO: Add region-specific pricing
-  vCPU_cost_per_hour <- 0.04048
-  memory_cost_per_gb_hour <- 0.004445
-
-  # Graviton pricing is 20% cheaper (if platform == "ARM64")
-  # For now, using x86 pricing (conservative)
-
-  cpu_cost <- workers * cpu * vCPU_cost_per_hour * hours
-  mem_cost <- workers * memory * memory_cost_per_gb_hour * hours
-
-  cpu_cost + mem_cost
-}
+# Note: estimate_cost() is defined in R/cost.R (single source of truth).
+# A scalar-returning variant previously lived here but was shadowed at load
+# time by the launch-type-aware version and all callers expect that one.
 
 #' Parse Memory String
 # Note: parse_memory() is defined in R/plan-starburst.R

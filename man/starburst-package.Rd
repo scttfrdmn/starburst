@@ -21,5 +21,10 @@ Useful links:
 \author{
 \strong{Maintainer}: Scott Friedman \email{help@starburst.ing}
 
+Authors:
+\itemize{
+  \item Scott Friedman \email{help@starburst.ing}
+}
+
 }
 \keyword{internal}
