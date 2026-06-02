@@ -14,7 +14,6 @@ Description: A 'future' backend that enables seamless execution of parallel R
 License: Apache License 2.0
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.3
 Depends:
     R (>= 4.0.0)
 Imports:
@@ -42,3 +41,4 @@ Suggests:
 VignetteBuilder: knitr
 URL: https://starburst.ing, https://github.com/scttfrdmn/starburst
 BugReports: https://github.com/scttfrdmn/starburst/issues
+Config/roxygen2/version: 8.0.0

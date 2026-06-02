@@ -4,6 +4,10 @@
 \alias{utils}
 \title{Utility functions for staRburst}
 \description{
-Utility functions for staRburst
+General-purpose helpers shared across the package. AWS-specific helpers live
+in dedicated files: \code{aws-clients.R} (service clients), \code{cost.R}
+(pricing), \code{images.R} (ECR/Docker), \code{task-definition.R} (ECS task
+defs), \code{network.R} (VPC), \code{task-registry.R} (task ARNs), and
+\code{s3-io.R} (S3 task/result transfer).
 }
 \keyword{internal}
