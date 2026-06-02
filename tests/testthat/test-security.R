@@ -121,30 +121,38 @@ test_that("plan() respects worker limits", {
 })
 
 test_that("Docker commands use safe_system not shell commands", {
-  # Read the utils.R file and check for unsafe patterns
-  utils_path <- system.file("R", "utils.R", package = "starburst")
+  # Scan all package R source files for unsafe shell patterns. Docker calls
+  # live in R/images.R; other AWS helpers are spread across several files, so
+  # we check the whole R/ directory rather than a single hard-coded file.
+  #
+  # Candidate locations, in order: the dev source tree (devtools::test()),
+  # the R CMD check unpacked source, and the installed package. The installed
+  # package's R/ holds only compiled .rdb/.rdx (no .R source), so we accept a
+  # directory only if it actually contains .R files.
+  candidate_dirs <- c(
+    "../../R",                       # From tests/testthat during devtools::test()
+    "../00_pkg_src/starburst/R",     # From R CMD check temp directory
+    system.file("R", package = "starburst")
+  )
 
-  # Try multiple paths if package file doesn't exist
-  if (!file.exists(utils_path) || nchar(utils_path) == 0) {
-    possible_paths <- c(
-      "../../R/utils.R",           # From tests/testthat during devtools::test()
-      "../00_pkg_src/starburst/R/utils.R"  # From R CMD check temp directory
-    )
-
-    for (path in possible_paths) {
-      if (file.exists(path)) {
-        utils_path <- path
+  r_files <- character(0)
+  for (dir in candidate_dirs) {
+    if (nzchar(dir) && dir.exists(dir)) {
+      found <- list.files(dir, pattern = "[.]R$", full.names = TRUE)
+      if (length(found) > 0) {
+        r_files <- found
         break
       }
     }
-
-    # Skip test if we can't find the file
-    if (!file.exists(utils_path)) {
-      skip("Cannot locate utils.R source file")
-    }
   }
 
-  utils_content <- readLines(utils_path)
+  # Skip if no R source is available (e.g. installed-package check, where the
+  # source has been compiled away and only .rdb/.rdx remain).
+  if (length(r_files) == 0) {
+    skip("Cannot locate package R source files")
+  }
+
+  r_content <- unlist(lapply(r_files, readLines, warn = FALSE))
 
   # Should NOT contain:
   # - system() with sprintf() building commands
@@ -160,18 +168,18 @@ test_that("Docker commands use safe_system not shell commands", {
   )
 
   for (pattern in dangerous_patterns) {
-    matches <- grep(pattern, utils_content, value = TRUE)
+    matches <- grep(pattern, r_content, value = TRUE)
     expect_equal(
       length(matches),
       0,
-      info = sprintf("Found unsafe pattern '%s' in utils.R:\n%s",
+      info = sprintf("Found unsafe pattern '%s' in package R source:\n%s",
                     pattern, paste(matches, collapse = "\n"))
     )
   }
 
-  # Should contain safe_system calls
+  # Should contain safe_system calls for Docker
   expect_true(
-    any(grepl('safe_system\\("docker"', utils_content)),
-    info = "utils.R should use safe_system() for Docker commands"
+    any(grepl('safe_system\\("docker"', r_content)),
+    info = "Package R source should use safe_system() for Docker commands"
   )
 })
