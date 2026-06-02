@@ -7,14 +7,7 @@
 #' @keywords internal
 NULL
 
-#' Get EC2 client
-#'
-#' @param region AWS region
-#' @return EC2 client
-#' @keywords internal
-get_ec2_client <- function(region) {
-  paws.compute::ec2(config = list(region = region))
-}
+# get_ec2_client() is defined in R/aws-clients.R (single source of truth).
 
 #' Get Auto Scaling client
 #'
