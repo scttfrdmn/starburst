@@ -30,6 +30,7 @@ resampling makes no such assumptions and provides more robust estimates.
 ## Setup
 
 ``` r
+
 library(starburst)
 ```
 
@@ -38,6 +39,7 @@ library(starburst)
 Create synthetic A/B test data:
 
 ``` r
+
 set.seed(42)
 
 # Variant A (control)
@@ -72,6 +74,7 @@ cat(sprintf("  Difference: %.2f%% (%.1f%% relative lift)\n",
 Define a function that performs one bootstrap iteration:
 
 ``` r
+
 bootstrap_iteration <- function(iter, data_a, data_b) {
   # Resample with replacement
   n_a <- length(data_a)
@@ -102,6 +105,7 @@ bootstrap_iteration <- function(iter, data_a, data_b) {
 Run a smaller bootstrap locally:
 
 ``` r
+
 n_bootstrap_local <- 1000
 
 cat(sprintf("Running %d bootstrap iterations locally...\n", n_bootstrap_local))
@@ -128,6 +132,7 @@ cat(sprintf("✓ Completed in %.2f seconds\n\n", local_time))
 Run 10,000 bootstrap iterations on AWS:
 
 ``` r
+
 n_bootstrap <- 10000
 
 cat(sprintf("Running %d bootstrap iterations on AWS...\n", n_bootstrap))
@@ -161,6 +166,7 @@ results <- starburst_map(
 Extract and analyze the bootstrap distribution:
 
 ``` r
+
 # Extract metrics
 diffs <- sapply(results, function(x) x$diff)
 relative_lifts <- sapply(results, function(x) x$relative_lift)
@@ -221,6 +227,7 @@ cat(sprintf("95%% CI for relative lift: [%.1f%%, %.1f%%]\n",
 Plot the bootstrap distribution:
 
 ``` r
+
 # Create histogram
 hist(diffs * 100,
      breaks = 50,
@@ -259,6 +266,7 @@ iterations - Can easily scale to 100,000+ iterations for more precision
 Bootstrap multiple metrics simultaneously:
 
 ``` r
+
 bootstrap_all_metrics <- function(iter, data_a, data_b) {
   n_a <- length(data_a)
   n_b <- length(data_b)
@@ -304,12 +312,14 @@ metrics with known distributions - Real-time analysis requirements
 The complete runnable script is available at:
 
 ``` r
+
 system.file("examples/bootstrap.R", package = "starburst")
 ```
 
 Run it with:
 
 ``` r
+
 source(system.file("examples/bootstrap.R", package = "starburst"))
 ```
 

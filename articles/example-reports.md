@@ -23,6 +23,7 @@ delivered by end of business day
 ## Setup
 
 ``` r
+
 library(starburst)
 library(rmarkdown)
 ```
@@ -32,6 +33,7 @@ library(rmarkdown)
 Create a simple RMarkdown template:
 
 ``` r
+
 # Create report template
 report_template <- '
 ---
@@ -121,6 +123,7 @@ writeLines(report_template, "report_template.Rmd")
 Create synthetic customer data:
 
 ``` r
+
 # Function to generate data for one customer
 generate_customer_data <- function(customer_id) {
   set.seed(customer_id)
@@ -161,6 +164,7 @@ head(customers)
 Define function to generate one report:
 
 ``` r
+
 generate_report <- function(customer_info) {
   customer_id <- customer_info$customer_id
   customer_name <- customer_info$customer_name
@@ -208,6 +212,7 @@ generate_report <- function(customer_info) {
 Test with a few reports locally:
 
 ``` r
+
 # Test with 5 reports
 test_customers <- head(customers, 5)
 
@@ -239,6 +244,7 @@ cat(sprintf("  Estimated time for %d reports: %.1f minutes\n\n",
 Render all reports in parallel:
 
 ``` r
+
 cat(sprintf("Rendering %d reports on AWS...\n", n_customers))
 
 # Convert data frame rows to list for starburst_map
@@ -271,6 +277,7 @@ results <- starburst_map(
 Analyze the generation results:
 
 ``` r
+
 # Check success rate
 success_count <- sum(sapply(results, function(x) x$success))
 failure_count <- sum(!sapply(results, function(x) x$success))
@@ -335,6 +342,7 @@ time savings - Can easily scale to 500+ reports
 Automatically distribute reports after generation:
 
 ``` r
+
 generate_and_distribute <- function(customer_info) {
   # Generate report
   result <- generate_report(customer_info)
@@ -377,12 +385,14 @@ Real-time reporting
 The complete runnable script is available at:
 
 ``` r
+
 system.file("examples/reports.R", package = "starburst")
 ```
 
 Run it with:
 
 ``` r
+
 source(system.file("examples/reports.R", package = "starburst"))
 ```
 

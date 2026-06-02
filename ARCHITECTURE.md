@@ -145,6 +145,7 @@ f <- future({ expensive_computation(x) })
 **Worker Execution**:
 
 ``` r
+
 # Worker container entrypoint
 main <- function() {
   # Get task info from environment
@@ -179,6 +180,7 @@ main()
 **Result Collection**:
 
 ``` r
+
 # value(future) implementation
 value.starburst <- function(future, ...) {
   # Poll for result
@@ -208,6 +210,7 @@ value.starburst <- function(future, ...) {
 **Proactive Checking**:
 
 ``` r
+
 plan.starburst <- function(workers, cpu, ...) {
   # Check quota before doing anything
   quota <- get_fargate_quota()
@@ -243,6 +246,7 @@ plan.starburst <- function(workers, cpu, ...) {
 **Wave Execution**:
 
 ``` r
+
 execute_with_waves <- function(tasks, plan) {
   results <- vector("list", length(tasks))
   completed <- 0
@@ -275,6 +279,7 @@ execute_with_waves <- function(tasks, plan) {
 **Estimation**:
 
 ``` r
+
 estimate_cost <- function(workers, cpu, memory, estimated_runtime_sec) {
   # Fargate pricing (us-east-1, as of 2025)
   vcpu_price_per_hour <- 0.04048
@@ -299,6 +304,7 @@ estimate_cost <- function(workers, cpu, memory, estimated_runtime_sec) {
 **Actual Tracking**:
 
 ``` r
+
 track_cost <- function(cluster_id) {
   # Query CloudWatch for actual runtime
   tasks <- list_tasks(cluster_id)
@@ -319,6 +325,7 @@ track_cost <- function(cluster_id) {
 **Worker Failures**:
 
 ``` r
+
 submit_task_with_retry <- function(task, max_retries = 3) {
   for (attempt in seq_len(max_retries)) {
     tryCatch({
@@ -336,6 +343,7 @@ submit_task_with_retry <- function(task, max_retries = 3) {
 **Partial Results**:
 
 ``` r
+
 # Save results as they complete
 collect_results_progressive <- function(futures) {
   results <- vector("list", length(futures))
@@ -360,6 +368,7 @@ collect_results_progressive <- function(futures) {
 ### Serialization Strategy
 
 ``` r
+
 # Choose serialization based on object type
 serialize_smart <- function(obj) {
   if (is.data.frame(obj) && nrow(obj) > 10000) {
@@ -378,6 +387,7 @@ serialize_smart <- function(obj) {
 ### S3 Upload Optimization
 
 ``` r
+
 # Parallel multipart upload for large objects
 upload_to_s3 <- function(file, bucket, key) {
   file_size <- file.size(file)
@@ -412,6 +422,7 @@ to containers
 **CloudWatch Logs**:
 
 ``` r
+
 # View worker logs
 starburst_logs(task_id = "12345")
 starburst_logs(cluster_id = "cluster-67890", last_n = 100)
@@ -420,6 +431,7 @@ starburst_logs(cluster_id = "cluster-67890", last_n = 100)
 **Task Status**:
 
 ``` r
+
 # Check running tasks
 starburst_status()
 # > 3 workers running
@@ -431,6 +443,7 @@ starburst_status()
 **Debug Mode**:
 
 ``` r
+
 # Keep workers alive for debugging
 plan(future_starburst, workers = 1, debug = TRUE)
 # Workers stay alive, can SSH via AWS Session Manager
@@ -463,6 +476,7 @@ increase, linear overhead with waves
 ### GPU Support (v1.1)
 
 ``` r
+
 plan(future_starburst, 
      workers = 10, 
      gpu = "nvidia-t4",  # Triggers EC2 instead of Fargate
@@ -475,6 +489,7 @@ model.
 ### Spot Instances (v1.1)
 
 ``` r
+
 plan(future_starburst,
      workers = 100,
      spot = TRUE,  # Use spot instances
@@ -487,6 +502,7 @@ checkpointing.
 ### EMR Integration (v1.2)
 
 ``` r
+
 plan(future_starburst_spark,
      workers = 20,
      spark_config = list(

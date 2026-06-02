@@ -20,3 +20,7 @@ Useful links:
 ## Author
 
 **Maintainer**: Scott Friedman <help@starburst.ing>
+
+Authors:
+
+- Scott Friedman <help@starburst.ing>

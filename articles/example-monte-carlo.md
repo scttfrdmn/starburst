@@ -24,6 +24,7 @@ asset returns.
 ## Setup
 
 ``` r
+
 library(starburst)
 library(ggplot2)
 ```
@@ -33,6 +34,7 @@ library(ggplot2)
 Define a function that simulates one portfolio trajectory:
 
 ``` r
+
 simulate_portfolio <- function(seed) {
   set.seed(seed)
 
@@ -91,6 +93,7 @@ simulate_portfolio <- function(seed) {
 Run a smaller test locally:
 
 ``` r
+
 # Test with 100 simulations
 set.seed(123)
 local_start <- Sys.time()
@@ -114,6 +117,7 @@ For 10,000 simulations locally: **~3.8 minutes**
 Run all 10,000 simulations on AWS:
 
 ``` r
+
 # Run 10,000 simulations on 50 workers
 results <- starburst_map(
   1:10000,
@@ -142,6 +146,7 @@ results <- starburst_map(
 Extract and analyze the results:
 
 ``` r
+
 # Extract metrics
 final_values <- sapply(results, function(x) x$final_value)
 returns <- sapply(results, function(x) x$return_pct)
@@ -222,12 +227,14 @@ transfer per iteration - Strong sequential dependencies
 The complete runnable script is available at:
 
 ``` r
+
 system.file("examples/monte-carlo.R", package = "starburst")
 ```
 
 Run it with:
 
 ``` r
+
 source(system.file("examples/monte-carlo.R", package = "starburst"))
 ```
 

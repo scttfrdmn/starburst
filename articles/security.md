@@ -12,6 +12,7 @@ staRburst in production environments.
 **Never** hard-code AWS credentials in your code:
 
 ``` r
+
 # NEVER DO THIS - credentials exposed in code
 Sys.setenv(
   AWS_ACCESS_KEY_ID = "AKIA...",
@@ -28,6 +29,7 @@ exposes credentials
 When running on AWS infrastructure (EC2, ECS, Lambda):
 
 ``` r
+
 # No credentials needed - automatically uses instance/task IAM role
 library(starburst)
 plan(starburst, workers = 10)
@@ -46,6 +48,7 @@ uses role credentials
 For local development, use AWS CLI profiles:
 
 ``` r
+
 # Credentials stored in ~/.aws/credentials
 Sys.setenv(AWS_PROFILE = "my-starburst-profile")
 
@@ -65,6 +68,7 @@ aws configure --profile my-starburst-profile
 For cross-account access or enhanced security:
 
 ``` r
+
 library(paws.security.identity)
 sts <- paws.security.identity::sts()
 
@@ -126,6 +130,7 @@ Create an IAM policy for staRburst workers:
 Encrypt data at rest in S3:
 
 ``` r
+
 # Option 1: Enable default encryption via AWS Console or CLI
 library(paws.storage)
 s3 <- paws.storage::s3()
@@ -155,6 +160,7 @@ apply) - **aws:kms:dsse** - Dual-layer encryption for compliance
 Protect against accidental deletion:
 
 ``` r
+
 s3$put_bucket_versioning(
   Bucket = "my-starburst-bucket",
   VersioningConfiguration = list(
@@ -171,6 +177,7 @@ versions - Required for certain compliance frameworks
 Ensure bucket is never publicly accessible:
 
 ``` r
+
 s3$put_public_access_block(
   Bucket = "my-starburst-bucket",
   PublicAccessBlockConfiguration = list(
@@ -225,6 +232,7 @@ Restrict access to specific IAM roles:
 Deploy workers in private subnets without internet access:
 
 ``` r
+
 library(starburst)
 
 # Configure to use private subnets
@@ -329,6 +337,7 @@ Create AWS Budget to monitor staRburst costs:
 staRburst enforces maximum 500 workers per plan:
 
 ``` r
+
 # This will error - prevents accidental huge deployments
 plan(starburst, workers = 10000)
 # Error: Workers must be <= 500
@@ -342,6 +351,7 @@ plan(starburst, workers = 500)
 Regularly check for orphaned sessions:
 
 ``` r
+
 # List all sessions
 sessions <- starburst_list_sessions()
 print(sessions)
@@ -363,6 +373,7 @@ for (session_id in sessions$session_id) {
 Prevent sessions from running indefinitely:
 
 ``` r
+
 # Session auto-terminates after 24 hours
 session <- starburst_session(
   workers = 10,
@@ -375,6 +386,7 @@ session <- starburst_session(
 Before launching large jobs:
 
 ``` r
+
 # Estimate cost
 workers <- 100
 cpu <- 4
@@ -418,6 +430,7 @@ staRburst automatically logs to CloudWatch:
 Increase retention for compliance:
 
 ``` r
+
 library(paws.management)
 logs <- paws.management::cloudwatchlogs()
 
@@ -432,6 +445,7 @@ logs$put_retention_policy(
 Track all S3 bucket access:
 
 ``` r
+
 s3$put_bucket_logging(
   Bucket = "my-starburst-bucket",
   BucketLoggingStatus = list(
@@ -451,6 +465,7 @@ accessed - What operations were performed - Source IP addresses
 Regularly review logs for suspicious activity:
 
 ``` r
+
 # CloudWatch Insights query for failed authentications
 library(paws.management)
 logs <- paws.management::cloudwatchlogs()
@@ -478,6 +493,7 @@ result <- logs$start_query(
 Only send necessary data to workers:
 
 ``` r
+
 # ✅ Good - only send needed data
 large_data <- read.csv("huge_dataset.csv")
 sample_data <- large_data[1:1000, ]  # Use sample for testing
@@ -498,6 +514,7 @@ results <- future_map(1:10, function(i) {
 #### Delete Results After Collection
 
 ``` r
+
 # Collect and immediately delete from S3
 session <- starburst_session(workers = 10)
 task_id <- session$submit(quote(sensitive_computation()))
@@ -517,6 +534,7 @@ saveRDS(results, "local_results.rds")
 For highly sensitive data:
 
 ``` r
+
 # Encrypt before upload
 library(sodium)
 
@@ -552,6 +570,7 @@ staRburst uses multi-stage builds to minimize image size:
 Enable ECR image scanning:
 
 ``` r
+
 library(paws.compute)
 ecr <- paws.compute::ecr()
 
@@ -568,6 +587,7 @@ ecr$put_image_scanning_configuration(
 Automatically delete old images:
 
 ``` r
+
 # Delete images older than 30 days
 ecr$put_lifecycle_policy(
   repositoryName = "starburst-worker",
@@ -634,6 +654,7 @@ resources** created by attacker 4. **Terminate suspicious ECS tasks** 5.
 **Review S3 bucket access logs**
 
 ``` r
+
 # List all active sessions
 sessions <- starburst_list_sessions()
 

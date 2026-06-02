@@ -24,6 +24,7 @@ execution would take 8-30 minutes.
 ## Setup
 
 ``` r
+
 library(starburst)
 library(httr)
 library(jsonlite)
@@ -34,6 +35,7 @@ library(jsonlite)
 Define a function that fetches data for one company:
 
 ``` r
+
 fetch_company_data <- function(ticker) {
   # Add small delay to respect rate limits
   Sys.sleep(runif(1, 0.1, 0.3))
@@ -98,6 +100,7 @@ Since we need a real API for testing, let’s create a mock function that
 simulates API behavior:
 
 ``` r
+
 # Mock function that simulates API with realistic delays
 fetch_company_data_mock <- function(ticker) {
   # Simulate network latency
@@ -133,6 +136,7 @@ fetch_company_data_mock <- function(ticker) {
 Create a list of 1,000 company tickers:
 
 ``` r
+
 # Generate mock ticker symbols
 set.seed(123)
 n_companies <- 1000
@@ -151,6 +155,7 @@ head(tickers)
 Run sequentially on local machine:
 
 ``` r
+
 cat(sprintf("Fetching data for %d companies locally...\n", length(tickers)))
 
 local_start <- Sys.time()
@@ -173,6 +178,7 @@ cat(sprintf("  Estimated time for %d: %.1f minutes\n",
 Run all 1,000 API calls in parallel:
 
 ``` r
+
 cat(sprintf("Fetching data for %d companies on AWS...\n", n_companies))
 
 results <- starburst_map(
@@ -202,6 +208,7 @@ results <- starburst_map(
 Analyze the fetched data:
 
 ``` r
+
 # Convert results to data frame
 results_df <- do.call(rbind, lapply(results, function(x) {
   if (x$success) {
@@ -278,6 +285,7 @@ computation time - Automatic retries handle transient failures
 When working with real APIs:
 
 ``` r
+
 # Add jitter to respect rate limits
 fetch_with_rate_limit <- function(ticker, rate_limit = 100) {
   # Add delay based on rate limit (calls per minute)
@@ -302,6 +310,7 @@ Adjust workers to stay under limit
 ## Error Handling Best Practices
 
 ``` r
+
 fetch_with_retry <- function(ticker, max_retries = 3) {
   for (attempt in 1:max_retries) {
     result <- fetch_company_data(ticker)
@@ -337,12 +346,14 @@ call)
 The complete runnable script is available at:
 
 ``` r
+
 system.file("examples/api-calls.R", package = "starburst")
 ```
 
 Run it with:
 
 ``` r
+
 source(system.file("examples/api-calls.R", package = "starburst"))
 ```
 

@@ -32,6 +32,7 @@ This takes ~0.5 seconds per scenario = **95 minutes** sequentially.
 ## Setup
 
 ``` r
+
 library(starburst)
 ```
 
@@ -40,6 +41,7 @@ library(starburst)
 Create a synthetic multi-asset portfolio:
 
 ``` r
+
 set.seed(3141)
 
 # Define portfolio positions
@@ -100,6 +102,7 @@ for (ac in unique(portfolio$asset_class)) {
 Define functions to generate different types of risk scenarios:
 
 ``` r
+
 # Generate stress test scenarios
 generate_stress_scenarios <- function(n_scenarios = 100) {
   scenarios <- list()
@@ -176,6 +179,7 @@ generate_sensitivity_scenarios <- function() {
 Define a function that values the portfolio under a scenario:
 
 ``` r
+
 value_portfolio_scenario <- function(scenario, portfolio_data) {
   # Simulate computation time
   Sys.sleep(0.001)
@@ -231,6 +235,7 @@ value_portfolio_scenario <- function(scenario, portfolio_data) {
 Test risk calculations locally on a small sample:
 
 ``` r
+
 # Generate sample scenarios
 test_stress <- generate_stress_scenarios(n_scenarios = 20)
 test_mc <- generate_mc_scenarios(n_scenarios = 100)
@@ -266,6 +271,7 @@ For 10,000 scenarios locally: **~12 minutes**
 Run comprehensive risk analysis in parallel:
 
 ``` r
+
 # Generate full scenario set
 cat("Generating scenario sets...\n")
 stress_scenarios <- generate_stress_scenarios(n_scenarios = 100)
@@ -327,6 +333,7 @@ cat(sprintf("\n✓ Completed in %.2f minutes\n", cloud_time))
 Calculate comprehensive risk metrics:
 
 ``` r
+
 # Extract P&L from all scenarios
 pnl_values <- sapply(results, function(x) x$total_pnl)
 return_values <- sapply(results, function(x) x$portfolio_return)
@@ -466,6 +473,7 @@ large portfolios - Can scale to 100,000+ scenarios for more precision
 Analyze marginal risk contribution of each position:
 
 ``` r
+
 # For each position, calculate VaR with and without it
 analyze_incremental_risk <- function(position_idx, scenarios, portfolio_data) {
   # Create modified portfolio without this position
@@ -514,12 +522,14 @@ Portfolios with strong path dependencies
 The complete runnable script is available at:
 
 ``` r
+
 system.file("examples/risk-modeling.R", package = "starburst")
 ```
 
 Run it with:
 
 ``` r
+
 source(system.file("examples/risk-modeling.R", package = "starburst"))
 ```
 

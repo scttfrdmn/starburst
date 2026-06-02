@@ -29,6 +29,7 @@ ID allows independent processing.
 ## Setup
 
 ``` r
+
 library(starburst)
 library(dplyr)
 ```
@@ -38,6 +39,7 @@ library(dplyr)
 Create synthetic transaction data:
 
 ``` r
+
 set.seed(123)
 
 # Generate 100,000 transactions for 5,000 customers
@@ -75,6 +77,7 @@ cat(sprintf("Date range: %s to %s\n",
 Define a function that computes features for a set of customers:
 
 ``` r
+
 engineer_features <- function(customer_ids, transactions_data) {
   # Filter to specified customers
   customer_data <- transactions_data[transactions_data$customer_id %in% customer_ids, ]
@@ -163,6 +166,7 @@ engineer_features <- function(customer_ids, transactions_data) {
 Test feature engineering locally on a subset:
 
 ``` r
+
 # Process 500 customers locally
 set.seed(456)
 sample_customers <- sample(unique(transactions$customer_id), 500)
@@ -195,6 +199,7 @@ For all 5,000 customers locally: **~38 seconds**
 Process all customers in parallel on AWS:
 
 ``` r
+
 # Split customers into chunks
 all_customers <- unique(transactions$customer_id)
 n_workers <- 20
@@ -246,6 +251,7 @@ features <- do.call(rbind, results)
 Examine the engineered features:
 
 ``` r
+
 cat("\n=== Feature Engineering Results ===\n\n")
 cat(sprintf("Total customers processed: %s\n",
             format(nrow(features), big.mark = ",")))
@@ -336,6 +342,7 @@ workers
 Extend the feature function for machine learning:
 
 ``` r
+
 engineer_ml_features <- function(customer_ids, transactions_data) {
   base_features <- engineer_features(customer_ids, transactions_data)
 
@@ -386,12 +393,14 @@ groups) - Real-time single-record scoring
 The complete runnable script is available at:
 
 ``` r
+
 system.file("examples/feature-engineering.R", package = "starburst")
 ```
 
 Run it with:
 
 ``` r
+
 source(system.file("examples/feature-engineering.R", package = "starburst"))
 ```
 

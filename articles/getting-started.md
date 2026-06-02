@@ -9,6 +9,7 @@ usage patterns.
 ### Installation
 
 ``` r
+
 # Install from GitHub
 remotes::install_github("yourname/starburst")
 ```
@@ -19,6 +20,7 @@ Before using staRburst, you need to configure AWS resources. This only
 needs to be done once.
 
 ``` r
+
 library(starburst)
 
 # Interactive setup wizard (takes ~2 minutes)
@@ -35,6 +37,7 @@ increases
 The simplest way to use staRburst is with the `furrr` package:
 
 ``` r
+
 library(furrr)
 library(starburst)
 
@@ -71,6 +74,7 @@ identical(results_local, results_cloud)
 ### Example 1: Monte Carlo Simulation
 
 ``` r
+
 library(starburst)
 library(furrr)
 
@@ -108,6 +112,7 @@ quantile(final_values, c(0.025, 0.975))
 ### Example 2: Bootstrap Resampling
 
 ``` r
+
 library(starburst)
 library(furrr)
 
@@ -142,6 +147,7 @@ apply(boot_coefs, 2, quantile, probs = c(0.025, 0.975))
 ### Example 3: Genomics Pipeline
 
 ``` r
+
 library(starburst)
 library(furrr)
 
@@ -186,6 +192,7 @@ all_variants <- do.call(rbind, lapply(results, `[[`, "variants"))
 If your data is already in S3, workers can read it directly:
 
 ``` r
+
 plan(future_starburst, workers = 50)
 
 results <- future_map(file_list, function(file) {
@@ -200,6 +207,7 @@ results <- future_map(file_list, function(file) {
 For smaller datasets, you can pass data as arguments:
 
 ``` r
+
 # Load data locally
 data <- read.csv("local_file.csv")
 
@@ -217,6 +225,7 @@ results <- future_map(1:1000, function(i) {
 For very large objects, pre-upload to S3:
 
 ``` r
+
 # Upload once
 large_data <- read.csv("huge_file.csv")
 s3_path <- starburst_upload(large_data, "s3://my-bucket/large_data.rds")
@@ -236,6 +245,7 @@ results <- future_map(1:1000, function(i) {
 #### Estimate Costs
 
 ``` r
+
 # Check cost before running
 plan(future_starburst, workers = 100, cpu = 4, memory = "8GB")
 #> Estimated cost: ~$3.50/hour
@@ -244,6 +254,7 @@ plan(future_starburst, workers = 100, cpu = 4, memory = "8GB")
 #### Set Cost Limits
 
 ``` r
+
 # Set maximum cost per job
 starburst_config(
   max_cost_per_job = 10,      # Don't start jobs that would cost >$10
@@ -258,6 +269,7 @@ plan(future_starburst, workers = 1000)  # Would cost ~$35/hour
 #### Track Actual Costs
 
 ``` r
+
 plan(future_starburst, workers = 50)
 
 results <- future_map(data, process)
@@ -271,6 +283,7 @@ results <- future_map(data, process)
 #### Check Your Quota
 
 ``` r
+
 starburst_quota_status()
 #> Fargate vCPU Quota: 100 / 100 used
 #> Allows: ~25 workers with 4 vCPUs each
@@ -281,6 +294,7 @@ starburst_quota_status()
 #### Request Quota Increase
 
 ``` r
+
 starburst_request_quota_increase(vcpus = 500)
 #> Requesting Fargate vCPU quota increase:
 #>   Current: 100 vCPUs
@@ -296,6 +310,7 @@ If you request more workers than your quota allows, staRburst
 automatically uses wave-based execution:
 
 ``` r
+
 # Quota allows 25 workers, but you request 100
 plan(future_starburst, workers = 100, cpu = 4)
 
@@ -323,6 +338,7 @@ results <- future_map(1:1000, expensive_function)
 #### View Worker Logs
 
 ``` r
+
 # View logs from most recent cluster
 starburst_logs()
 
@@ -336,6 +352,7 @@ starburst_logs(last_n = 100)
 #### Check Cluster Status
 
 ``` r
+
 starburst_status()
 #> Active Clusters:
 #>   • starburst-xyz123: 50 workers running
@@ -347,6 +364,7 @@ starburst_status()
 **Environment mismatch**: Packages not found on workers
 
 ``` r
+
 # Rebuild environment
 starburst_rebuild_environment()
 ```
@@ -354,6 +372,7 @@ starburst_rebuild_environment()
 **Task failures**: Some tasks failing
 
 ``` r
+
 # Check logs
 starburst_logs(task_id = "failed-task-id")
 
@@ -364,6 +383,7 @@ plan(future_starburst, workers = 50, memory = "16GB")  # Default is 8GB
 **Slow data transfer**: Large objects taking too long
 
 ``` r
+
 # Use Arrow for data frames
 library(arrow)
 write_parquet(my_data, "s3://bucket/data.parquet")
@@ -382,6 +402,7 @@ results <- future_map(1:100, function(i) {
 ✅ **Good**: Each task takes \>5 minutes
 
 ``` r
+
 # 100 tasks, each takes 10 minutes
 # Local: 1000 minutes, Cloud: ~10 minutes
 ```
@@ -389,6 +410,7 @@ results <- future_map(1:100, function(i) {
 ❌ **Bad**: Each task takes \<1 minute
 
 ``` r
+
 # 10000 tasks, each takes 30 seconds
 # Startup overhead (45s) dominates
 ```
@@ -398,6 +420,7 @@ results <- future_map(1:100, function(i) {
 Instead of:
 
 ``` r
+
 # 10,000 tiny tasks
 results <- future_map(1:10000, small_function)
 ```
@@ -405,6 +428,7 @@ results <- future_map(1:10000, small_function)
 Do:
 
 ``` r
+
 # 100 batches of 100 tasks each
 batches <- split(1:10000, ceiling(seq_along(1:10000) / 100))
 
@@ -421,6 +445,7 @@ results <- unlist(results, recursive = FALSE)
 Don’t:
 
 ``` r
+
 big_data <- read.csv("10GB_file.csv")  # Upload for every task
 results <- future_map(1:1000, function(i) process(big_data, i))
 ```
@@ -428,6 +453,7 @@ results <- future_map(1:1000, function(i) process(big_data, i))
 Do:
 
 ``` r
+
 # Upload once to S3
 s3_path <- "s3://bucket/big_data.csv"
 write.csv(big_data, s3_path)
@@ -442,6 +468,7 @@ results <- future_map(1:1000, function(i) {
 #### 4. Set Reasonable Limits
 
 ``` r
+
 starburst_config(
   max_cost_per_job = 50,           # Prevent accidents
   cost_alert_threshold = 25        # Get warned early
@@ -451,6 +478,7 @@ starburst_config(
 #### 5. Clean Up
 
 ``` r
+
 # staRburst auto-cleans, but you can force it
 plan(sequential)  # Switch back to local
 # Old cluster resources are cleaned up automatically
@@ -461,6 +489,7 @@ plan(sequential)  # Switch back to local
 #### CPU and Memory
 
 ``` r
+
 # High CPU, low memory (CPU-bound work)
 plan(future_starburst, workers = 50, cpu = 8, memory = "16GB")
 
@@ -471,6 +500,7 @@ plan(future_starburst, workers = 25, cpu = 4, memory = "32GB")
 #### Timeout
 
 ``` r
+
 # Increase timeout for long-running tasks (default 1 hour)
 plan(future_starburst, workers = 10, timeout = 7200)  # 2 hours
 ```
@@ -478,6 +508,7 @@ plan(future_starburst, workers = 10, timeout = 7200)  # 2 hours
 #### Region
 
 ``` r
+
 # Use specific region (default from config)
 plan(future_starburst, workers = 50, region = "us-west-2")
 ```

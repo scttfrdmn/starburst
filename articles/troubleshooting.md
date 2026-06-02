@@ -17,6 +17,7 @@ staRburst automatically sends worker logs to CloudWatch Logs:
 #### Viewing Logs in R
 
 ``` r
+
 # For ephemeral mode
 library(starburst)
 plan(starburst, workers = 10)
@@ -55,6 +56,7 @@ in status - Tasks remain in pending state for \>5 minutes
 **Diagnosis:**
 
 ``` r
+
 # Check Fargate quota
 config <- get_starburst_config()
 sts <- paws.security.identity::sts()
@@ -83,6 +85,7 @@ account <- sts$get_caller_identity()
 **Solutions:**
 
 ``` r
+
 # Solution 1: Request quota increase
 # Go to AWS Console → Service Quotas → AWS Fargate
 # Request vCPUs quota increase to 100+
@@ -109,6 +112,7 @@ exit
 **Diagnosis:**
 
 ``` r
+
 # View CloudWatch logs for the failed task
 # Look for error messages in the logs
 
@@ -129,6 +133,7 @@ exit
 **Solutions:**
 
 ``` r
+
 # Solution 1: Verify S3 permissions
 # Check task role has S3 access:
 # IAM → Roles → starburstECSTaskRole → Permissions
@@ -156,6 +161,7 @@ plan(starburst,
 **Diagnosis:**
 
 ``` r
+
 # Check which operation is failing:
 # 1. Docker push → ECR permissions
 # 2. S3 operations → S3 permissions
@@ -178,6 +184,7 @@ print(identity)  # Should show your AWS account
 **Solutions:**
 
 ``` r
+
 # Solution 1: Configure AWS credentials
 # Option A: Environment variables
 Sys.setenv(
@@ -213,6 +220,7 @@ you expected them to stop - Old sessions still have active workers
 **Diagnosis:**
 
 ``` r
+
 # List all active sessions
 library(starburst)
 sessions <- starburst_list_sessions()
@@ -230,6 +238,7 @@ print(sessions)
 **Solutions:**
 
 ``` r
+
 # Solution 1: Cleanup all sessions
 sessions <- starburst_list_sessions()
 for (session_id in sessions$session_id) {
@@ -260,6 +269,7 @@ S3 files not deleted - Tasks still appearing in ECS console
 **Diagnosis:**
 
 ``` r
+
 # Check if cleanup was called with correct parameters
 session$cleanup(stop_workers = TRUE, force = TRUE)
 
@@ -283,6 +293,7 @@ print(tasks$taskArns)  # Should be empty or not include your tasks
 **Solutions:**
 
 ``` r
+
 # Solution 1: Always use both flags for full cleanup
 session$cleanup(stop_workers = TRUE, force = TRUE)
 
@@ -317,6 +328,7 @@ result <- s3$list_objects_v2(Bucket = "your-bucket", Prefix = "sessions/")
 **Diagnosis:**
 
 ``` r
+
 # Check session status
 status <- session$status()
 print(status)
@@ -342,6 +354,7 @@ print(result$Contents)  # Should show .qs files
 **Solutions:**
 
 ``` r
+
 # Solution 1: Check task status for errors
 status <- session$status()
 if (status$failed_tasks > 0) {
@@ -373,6 +386,7 @@ closing R
 **Diagnosis:**
 
 ``` r
+
 # List all sessions to find your session ID
 sessions <- starburst_list_sessions()
 print(sessions)
@@ -392,6 +406,7 @@ session <- starburst_session_attach(session_id)
 **Solutions:**
 
 ``` r
+
 # Solution 1: List and copy exact session ID
 sessions <- starburst_list_sessions()
 session_id <- sessions$session_id[1]  # Use exact ID
@@ -434,6 +449,7 @@ patterns:
 **Solutions:**
 
 ``` r
+
 # Solution 1: Add system dependencies to Dockerfile.base
 # Edit starburst package Dockerfile.base template:
 # Add RUN apt-get install -y libcurl4-openssl-dev
@@ -454,6 +470,7 @@ install.packages("package")  # Test locally first
 #### Checking ECS Task Status
 
 ``` r
+
 library(paws.compute)
 ecs <- paws.compute::ecs(config = list(region = "us-east-1"))
 
@@ -477,6 +494,7 @@ print(task_detail$tasks[[1]]$stoppedReason)
 #### Monitoring S3 Storage
 
 ``` r
+
 library(paws.storage)
 s3 <- paws.storage::s3(config = list(region = "us-east-1"))
 
@@ -495,6 +513,7 @@ cat(sprintf("Total storage: %.2f MB\n", total_mb))
 #### Estimating Costs
 
 ``` r
+
 # Fargate pricing (us-east-1, 2026):
 # - vCPU: $0.04048 per hour
 # - Memory: $0.004445 per GB-hour

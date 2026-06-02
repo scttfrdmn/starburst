@@ -21,6 +21,7 @@ For analyses that take hours or days:
 #### Creating a Session
 
 ``` r
+
 library(starburst)
 
 # Create a detached session
@@ -47,6 +48,7 @@ print(session_id)  # "session-abc123..."
 #### Checking Status
 
 ``` r
+
 # Check progress anytime
 status <- session$status()
 print(status)
@@ -62,6 +64,7 @@ print(status)
 #### Collecting Results
 
 ``` r
+
 # Collect completed results (non-blocking)
 results <- session$collect(wait = FALSE)
 length(results)  # 60 (only completed so far)
@@ -76,6 +79,7 @@ length(results)  # 100 (all tasks)
 Close R and come back later:
 
 ``` r
+
 # Session 1: Start work
 session <- starburst_session(workers = 20)
 lapply(1:1000, function(i) session$submit(quote(slow_computation(i))))
@@ -94,6 +98,7 @@ results <- session$collect()
 #### List All Sessions
 
 ``` r
+
 sessions <- starburst_list_sessions()
 print(sessions)
 #   session_id         created_at           last_activity        total_tasks pending running completed failed
@@ -104,6 +109,7 @@ print(sessions)
 #### Extend Timeout
 
 ``` r
+
 # Extend session timeout by 1 hour
 session$extend(seconds = 3600)
 ```
@@ -111,6 +117,7 @@ session$extend(seconds = 3600)
 #### Cleanup
 
 ``` r
+
 # Terminate workers and mark session complete
 session$cleanup()
 ```
@@ -122,6 +129,7 @@ session$cleanup()
 For better price/performance:
 
 ``` r
+
 session <- starburst_session(
   workers = 50,
   launch_type = "EC2",
@@ -133,6 +141,7 @@ session <- starburst_session(
 #### Error Handling
 
 ``` r
+
 # Tasks that fail are tracked
 session <- starburst_session(workers = 5)
 
@@ -162,6 +171,7 @@ print(failed_task$message)
 Collect results as they complete:
 
 ``` r
+
 session <- starburst_session(workers = 10)
 
 # Submit mix of fast and slow tasks
@@ -221,6 +231,7 @@ coordination requirements
 #### Resource Management
 
 ``` r
+
 # Start with fewer workers, let them process queue
 session <- starburst_session(workers = 5)
 
@@ -239,6 +250,7 @@ lapply(1:1000, function(i) session$submit(quote(work(i))))
 4.  **Clean up sessions** when done
 
 ``` r
+
 # Cost-effective setup
 session <- starburst_session(
   workers = 20,
@@ -252,20 +264,21 @@ session <- starburst_session(
 
 ### Comparison: Ephemeral vs Detached
 
-| Feature             | Ephemeral (`plan(starburst)`) | Detached ([`starburst_session()`](https://starburst.ing/reference/starburst_session.md)) |
-|---------------------|-------------------------------|------------------------------------------------------------------------------------------|
-| R session required  | Yes - must stay open          | No - can close and reattach                                                              |
-| State persistence   | In-memory only                | S3-backed                                                                                |
-| Max duration        | R session lifetime            | Days (configurable)                                                                      |
-| Progress monitoring | Local variables               | `session$status()`                                                                       |
-| Worker behavior     | One task per worker           | Workers poll for tasks                                                                   |
-| Best for            | Quick parallel jobs           | Long-running analyses                                                                    |
+| Feature | Ephemeral (`plan(starburst)`) | Detached ([`starburst_session()`](https://starburst.ing/reference/starburst_session.md)) |
+|----|----|----|
+| R session required | Yes - must stay open | No - can close and reattach |
+| State persistence | In-memory only | S3-backed |
+| Max duration | R session lifetime | Days (configurable) |
+| Progress monitoring | Local variables | `session$status()` |
+| Worker behavior | One task per worker | Workers poll for tasks |
+| Best for | Quick parallel jobs | Long-running analyses |
 
 ### Troubleshooting
 
 #### Session Not Found
 
 ``` r
+
 # Error: Session not found: session-xyz
 # - Check session ID is correct
 # - Verify region matches (use region parameter)
@@ -275,6 +288,7 @@ session <- starburst_session(
 #### No Results After Long Wait
 
 ``` r
+
 # Check session status
 status <- session$status()
 
@@ -287,6 +301,7 @@ status <- session$status()
 #### Workers Terminating Too Soon
 
 ``` r
+
 # Workers exit after 5 min idle by default
 # For sporadic task submission, relaunch workers periodically
 # (Auto-scaling based on pending tasks coming in future release)
@@ -297,6 +312,7 @@ status <- session$status()
 #### Genomics Pipeline
 
 ``` r
+
 library(starburst)
 
 # Process 1000 samples overnight
@@ -330,6 +346,7 @@ results <- session$collect(wait = TRUE)
 #### Monte Carlo Simulation
 
 ``` r
+
 # Run 10,000 simulations
 session <- starburst_session(workers = 50)
 

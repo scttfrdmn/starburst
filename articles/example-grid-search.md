@@ -28,6 +28,7 @@ sequential computation.
 ## Setup
 
 ``` r
+
 library(starburst)
 ```
 
@@ -36,6 +37,7 @@ library(starburst)
 Create a synthetic classification dataset:
 
 ``` r
+
 set.seed(2024)
 
 # Generate features
@@ -79,6 +81,7 @@ cat(sprintf("  Class balance: %.1f%% / %.1f%%\n",
 Create all hyperparameter combinations:
 
 ``` r
+
 # Define parameter space
 param_grid <- expand.grid(
   learning_rate = c(0.01, 0.05, 0.1),
@@ -104,6 +107,7 @@ cat(sprintf("  With 5-fold CV: %d model fits\n\n", nrow(param_grid) * 5))
 Define a function that trains and evaluates one parameter combination:
 
 ``` r
+
 # Simple gradient boosting implementation (for demonstration)
 # In practice, use xgboost, lightgbm, or other optimized libraries
 train_gbm <- function(X, y, params, n_trees = 50) {
@@ -181,6 +185,7 @@ cv_evaluate <- function(param_row, X_data, y_data, n_folds = 5) {
 Test grid search locally on a small subset:
 
 ``` r
+
 # Test with 10 parameter combinations
 set.seed(999)
 sample_params <- param_grid[sample(1:nrow(param_grid), 10), ]
@@ -216,6 +221,7 @@ For full grid search locally: **~34 minutes**
 Run the complete grid search in parallel on AWS:
 
 ``` r
+
 n_workers <- 27  # Process ~3 parameter combinations per worker
 
 cat(sprintf("Running grid search (%d combinations) on %d workers...\n",
@@ -254,6 +260,7 @@ cat(sprintf("\n✓ Completed in %.2f minutes\n", cloud_time))
 Find the best hyperparameters:
 
 ``` r
+
 # Extract results
 cv_scores <- sapply(results, function(x) x$mean_cv_score)
 cv_stds <- sapply(results, function(x) x$std_cv_score)
@@ -393,6 +400,7 @@ exploration of much larger parameter spaces
 Extend to random search for efficiency:
 
 ``` r
+
 # Generate random parameter combinations
 n_random <- 100
 
@@ -429,6 +437,7 @@ cat(sprintf("  Max depth: %d\n", random_params$max_depth[best_idx]))
 Implement iterative Bayesian optimization:
 
 ``` r
+
 # Bayesian optimization would involve:
 # 1. Evaluate a small initial set (e.g., 10 combinations)
 # 2. Fit a Gaussian process to predict performance
@@ -455,12 +464,14 @@ Real-time model updates
 The complete runnable script is available at:
 
 ``` r
+
 system.file("examples/grid-search.R", package = "starburst")
 ```
 
 Run it with:
 
 ``` r
+
 source(system.file("examples/grid-search.R", package = "starburst"))
 ```
 

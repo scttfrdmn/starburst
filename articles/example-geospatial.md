@@ -26,6 +26,7 @@ parallel processing.
 ## Setup
 
 ``` r
+
 library(starburst)
 ```
 
@@ -34,6 +35,7 @@ library(starburst)
 Create synthetic geospatial data:
 
 ``` r
+
 set.seed(789)
 
 # Define 20 metropolitan regions (simplified coordinates)
@@ -112,6 +114,7 @@ cat(sprintf("  %s customers\n", format(nrow(customers), big.mark = ",")))
 Define a function that performs spatial analysis for a region:
 
 ``` r
+
 # Haversine distance function (in km)
 haversine_distance <- function(lat1, lon1, lat2, lon2) {
   R <- 6371  # Earth's radius in km
@@ -217,6 +220,7 @@ analyze_region <- function(region_id, stores_data, competitors_data,
 Test spatial analysis locally on a subset of regions:
 
 ``` r
+
 # Analyze 3 regions locally
 test_regions <- c(1, 2, 3)
 
@@ -251,6 +255,7 @@ For all 20 regions locally: **~30 seconds**
 Analyze all regions in parallel on AWS:
 
 ``` r
+
 n_workers <- 20
 
 cat(sprintf("Analyzing %d regions on %d workers...\n", nrow(regions), n_workers))
@@ -294,6 +299,7 @@ spatial_metrics <- do.call(rbind, results)
 Analyze the spatial metrics:
 
 ``` r
+
 cat("\n=== Geospatial Analysis Results ===\n\n")
 cat(sprintf("Total stores analyzed: %d\n", nrow(spatial_metrics)))
 cat(sprintf("Regions covered: %d\n\n", length(unique(spatial_metrics$region_id))))
@@ -421,6 +427,7 @@ calculations - Can easily scale to 100+ regions
 Extend to compute optimal delivery zones:
 
 ``` r
+
 optimize_delivery_zones <- function(region_id, stores_data, customers_data) {
   region_stores <- stores_data[stores_data$region_id == region_id, ]
   region_customers <- customers_data[customers_data$region_id == region_id, ]
@@ -486,12 +493,14 @@ data
 The complete runnable script is available at:
 
 ``` r
+
 system.file("examples/geospatial.R", package = "starburst")
 ```
 
 Run it with:
 
 ``` r
+
 source(system.file("examples/geospatial.R", package = "starburst"))
 ```
 

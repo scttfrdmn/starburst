@@ -28,18 +28,21 @@ and Fargate (serverless) backends.
 ## Installation
 
 ``` r
+
 install.packages("starburst")
 ```
 
 Development version from GitHub:
 
 ``` r
+
 remotes::install_github("scttfrdmn/starburst")
 ```
 
 ## Quick Start
 
 ``` r
+
 library(starburst)
 
 # One-time setup (2 minutes)
@@ -66,6 +69,7 @@ results <- starburst_map(
 ## Example: Monte Carlo Simulation
 
 ``` r
+
 library(starburst)
 
 # Define simulation
@@ -112,6 +116,7 @@ quantile(final_values, c(0.05, 0.95))  # Risk range
 ### Reuse Cluster for Multiple Operations
 
 ``` r
+
 # Create cluster once
 cluster <- starburst_cluster(workers = 50, cpu = 4, memory = "8GB")
 
@@ -126,6 +131,7 @@ results3 <- cluster$map(dataset3, modeling_function)
 ### Custom Worker Configuration
 
 ``` r
+
 # For memory-intensive workloads
 results <- starburst_map(
   large_datasets,
@@ -150,6 +156,7 @@ results <- starburst_map(
 Run long jobs and disconnect - results persist in S3:
 
 ``` r
+
 # Start detached session
 session <- starburst_session(workers = 50, detached = TRUE)
 
@@ -188,6 +195,7 @@ session$cleanup(force = TRUE)
 ## Cost Management
 
 ``` r
+
 # Set cost limits
 starburst_config(
   max_cost_per_job = 10,      # Hard limit
@@ -206,6 +214,7 @@ results <- starburst_map(data, fn, workers = 100)
 staRburst automatically handles AWS Fargate quota limitations:
 
 ``` r
+
 results <- starburst_map(data, fn, workers = 100, cpu = 4)
 #> ⚠ Requested 100 workers (400 vCPUs) but quota allows 25 workers (100 vCPUs)
 #> ⚠ Using 25 workers instead
@@ -230,6 +239,7 @@ quota increases through AWS Service Quotas.
 ### Configuration Options
 
 ``` r
+
 starburst_config(
   region = "us-east-1",
   max_cost_per_job = 10,

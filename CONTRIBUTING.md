@@ -51,6 +51,7 @@ git commit --no-verify -m "Your message"
 ## Development Setup
 
 ``` r
+
 # Install development dependencies
 install.packages(c("devtools", "testthat", "roxygen2", "pkgdown"))
 
@@ -82,6 +83,7 @@ devtools::check()
 - Mock AWS API calls when possible
 
 ``` r
+
 test_that("function does what it should", {
   expect_equal(my_function(1), 2)
 })

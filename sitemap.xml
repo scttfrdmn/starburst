@@ -26,6 +26,7 @@
 <url><loc>https://starburst.ing/reference/StarburstBackend.html</loc></url>
 <url><loc>https://starburst.ing/reference/StarburstFuture.html</loc></url>
 <url><loc>https://starburst.ing/reference/atomic_claim_task.html</loc></url>
+<url><loc>https://starburst.ing/reference/aws-clients.html</loc></url>
 <url><loc>https://starburst.ing/reference/aws-retry.html</loc></url>
 <url><loc>https://starburst.ing/reference/build_base_image.html</loc></url>
 <url><loc>https://starburst.ing/reference/build_environment_image.html</loc></url>
@@ -46,6 +47,7 @@
 <url><loc>https://starburst.ing/reference/compute_env_hash.html</loc></url>
 <url><loc>https://starburst.ing/reference/config_dir.html</loc></url>
 <url><loc>https://starburst.ing/reference/config_path.html</loc></url>
+<url><loc>https://starburst.ing/reference/cost.html</loc></url>
 <url><loc>https://starburst.ing/reference/create_ecr_lifecycle_policy.html</loc></url>
 <url><loc>https://starburst.ing/reference/create_ecr_repository.html</loc></url>
 <url><loc>https://starburst.ing/reference/create_ecs_cluster.html</loc></url>
@@ -99,6 +101,7 @@
 <url><loc>https://starburst.ing/reference/get_task_status.html</loc></url>
 <url><loc>https://starburst.ing/reference/get_vpc_config.html</loc></url>
 <url><loc>https://starburst.ing/reference/get_wave_status.html</loc></url>
+<url><loc>https://starburst.ing/reference/images.html</loc></url>
 <url><loc>https://starburst.ing/reference/index.html</loc></url>
 <url><loc>https://starburst.ing/reference/initialize_detached_backend.html</loc></url>
 <url><loc>https://starburst.ing/reference/is_setup_complete.html</loc></url>
@@ -111,6 +114,7 @@
 <url><loc>https://starburst.ing/reference/list_task_statuses.html</loc></url>
 <url><loc>https://starburst.ing/reference/load_quota_history.html</loc></url>
 <url><loc>https://starburst.ing/reference/nbrOfWorkers.StarburstBackend.html</loc></url>
+<url><loc>https://starburst.ing/reference/network.html</loc></url>
 <url><loc>https://starburst.ing/reference/package_installation_error.html</loc></url>
 <url><loc>https://starburst.ing/reference/parse_memory.html</loc></url>
 <url><loc>https://starburst.ing/reference/permission_error.html</loc></url>
@@ -126,6 +130,7 @@
 <url><loc>https://starburst.ing/reference/result.StarburstFuture.html</loc></url>
 <url><loc>https://starburst.ing/reference/result_exists.html</loc></url>
 <url><loc>https://starburst.ing/reference/run.StarburstFuture.html</loc></url>
+<url><loc>https://starburst.ing/reference/s3-io.html</loc></url>
 <url><loc>https://starburst.ing/reference/safe_system.html</loc></url>
 <url><loc>https://starburst.ing/reference/save_config.html</loc></url>
 <url><loc>https://starburst.ing/reference/save_quota_request.html</loc></url>
@@ -164,6 +169,8 @@
 <url><loc>https://starburst.ing/reference/submit_task.html</loc></url>
 <url><loc>https://starburst.ing/reference/submit_to_session.html</loc></url>
 <url><loc>https://starburst.ing/reference/suggest_quota.html</loc></url>
+<url><loc>https://starburst.ing/reference/task-definition.html</loc></url>
+<url><loc>https://starburst.ing/reference/task-registry.html</loc></url>
 <url><loc>https://starburst.ing/reference/task_failure_error.html</loc></url>
 <url><loc>https://starburst.ing/reference/update_session_manifest.html</loc></url>
 <url><loc>https://starburst.ing/reference/update_task_status.html</loc></url>
