@@ -108,6 +108,7 @@ test_that("session state functions work correctly", {
 })
 
 test_that("detached session creation works", {
+  skip_if_no_integration()  # launches real Fargate workers
   skip_on_cran()
   skip_if_not(check_aws_credentials(), "AWS credentials not available")
 
@@ -128,6 +129,7 @@ test_that("detached session creation works", {
 })
 
 test_that("session submit and collect workflow", {
+  skip_if_no_integration()  # launches real Fargate workers
   skip_on_cran()
   skip_if_not(check_aws_credentials(), "AWS credentials not available")
 
@@ -156,6 +158,7 @@ test_that("session submit and collect workflow", {
 })
 
 test_that("session attach workflow", {
+  skip_if_no_integration()  # launches real Fargate workers
   skip_on_cran()
   skip_if_not(check_aws_credentials(), "AWS credentials not available")
 

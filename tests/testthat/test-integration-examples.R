@@ -3,13 +3,8 @@
 # These tests run the example scripts to validate end-to-end functionality.
 # Set RUN_INTEGRATION_TESTS=TRUE to enable (skipped by default).
 # Set USE_STARBURST=TRUE to test with AWS (otherwise tests local execution).
-
-skip_if_no_integration <- function() {
-  skip_if_not(
-    Sys.getenv("RUN_INTEGRATION_TESTS") == "TRUE",
-    "Integration tests disabled. Set RUN_INTEGRATION_TESTS=TRUE to enable."
-  )
-}
+#
+# skip_if_no_integration() is defined in helper-aws.R (shared across test files).
 
 # Helper to get package root directory (tests run from tests/testthat/)
 get_pkg_root <- function() {
