@@ -16,19 +16,12 @@ on:
           - ec2
           - cleanup
           - quick
-  # Run on push to main (but only for relevant changes)
-  push:
-    branches: [main]
-    paths:
-      - 'R/**'
-      - 'inst/templates/**'
-      - 'tests/testthat/test-detached-sessions.R'
-      - 'tests/testthat/test-integration-examples.R'
-      - 'tests/testthat/test-ec2-*.R'
-      - 'tests/testthat/test-cleanup.R'
-  # Run weekly to catch infrastructure drift
+  # No automatic run on push: these tests provision real AWS resources
+  # (Fargate workers, Docker image builds, EC2). Run them on demand via the
+  # workflow_dispatch above, or on the monthly drift-detection schedule below.
+  # Run monthly to catch infrastructure drift
   schedule:
-    - cron: '0 8 * * 1'  # Monday 8am UTC
+    - cron: '0 8 1 * *'  # 1st of the month, 08:00 UTC
 
 jobs:
   aws-integration-tests:
