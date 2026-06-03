@@ -63,7 +63,8 @@
 <span>  region <span class="op">=</span> <span class="st">"us-east-1"</span>,</span>
 <span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  use_public_base <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  ecr_image_ttl_days <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  ecr_image_ttl_days <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  build_image <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -91,6 +92,14 @@ This prevents surprise costs if you stop using staRburst.
 Recommended: 30 days for regular users, 7 days for occasional users.
 When images are deleted, they will be rebuilt on next use (adds 3-5 min).</p></dd>
 
+
+<dt id="arg-build-image">build_image<a class="anchor" aria-label="anchor" href="#arg-build-image"></a></dt>
+<dd><p>Build the worker environment image during setup (default: TRUE).
+Set to FALSE to provision AWS resources (S3/ECR/ECS/VPC), write config, and
+check quotas without triggering the multi-minute Docker image build. The
+image is then built lazily on first worker launch via
+<code><a href="ensure_environment.html">ensure_environment()</a></code>. Useful for CI / connectivity checks.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -109,6 +118,9 @@ When images are deleted, they will be rebuilt on next use (adds 3-5 min).</p></d
 <span class="r-in"><span></span></span>
 <span class="r-in"><span>  <span class="co"># Use private base images with 7-day cleanup</span></span></span>
 <span class="r-in"><span>  <span class="fu">starburst_setup</span><span class="op">(</span>use_public_base <span class="op">=</span> <span class="cn">FALSE</span>, ecr_image_ttl_days <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="co"># Provision resources without building the image (fast; CI / connectivity checks)</span></span></span>
+<span class="r-in"><span>  <span class="fu">starburst_setup</span><span class="op">(</span>build_image <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
