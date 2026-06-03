@@ -8,7 +8,8 @@ starburst_setup(
   region = "us-east-1",
   force = FALSE,
   use_public_base = TRUE,
-  ecr_image_ttl_days = NULL
+  ecr_image_ttl_days = NULL,
+  build_image = TRUE
 )
 }
 \arguments{
@@ -24,6 +25,12 @@ AWS will automatically delete images older than this many days.
 This prevents surprise costs if you stop using staRburst.
 Recommended: 30 days for regular users, 7 days for occasional users.
 When images are deleted, they will be rebuilt on next use (adds 3-5 min).}
+
+\item{build_image}{Build the worker environment image during setup (default: TRUE).
+Set to FALSE to provision AWS resources (S3/ECR/ECS/VPC), write config, and
+check quotas without triggering the multi-minute Docker image build. The
+image is then built lazily on first worker launch via
+\code{ensure_environment()}. Useful for CI / connectivity checks.}
 }
 \value{
 Invisibly returns the configuration list.
@@ -42,6 +49,9 @@ if (starburst_is_configured()) {
 
   # Use private base images with 7-day cleanup
   starburst_setup(use_public_base = FALSE, ecr_image_ttl_days = 7)
+
+  # Provision resources without building the image (fast; CI / connectivity checks)
+  starburst_setup(build_image = FALSE)
 }
 }
 }

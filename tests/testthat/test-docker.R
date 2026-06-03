@@ -186,6 +186,12 @@ test_that("ensure_buildx_builder creates builder when missing", {
   expect_true(all(c("--driver", "docker-container", "--bootstrap")
                   %in% create_call[[1]]))
   expect_true(all(c("--name", "starburst-builder") %in% create_call[[1]]))
+
+  # After create, the builder must be explicitly selected so a later
+  # `buildx build --builder starburst-builder` resolves (GitHub #30).
+  use_call <- Filter(function(a) "use" %in% a, calls)
+  expect_length(use_call, 1)
+  expect_true("starburst-builder" %in% use_call[[1]])
 })
 
 test_that("ensure_buildx_builder returns FALSE when create fails", {
@@ -237,4 +243,38 @@ test_that("build_environment_image aborts when builder is unusable", {
     build_environment_image("test-tag", "us-east-1"),
     "starburst-builder"
   )
+})
+
+# Helper: stub starburst_setup's collaborators so it runs offline, returning
+# whether build_initial_environment was invoked.
+run_setup_capturing_build <- function(build_image) {
+  built <- FALSE
+  mockery::stub(starburst_setup, "is_setup_complete", function() FALSE)
+  mockery::stub(starburst_setup, "check_aws_credentials", function() TRUE)
+  mockery::stub(starburst_setup, "get_aws_account_id", function() "123456789012")
+  mockery::stub(starburst_setup, "create_starburst_bucket", function(...) "starburst-test")
+  mockery::stub(starburst_setup, "create_ecr_repository", function(...) list(repositoryUri = "uri"))
+  mockery::stub(starburst_setup, "create_ecs_cluster", function(...) list(clusterName = "starburst-cluster"))
+  mockery::stub(starburst_setup, "setup_vpc_resources",
+    function(...) list(vpc_id = "vpc-1", subnets = list(), security_groups = list()))
+  mockery::stub(starburst_setup, "save_config", function(...) invisible())
+  mockery::stub(starburst_setup, "check_fargate_quota",
+    function(...) list(limit = 1000, used = 0, available = 1000, increase_pending = FALSE))
+  mockery::stub(starburst_setup, "build_initial_environment", function(...) built <<- TRUE)
+  starburst_setup(force = TRUE, build_image = build_image)
+  built
+}
+
+test_that("starburst_setup skips image build when build_image = FALSE", {
+  skip_on_cran()
+  skip_if_not_installed("mockery")
+
+  expect_false(run_setup_capturing_build(build_image = FALSE))
+})
+
+test_that("starburst_setup builds image when build_image = TRUE (default)", {
+  skip_on_cran()
+  skip_if_not_installed("mockery")
+
+  expect_true(run_setup_capturing_build(build_image = TRUE))
 })
