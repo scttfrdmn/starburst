@@ -230,9 +230,6 @@ get_base_image_uri <- function(region) {
           account_id, region, base_tag)
 }
 
-#' Build base Docker image with common dependencies
-#'
-#' @keywords internal
 #' Ensure a buildx builder with the docker-container driver exists and is usable
 #'
 #' Idempotent across repeated runs and cross-platform (Windows/macOS/Linux).
@@ -252,11 +249,16 @@ get_base_image_uri <- function(region) {
 #' @return TRUE if the named builder is usable, FALSE otherwise
 #' @keywords internal
 ensure_buildx_builder <- function(builder_name = "starburst-builder") {
+  # stdout/stderr are captured (not discarded) so that when a buildx call fails
+  # safe_system()'s stop() carries the real stderr, instead of the failure being
+  # swallowed here and surfacing later as an opaque "no builder found" at the
+  # buildx build step (GitHub #24/#30).
+
   # 1. Does it already exist? inspect returns non-zero (-> error) if not;
   #    --bootstrap also boots an existing-but-stopped builder.
   exists <- tryCatch({
     safe_system("docker", c("buildx", "inspect", "--bootstrap", builder_name),
-                stdout = FALSE, stderr = FALSE)
+                stdout = TRUE, stderr = TRUE)
     TRUE
   }, error = function(e) FALSE)
 
@@ -270,7 +272,7 @@ ensure_buildx_builder <- function(builder_name = "starburst-builder") {
       "docker",
       c("buildx", "create", "--name", builder_name,
         "--driver", "docker-container", "--bootstrap"),
-      stdout = FALSE, stderr = FALSE
+      stdout = TRUE, stderr = TRUE
     )
     TRUE
   }, error = function(e) {
@@ -283,14 +285,25 @@ ensure_buildx_builder <- function(builder_name = "starburst-builder") {
     return(FALSE)
   }
 
-  # 3. Confirm it is now usable (defensive; create + bootstrap should suffice).
+  # 3. Confirm it booted and is selectable. 'inspect' verifies it is usable;
+  #    'use' registers it as current so the explicit --builder reference in
+  #    buildx build resolves (guards against the create not persisting).
   tryCatch({
     safe_system("docker", c("buildx", "inspect", "--bootstrap", builder_name),
-                stdout = FALSE, stderr = FALSE)
+                stdout = TRUE, stderr = TRUE)
+    safe_system("docker", c("buildx", "use", builder_name),
+                stdout = TRUE, stderr = TRUE)
     TRUE
-  }, error = function(e) FALSE)
+  }, error = function(e) {
+    cat_warn(sprintf("Warning: buildx builder '%s' created but not usable: %s\n",
+                     builder_name, conditionMessage(e)))
+    FALSE
+  })
 }
 
+#' Build base Docker image with common dependencies
+#'
+#' @keywords internal
 build_base_image <- function(region) {
   cat_info("[Docker] Building staRburst base image...\n")
 
