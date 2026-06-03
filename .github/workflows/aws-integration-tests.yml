@@ -31,6 +31,12 @@ jobs:
     # Only run if AWS credentials are configured
     if: github.event_name == 'workflow_dispatch' || github.repository == 'scttfrdmn/starburst'
 
+    # Effective test suite: the dispatch input when triggered manually, or
+    # 'quick' on the monthly schedule (where inputs are empty) so the cron run
+    # performs a real, near-zero-cost drift check instead of a no-op.
+    env:
+      SUITE: ${{ github.event.inputs.test_suite || 'quick' }}
+
     permissions:
       id-token: write  # For OIDC
       contents: read
@@ -85,11 +91,13 @@ jobs:
         run: |
           Rscript -e "
             devtools::load_all()
-            starburst_setup(region = 'us-east-1', force = TRUE)
+            # build_image = FALSE: provision resources + write config without the
+            # multi-minute image build. Suites that launch workers build it lazily.
+            starburst_setup(region = 'us-east-1', force = TRUE, build_image = FALSE)
           "
 
       - name: Run quick smoke tests
-        if: github.event.inputs.test_suite == 'quick' || github.event.inputs.test_suite == 'all'
+        if: env.SUITE == 'quick' || env.SUITE == 'all'
         run: |
           Rscript -e "
             devtools::load_all()
@@ -114,7 +122,7 @@ jobs:
           "
 
       - name: Run detached session tests
-        if: github.event.inputs.test_suite == 'detached-sessions' || github.event.inputs.test_suite == 'all'
+        if: env.SUITE == 'detached-sessions' || env.SUITE == 'all'
         env:
           RUN_INTEGRATION_TESTS: "TRUE"  # opt-in gate for tests that launch real Fargate workers
         run: |
@@ -130,7 +138,7 @@ jobs:
           "
 
       - name: Run integration example tests
-        if: github.event.inputs.test_suite == 'integration-examples' || github.event.inputs.test_suite == 'all'
+        if: env.SUITE == 'integration-examples' || env.SUITE == 'all'
         env:
           RUN_INTEGRATION_TESTS: "TRUE"
         run: |
@@ -146,7 +154,7 @@ jobs:
           "
 
       - name: Run EC2 integration tests
-        if: github.event.inputs.test_suite == 'ec2' || github.event.inputs.test_suite == 'all'
+        if: env.SUITE == 'ec2' || env.SUITE == 'all'
         run: |
           Rscript -e "
             devtools::load_all()
@@ -161,7 +169,7 @@ jobs:
           "
 
       - name: Run cleanup tests
-        if: github.event.inputs.test_suite == 'cleanup' || github.event.inputs.test_suite == 'all'
+        if: env.SUITE == 'cleanup' || env.SUITE == 'all'
         run: |
           Rscript -e "
             devtools::load_all()
