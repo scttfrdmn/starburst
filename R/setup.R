@@ -11,6 +11,11 @@
 #'   This prevents surprise costs if you stop using staRburst.
 #'   Recommended: 30 days for regular users, 7 days for occasional users.
 #'   When images are deleted, they will be rebuilt on next use (adds 3-5 min).
+#' @param build_image Build the worker environment image during setup (default: TRUE).
+#'   Set to FALSE to provision AWS resources (S3/ECR/ECS/VPC), write config, and
+#'   check quotas without triggering the multi-minute Docker image build. The
+#'   image is then built lazily on first worker launch via
+#'   \code{ensure_environment()}. Useful for CI / connectivity checks.
 #'
 #' @return Invisibly returns the configuration list.
 #' @export
@@ -26,9 +31,13 @@
 #'
 #'   # Use private base images with 7-day cleanup
 #'   starburst_setup(use_public_base = FALSE, ecr_image_ttl_days = 7)
+#'
+#'   # Provision resources without building the image (fast; CI / connectivity checks)
+#'   starburst_setup(build_image = FALSE)
 #' }
 #' }
-starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base = TRUE, ecr_image_ttl_days = NULL) {
+starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base = TRUE,
+                            ecr_image_ttl_days = NULL, build_image = TRUE) {
 
   cat_header("[Start] staRburst Setup\n")
 
@@ -152,12 +161,17 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
     cat_success(sprintf("[OK] Quota is sufficient (%d vCPUs)\n", quota_info$limit))
   }
 
-  # Build initial environment
-  cat_info("\n[Build] Building initial R environment...\n")
-  cat_info("This may take 5-10 minutes on first run\n")
+  # Build initial environment (skippable: image is built lazily on first launch)
+  if (build_image) {
+    cat_info("\n[Build] Building initial R environment...\n")
+    cat_info("This may take 5-10 minutes on first run\n")
 
-  env_hash <- build_initial_environment(region)
-  cat_success("[OK] Environment built and cached\n")
+    env_hash <- build_initial_environment(region)
+    cat_success("[OK] Environment built and cached\n")
+  } else {
+    cat_info("\n[Build] Skipping environment image build (build_image = FALSE)\n")
+    cat_info("  The worker image will be built automatically on first launch.\n")
+  }
 
   # Final message
   cat_success("\n[OK] staRburst setup complete!\n")
