@@ -215,6 +215,26 @@ check_ecr_image_exists <- function(tag, region) {
   })
 }
 
+#' Check if a public base image exists (anonymously)
+#'
+#' Public ECR images are world-readable, so we can probe the manifest without
+#' credentials via `docker manifest inspect`. Returns FALSE on any error (Docker
+#' missing, network issue, tag absent) so callers fall back to a private build.
+#'
+#' @param image_uri Full public image reference, e.g.
+#'   \code{public.ecr.aws/f8g1e7l5/base:r4.6.1}.
+#' @return TRUE if the manifest is retrievable, FALSE otherwise.
+#' @keywords internal
+public_base_image_exists <- function(image_uri) {
+  tryCatch({
+    safe_system("docker", c("manifest", "inspect", image_uri),
+                stdout = TRUE, stderr = TRUE)
+    TRUE
+  }, error = function(e) {
+    FALSE
+  })
+}
+
 #' Get base image URI
 #'
 #' @keywords internal
@@ -436,9 +456,11 @@ get_base_image_source <- function(use_public = TRUE) {
   r_version <- paste0(R.version$major, ".", R.version$minor)
 
   if (use_public) {
-    # Public ECR (no auth needed, instant pull)
-    # NOTE: This will be available when public images are published
-    return(sprintf("public.ecr.aws/starburst/base:r%s", r_version))
+    # Public ECR (no auth needed, instant pull). Published by the
+    # build-base-images.yml workflow under this account's public ECR alias.
+    # (The friendly 'starburst' alias needs an AWS Support request; until then
+    # images live under the default alias 'f8g1e7l5'.)
+    return(sprintf("public.ecr.aws/f8g1e7l5/base:r%s", r_version))
   } else {
     # Private ECR (build if missing)
     config <- get_starburst_config()
@@ -465,12 +487,17 @@ ensure_base_image <- function(region, use_public = NULL) {
   base_tag <- sprintf("base-%s", r_version)
 
   if (use_public) {
-    # Try public base image first, fall back to private if not available
+    # Try the published public base image first; fall back to a private build
+    # if it isn't available for this R version (or can't be reached).
     base_uri <- get_base_image_source(use_public = TRUE)
     cat_info(sprintf("Trying public base image: %s\n", base_uri))
 
-    # For now, public images aren't published yet, so fall back
-    cat_warn("   Public base images not yet available\n")
+    if (public_base_image_exists(base_uri)) {
+      cat_success(sprintf("[OK] Using public base image: %s\n", base_uri))
+      return(base_uri)
+    }
+
+    cat_warn(sprintf("   Public base image not available for R %s\n", r_version))
     cat_info("   Falling back to private base image build...\n")
     use_public <- FALSE
   }
