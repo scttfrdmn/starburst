@@ -373,6 +373,9 @@ build_base_image <- function(region) {
       stop("Dockerfile.base template not found")
     }
 
+    # Dockerfile.base takes R_VERSION as a real Docker build arg (passed below).
+    # The legacy {{R_VERSION}} gsub is kept for backward compatibility with any
+    # older template copy; on the current template it is a harmless no-op.
     template_content <- readLines(dockerfile_template)
     dockerfile_content <- gsub("\\{\\{R_VERSION\\}\\}", r_version, template_content)
     writeLines(dockerfile_content, file.path(build_dir, "Dockerfile"))
@@ -431,6 +434,7 @@ build_base_image <- function(region) {
       c("buildx", "build",
         "--builder", "starburst-builder",
         "--platform", "linux/amd64,linux/arm64",
+        "--build-arg", sprintf("R_VERSION=%s", r_version),
         "--no-cache",
         "-t", image_tag,
         "--push",

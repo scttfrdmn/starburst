@@ -1,7 +1,11 @@
 # staRburst Base Image
 # Pre-built image with common R packages for faster project-specific builds
+#
+# R_VERSION is a real Docker build arg: pass --build-arg R_VERSION=4.6.1.
+# The default keeps the Dockerfile valid for a bare `docker build` with no args.
 
-FROM rocker/r-ver:{{R_VERSION}}
+ARG R_VERSION=4.6.1
+FROM rocker/r-ver:${R_VERSION}
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
