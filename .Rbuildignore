@@ -27,3 +27,6 @@
 ^CLAUDE\.md$
 ^cran-comments\.md$
 ^extracted$
+^run-aws-tests\.sh$
+^setup-iam-roles\.sh$
+^SWAT-FEASIBILITY-BRIEF\.md$

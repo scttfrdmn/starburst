@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       r_versions:
-        description: 'R versions to build (comma-separated, e.g., 4.4.2,4.5.2)'
+        description: 'R versions to build (comma-separated, e.g., 4.5.3,4.6.1)'
         required: false
-        default: '4.4.2,4.5.2'
+        default: '4.5.3,4.6.1'
   push:
     branches:
       - main
@@ -18,15 +18,23 @@ on:
       - '.github/workflows/build-base-images.yml'
 
 env:
-  PUBLIC_ECR_REGISTRY: public.ecr.aws/starburst
+  # Public ECR registry alias owned by this AWS account (942542972736).
+  # NOTE: the friendly 'starburst' alias requires an AWS Support request; until
+  # that is granted, publish under the account's default alias.
+  PUBLIC_ECR_REGISTRY: public.ecr.aws/f8g1e7l5
   REPOSITORY_NAME: base
+  # The latest R release gets the :latest tag (kept in sync with the matrix).
+  LATEST_R_VERSION: '4.6.1'
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # For OIDC role assumption
+      contents: read
     strategy:
       matrix:
-        r_version: ['4.4.2', '4.5.2']
+        r_version: ['4.5.3', '4.6.1']
 
     steps:
       - name: Checkout code
@@ -38,8 +46,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
       - name: Login to Amazon Public ECR
@@ -59,7 +66,7 @@ jobs:
             .
 
       - name: Update latest tag for latest R version
-        if: matrix.r_version == '4.5.2'
+        if: matrix.r_version == env.LATEST_R_VERSION
         run: |
           docker buildx imagetools create \
             --tag ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:latest \
@@ -74,6 +81,8 @@ jobs:
   create-release:
     needs: build-and-push
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # For gh release create
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     steps:
@@ -91,9 +100,9 @@ jobs:
 
           ## Images Published
 
-          - \`public.ecr.aws/starburst/base:r4.4.2\`
-          - \`public.ecr.aws/starburst/base:r4.5.2\`
-          - \`public.ecr.aws/starburst/base:latest\` (points to r4.5.2)
+          - \`public.ecr.aws/f8g1e7l5/base:r4.5.3\`
+          - \`public.ecr.aws/f8g1e7l5/base:r4.6.1\`
+          - \`public.ecr.aws/f8g1e7l5/base:latest\` (points to r4.6.1)
 
           ## Image Details
 
