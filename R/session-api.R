@@ -478,8 +478,13 @@ collect_session_results <- function(session, wait, timeout) {
       break
     }
 
-    # Check if all tasks are completed
-    all_completed <- all(vapply(statuses, function(s) {
+    # Check if all *user* tasks are completed. Bootstrap tasks
+    # (bootstrap-session-...) are the long-lived workers polling the queue; they
+    # stay "claimed"/"running" for the life of the session, so they must be
+    # excluded here — otherwise all_completed is never TRUE and a wait=TRUE
+    # collect hangs until the timeout even though every real result has landed.
+    user_statuses <- statuses[!grepl("^bootstrap-", names(statuses))]
+    all_completed <- length(user_statuses) > 0 && all(vapply(user_statuses, function(s) {
       s$state %in% c("completed", "failed")
     }, FUN.VALUE = logical(1)))
 
