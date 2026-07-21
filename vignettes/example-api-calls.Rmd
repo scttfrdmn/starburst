@@ -287,29 +287,34 @@ cat(sprintf("Range: $%.2fB - $%.2fB\n",
 
 When working with real APIs:
 
-```{r rate-limiting, eval=FALSE}
-# Add jitter to respect rate limits
-fetch_with_rate_limit <- function(ticker, rate_limit = 100) {
-  # Add delay based on rate limit (calls per minute)
-  delay <- 60 / rate_limit + runif(1, 0, 0.1)
-  Sys.sleep(delay)
+Each worker throttles itself **independently**, so the *aggregate* rate is the
+per-worker rate times the number of workers. To respect a global API limit, give
+each worker its share: `per_worker_rate = global_limit / workers`.
 
+```{r rate-limiting, eval=FALSE}
+# per_worker_rate is calls/minute allowed to THIS worker
+fetch_with_rate_limit <- function(ticker, per_worker_rate) {
+  delay <- 60 / per_worker_rate + runif(1, 0, 0.1)
+  Sys.sleep(delay)
   fetch_company_data(ticker)
 }
 
-# Use with staRburst
+global_limit <- 100   # API allows 100 calls/minute total
+workers      <- 10
+per_worker   <- global_limit / workers   # 10 calls/min each
+
 results <- starburst_map(
   tickers,
-  function(x) fetch_with_rate_limit(x, rate_limit = 100),
-  workers = 10  # Adjust workers based on API rate limit
+  function(x) fetch_with_rate_limit(x, per_worker_rate = per_worker),
+  workers = workers
 )
 ```
 
 **Rate limit calculation**:
-- API limit: 100 calls/minute
-- Workers: 10
-- Max throughput: 1000 calls/minute (10 workers × 100 calls/min)
-- Adjust workers to stay under limit
+- API limit: 100 calls/minute (global)
+- Workers: 10 → each worker allowed 100 / 10 = 10 calls/minute
+- Aggregate throughput: 10 workers × 10 calls/min = **100 calls/minute** (at the limit)
+- Rule: `per_worker_rate = global_limit / workers` keeps the fleet under the cap
 
 ## Error Handling Best Practices
 
