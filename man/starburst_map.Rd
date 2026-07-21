@@ -2,7 +2,7 @@
 % Please edit documentation in R/starburst-map.R
 \name{starburst_map}
 \alias{starburst_map}
-\title{Map Function Over Data Using AWS Fargate}
+\title{Map a Function Over Data on AWS Workers}
 \usage{
 starburst_map(
   .x,
@@ -42,7 +42,8 @@ starburst_map(
 A list of results, one per element of .x
 }
 \description{
-Parallel map function that executes on AWS Fargate using the Future backend
+Parallel map function that executes across AWS workers (EC2 by default, or
+Fargate) using the staRburst Future backend.
 }
 \examples{
 \donttest{

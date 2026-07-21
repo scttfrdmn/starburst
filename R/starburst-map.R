@@ -1,6 +1,7 @@
-#' Map Function Over Data Using AWS Fargate
+#' Map a Function Over Data on AWS Workers
 #'
-#' Parallel map function that executes on AWS Fargate using the Future backend
+#' Parallel map function that executes across AWS workers (EC2 by default, or
+#' Fargate) using the staRburst Future backend.
 #'
 #' @param .x A vector or list to iterate over
 #' @param .f A function to apply to each element
@@ -166,7 +167,8 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 
 #' Create a Starburst Cluster
 #'
-#' Creates a cluster object for managing AWS Fargate workers using Future backend
+#' Creates a cluster object for managing AWS workers (EC2 by default, or Fargate)
+#' using the staRburst Future backend.
 #'
 #' @param workers Number of parallel workers
 #' @param cpu CPU units per worker
@@ -281,7 +283,7 @@ starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
 
   # Run all futures (submits to AWS)
   if (.progress) {
-    cat_info(sprintf("[Starting] Submitting %d tasks to AWS Fargate...\n", n))
+    cat_info(sprintf("[Starting] Submitting %d tasks to AWS...\n", n))
   }
 
   for (future in futures) {

@@ -30,7 +30,8 @@ starburst_cluster(
 A starburst_cluster object
 }
 \description{
-Creates a cluster object for managing AWS Fargate workers using Future backend
+Creates a cluster object for managing AWS workers (EC2 by default, or Fargate)
+using the staRburst Future backend.
 }
 \examples{
 \donttest{

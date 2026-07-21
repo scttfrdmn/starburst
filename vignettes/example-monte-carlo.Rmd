@@ -138,16 +138,12 @@ results <- starburst_map(
 
 **Typical output**:
 ```
-🚀 Starting starburst cluster with 50 workers
-💰 Estimated cost: ~$2.80/hour
-📊 Processing 10000 items with 50 workers
-📦 Created 50 chunks (avg 200 items per chunk)
-🚀 Submitting tasks...
-✓ Submitted 50 tasks
-⏳ Progress: 50/50 tasks (1.2 minutes elapsed)
-
-✓ Completed in 1.2 minutes
-💰 Actual cost: $0.06
+[Starting] Starting starburst cluster with 50 workers
+[Status] Processing 10000 items with 50 workers
+[Starting] Submitting 10000 tasks...
+[Wait] Progress: 10000/10000 (72.4s)
+[OK] Completed in 72.4 seconds
+[Cost] Estimated cost: $0.06
 ```
 
 ## Results Analysis

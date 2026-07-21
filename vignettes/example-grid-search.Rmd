@@ -206,7 +206,7 @@ local_results <- lapply(1:nrow(sample_params), function(i) {
 
 local_time <- as.numeric(difftime(Sys.time(), local_start, units = "mins"))
 
-cat(sprintf("✓ Completed in %.2f minutes\n", local_time))
+cat(sprintf("[OK] Completed in %.2f minutes\n", local_time))
 cat(sprintf("  Average time per combination: %.1f seconds\n",
             local_time * 60 / nrow(sample_params)))
 cat(sprintf("  Estimated time for full grid (%d combinations): %.1f minutes\n",
@@ -216,7 +216,7 @@ cat(sprintf("  Estimated time for full grid (%d combinations): %.1f minutes\n",
 **Typical output**:
 ```
 Running local benchmark (10 parameter combinations)...
-✓ Completed in 4.2 minutes
+[OK] Completed in 4.2 minutes
   Average time per combination: 25.2 seconds
   Estimated time for full grid (81 combinations): 34.0 minutes
 ```
@@ -245,21 +245,17 @@ results <- starburst_map(
 
 cloud_time <- as.numeric(difftime(Sys.time(), cloud_start, units = "mins"))
 
-cat(sprintf("\n✓ Completed in %.2f minutes\n", cloud_time))
+cat(sprintf("\n[OK] Completed in %.2f minutes\n", cloud_time))
 ```
 
 **Typical output**:
 ```
-🚀 Starting starburst cluster with 27 workers
-💰 Estimated cost: ~$2.16/hour
-📊 Processing 81 items with 27 workers
-📦 Created 27 chunks (avg 3 items per chunk)
-🚀 Submitting tasks...
-✓ Submitted 27 tasks
-⏳ Progress: 27/27 tasks (1.4 minutes elapsed)
-
-✓ Completed in 1.4 minutes
-💰 Actual cost: $0.05
+[Starting] Starting starburst cluster with 27 workers
+[Status] Processing 81 items with 27 workers
+[Starting] Submitting 81 tasks...
+[Wait] Progress: 81/81 (84.0s)
+[OK] Completed in 84.0 seconds
+[Cost] Estimated cost: $0.05
 ```
 
 ## Results Analysis

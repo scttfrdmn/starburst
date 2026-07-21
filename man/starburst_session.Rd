@@ -33,11 +33,11 @@ starburst_session(
 
 \item{absolute_timeout}{Maximum session lifetime in seconds (default: 86400)}
 
-\item{launch_type}{"FARGATE" or "EC2" (default: "FARGATE")}
+\item{launch_type}{"EC2" or "FARGATE" (default: "EC2")}
 
-\item{instance_type}{EC2 instance type for EC2 launch (default: "c6a.large")}
+\item{instance_type}{EC2 instance type for EC2 launch (default: "c7g.xlarge")}
 
-\item{use_spot}{Use spot instances for EC2 (default: FALSE)}
+\item{use_spot}{Use spot instances for EC2 (default: TRUE)}
 
 \item{warm_pool_timeout}{EC2 warm pool timeout in seconds (default: 3600)}
 }

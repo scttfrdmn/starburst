@@ -54,7 +54,7 @@ navbar:
         href: articles/performance.html
     examples:
       text: Runnable Scripts
-      href: reference/examples.html
+      href: https://github.com/scttfrdmn/starburst/tree/main/examples
     news:
       text: News
       href: news/index.html

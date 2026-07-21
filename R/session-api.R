@@ -17,9 +17,9 @@ NULL
 #' @param timeout Task timeout in seconds (default: 3600)
 #' @param session_timeout Active timeout in seconds (default: 3600)
 #' @param absolute_timeout Maximum session lifetime in seconds (default: 86400)
-#' @param launch_type "FARGATE" or "EC2" (default: "FARGATE")
-#' @param instance_type EC2 instance type for EC2 launch (default: "c6a.large")
-#' @param use_spot Use spot instances for EC2 (default: FALSE)
+#' @param launch_type "EC2" or "FARGATE" (default: "EC2")
+#' @param instance_type EC2 instance type for EC2 launch (default: "c7g.xlarge")
+#' @param use_spot Use spot instances for EC2 (default: TRUE)
 #' @param warm_pool_timeout EC2 warm pool timeout in seconds (default: 3600)
 #'
 #' @return A StarburstSession object with methods:
