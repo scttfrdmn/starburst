@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.9</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,6 +52,18 @@
       <small>Source: <a href="https://github.com/scttfrdmn/starburst/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.9" id="starburst-039-development">starburst 0.3.9 (development)<a class="anchor" aria-label="anchor" href="#starburst-039-development"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-3-9">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-3-9"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/starburst_map.html">starburst_map()</a></code> and <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code> now accept <code>launch_type</code>, <code>instance_type</code>, and <code>use_spot</code></strong> and forward them to the backend. Previously these functions had no backend arguments, so a call like <code>starburst_map(x, f, launch_type = "FARGATE")</code> silently passed <code>launch_type</code> to the mapped function <code>.f</code> (typically an “unused argument” error) instead of switching the backend — contradicting the 0.3.7 migration note. Backend selection now works uniformly across <code>plan(starburst)</code>, <code><a href="../reference/starburst_map.html">starburst_map()</a></code>, <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code>, and <code><a href="../reference/starburst_session.html">starburst_session()</a></code>.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-0-3-9">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-3-9"></a></h3>
+<ul><li>Consistency sweep addressing an external documentation review: EC2 is now consistently presented as the default/recommended backend with Fargate as the optional alternative; the README and example console output match the current engine (ASCII status markers, one task per input element — no chunking step); the Getting Started tutorial leads with <code><a href="../reference/starburst_map.html">starburst_map()</a></code>; a grouped reference index and an architecture diagram were added; and <code><a href="../reference/starburst_config.html">starburst_config()</a></code> keys are now catalogued.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.8" id="starburst-038-2026-03-06">starburst 0.3.8 (2026-03-06)<a class="anchor" aria-label="anchor" href="#starburst-038-2026-03-06"></a></h2><p class="text-muted">CRAN release: 2026-03-19</p>
 <div class="section level3">

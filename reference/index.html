@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.9</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,9 +52,212 @@
     </div>
 
     <div class="section level2">
-      <h2 id="all-functions">All functions<a class="anchor" aria-label="anchor" href="#all-functions"></a></h2>
+      <h2 id="start-here">Start here<a class="anchor" aria-label="anchor" href="#start-here"></a></h2>
+
+      <div class="section-desc"><p>Set up once, then run your first job.</p></div>
+
+      <dl></dl></div><div class="section level2">
 
 
+
+
+      <dl><dt>
+
+          <code><a href="starburst-package.html">starburst-package</a></code>
+
+        </dt>
+        <dd>starburst: Seamless AWS Cloud Bursting for Parallel R Workloads</dd>
+
+        <dt>
+
+          <code><a href="starburst_setup.html">starburst_setup()</a></code>
+
+        </dt>
+        <dd>Setup staRburst</dd>
+
+        <dt>
+
+          <code><a href="starburst_is_configured.html">starburst_is_configured()</a></code>
+
+        </dt>
+        <dd>Check if staRburst is configured</dd>
+      </dl></div><div class="section level2">
+      <h2 id="core-execution">Core execution<a class="anchor" aria-label="anchor" href="#core-execution"></a></h2>
+
+      <div class="section-desc"><p>Run work across AWS workers.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="starburst_map.html">starburst_map()</a></code>
+
+        </dt>
+        <dd>Map a Function Over Data on AWS Workers</dd>
+
+        <dt>
+
+          <code><a href="starburst_cluster.html">starburst_cluster()</a></code>
+
+        </dt>
+        <dd>Create a Starburst Cluster</dd>
+      </dl></div><div class="section level2">
+      <h2 id="future-furrr-integration">future / furrr integration<a class="anchor" aria-label="anchor" href="#future-furrr-integration"></a></h2>
+
+      <div class="section-desc"><p>Use staRburst as a future backend for existing future/furrr code.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="plan.starburst.html">plan(<i>&lt;starburst&gt;</i>)</a></code>
+
+        </dt>
+        <dd>staRburst Future Backend</dd>
+
+        <dt>
+
+          <code><a href="starburst.html">starburst()</a></code>
+
+        </dt>
+        <dd>Starburst strategy marker</dd>
+      </dl></div><div class="section level2">
+      <h2 id="detached-sessions">Detached sessions<a class="anchor" aria-label="anchor" href="#detached-sessions"></a></h2>
+
+      <div class="section-desc"><p>Long-running jobs that survive your R session closing.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="starburst_session.html">starburst_session()</a></code>
+
+        </dt>
+        <dd>Create a Detached Starburst Session</dd>
+
+        <dt>
+
+          <code><a href="starburst_session_attach.html">starburst_session_attach()</a></code>
+
+        </dt>
+        <dd>Reattach to Existing Session</dd>
+
+        <dt>
+
+          <code><a href="starburst_list_sessions.html">starburst_list_sessions()</a></code>
+
+        </dt>
+        <dd>List All Sessions</dd>
+      </dl></div><div class="section level2">
+      <h2 id="configuration">Configuration<a class="anchor" aria-label="anchor" href="#configuration"></a></h2>
+
+      <div class="section-desc"><p>Account and backend defaults.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="starburst_config.html">starburst_config()</a></code>
+
+        </dt>
+        <dd>Configure staRburst options</dd>
+
+        <dt>
+
+          <code><a href="starburst_status.html">starburst_status()</a></code>
+
+        </dt>
+        <dd>Show staRburst status</dd>
+      </dl></div><div class="section level2">
+      <h2 id="monitoring-logs-cost">Monitoring, logs &amp; cost<a class="anchor" aria-label="anchor" href="#monitoring-logs-cost"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="starburst_logs.html">starburst_logs()</a></code>
+
+        </dt>
+        <dd>View worker logs</dd>
+
+        <dt>
+
+          <code><a href="starburst_estimate.html">starburst_estimate()</a></code>
+
+        </dt>
+        <dd>Estimate Cloud Performance and Cost</dd>
+
+        <dt>
+
+          <code><a href="starburst_quota_status.html">starburst_quota_status()</a></code>
+
+        </dt>
+        <dd>Show quota status</dd>
+
+        <dt>
+
+          <code><a href="starburst_check_quota_request.html">starburst_check_quota_request()</a></code>
+
+        </dt>
+        <dd>Monitor quota increase request</dd>
+
+        <dt>
+
+          <code><a href="starburst_request_quota_increase.html">starburst_request_quota_increase()</a></code>
+
+        </dt>
+        <dd>Request quota increase (user-facing)</dd>
+      </dl></div><div class="section level2">
+      <h2 id="infrastructure-setup">Infrastructure setup<a class="anchor" aria-label="anchor" href="#infrastructure-setup"></a></h2>
+
+      <div class="section-desc"><p>One-time provisioning and maintenance.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="starburst_setup_ec2.html">starburst_setup_ec2()</a></code>
+
+        </dt>
+        <dd>Setup EC2 capacity providers for staRburst</dd>
+
+        <dt>
+
+          <code><a href="starburst_rebuild_environment.html">starburst_rebuild_environment()</a></code>
+
+        </dt>
+        <dd>Rebuild environment image</dd>
+
+        <dt>
+
+          <code><a href="starburst_cleanup_ecr.html">starburst_cleanup_ecr()</a></code>
+
+        </dt>
+        <dd>Clean up staRburst ECR images</dd>
+      </dl></div><div class="section level2">
+      <h2 id="developer-internal">Developer &amp; internal<a class="anchor" aria-label="anchor" href="#developer-internal"></a></h2>
+
+      <div class="section-desc"><p>Extension points and future-backend internals; not needed for normal use.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -67,6 +270,13 @@
 
         </dt>
         <dd>Starburst Future Backend</dd>
+
+        <dt>
+
+          <code><a href="StarburstFuture.html">StarburstFuture()</a></code>
+
+        </dt>
+        <dd>StarburstFuture Constructor</dd>
 
         <dt>
 
@@ -98,20 +308,6 @@
 
         <dt>
 
-          <code><a href="plan.starburst.html">plan(<i>&lt;starburst&gt;</i>)</a></code>
-
-        </dt>
-        <dd>staRburst Future Backend</dd>
-
-        <dt>
-
-          <code><a href="print.StarburstSessionStatus.html">print(<i>&lt;StarburstSessionStatus&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Print method for session status</dd>
-
-        <dt>
-
           <code><a href="resolved.StarburstFuture.html">resolved(<i>&lt;StarburstFuture&gt;</i>)</a></code>
 
         </dt>
@@ -133,138 +329,20 @@
 
         <dt>
 
+          <code><a href="print.StarburstSessionStatus.html">print(<i>&lt;StarburstSessionStatus&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print method for session status</dd>
+
+        <dt>
+
           <code><a href="session-api.html">session-api</a></code>
 
         </dt>
         <dd>Detached Session API</dd>
-
-        <dt>
-
-          <code><a href="starburst.html">starburst()</a></code>
-
-        </dt>
-        <dd>Starburst strategy marker</dd>
-
-        <dt>
-
-          <code><a href="starburst_check_quota_request.html">starburst_check_quota_request()</a></code>
-
-        </dt>
-        <dd>Monitor quota increase request</dd>
-
-        <dt>
-
-          <code><a href="starburst_cleanup_ecr.html">starburst_cleanup_ecr()</a></code>
-
-        </dt>
-        <dd>Clean up staRburst ECR images</dd>
-
-        <dt>
-
-          <code><a href="starburst_cluster.html">starburst_cluster()</a></code>
-
-        </dt>
-        <dd>Create a Starburst Cluster</dd>
-
-        <dt>
-
-          <code><a href="starburst_config.html">starburst_config()</a></code>
-
-        </dt>
-        <dd>Configure staRburst options</dd>
-
-        <dt>
-
-          <code><a href="starburst_estimate.html">starburst_estimate()</a></code>
-
-        </dt>
-        <dd>Estimate Cloud Performance and Cost</dd>
-
-        <dt>
-
-          <code><a href="starburst_is_configured.html">starburst_is_configured()</a></code>
-
-        </dt>
-        <dd>Check if staRburst is configured</dd>
-
-        <dt>
-
-          <code><a href="starburst_list_sessions.html">starburst_list_sessions()</a></code>
-
-        </dt>
-        <dd>List All Sessions</dd>
-
-        <dt>
-
-          <code><a href="starburst_logs.html">starburst_logs()</a></code>
-
-        </dt>
-        <dd>View worker logs</dd>
-
-        <dt>
-
-          <code><a href="starburst_map.html">starburst_map()</a></code>
-
-        </dt>
-        <dd>Map a Function Over Data on AWS Workers</dd>
-
-        <dt>
-
-          <code><a href="starburst_quota_status.html">starburst_quota_status()</a></code>
-
-        </dt>
-        <dd>Show quota status</dd>
-
-        <dt>
-
-          <code><a href="starburst_rebuild_environment.html">starburst_rebuild_environment()</a></code>
-
-        </dt>
-        <dd>Rebuild environment image</dd>
-
-        <dt>
-
-          <code><a href="starburst_request_quota_increase.html">starburst_request_quota_increase()</a></code>
-
-        </dt>
-        <dd>Request quota increase (user-facing)</dd>
-
-        <dt>
-
-          <code><a href="starburst_session.html">starburst_session()</a></code>
-
-        </dt>
-        <dd>Create a Detached Starburst Session</dd>
-
-        <dt>
-
-          <code><a href="starburst_session_attach.html">starburst_session_attach()</a></code>
-
-        </dt>
-        <dd>Reattach to Existing Session</dd>
-
-        <dt>
-
-          <code><a href="starburst_setup.html">starburst_setup()</a></code>
-
-        </dt>
-        <dd>Setup staRburst</dd>
-
-        <dt>
-
-          <code><a href="starburst_setup_ec2.html">starburst_setup_ec2()</a></code>
-
-        </dt>
-        <dd>Setup EC2 capacity providers for staRburst</dd>
-
-        <dt>
-
-          <code><a href="starburst_status.html">starburst_status()</a></code>
-
-        </dt>
-        <dd>Show staRburst status</dd>
       </dl></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

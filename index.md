@@ -45,7 +45,8 @@ remotes::install_github("scttfrdmn/starburst")
 
 library(starburst)
 
-# One-time setup (2 minutes)
+# One-time setup (~2 min to provision; first run also builds the worker image,
+# +5-10 min once)
 starburst_setup()
 
 # Run parallel computation on AWS
@@ -54,16 +55,12 @@ results <- starburst_map(
   function(x) expensive_computation(x),
   workers = 50
 )
-#> 🚀 Starting starburst cluster with 50 workers
-#> 💰 Estimated cost: ~$2.80/hour
-#> 📊 Processing 1000 items with 50 workers
-#> 📦 Created 50 chunks (avg 20 items per chunk)
-#> 🚀 Submitting tasks...
-#> ✓ Submitted 50 tasks
-#> ⏳ Progress: 50/50 tasks (3.2 minutes elapsed)
-#>
-#> ✓ Completed in 3.2 minutes
-#> 💰 Estimated cost: $0.15
+#> [Starting] Starting starburst cluster with 50 workers
+#> [Status] Processing 1000 items with 50 workers
+#> [Starting] Submitting 1000 tasks...
+#> [Wait] Progress: 1000/1000 (192.0s)
+#> [OK] Completed in 192.0 seconds
+#> [Cost] Estimated cost: $0.15
 ```
 
 ## Example: Monte Carlo Simulation
@@ -90,13 +87,12 @@ results <- starburst_map(
   simulate_portfolio,
   workers = 100
 )
-#> 🚀 Starting starburst cluster with 100 workers
-#> 💰 Estimated cost: ~$5.60/hour
-#> 📊 Processing 10000 items with 100 workers
-#> ⏳ Progress: 100/100 tasks (3.1 minutes elapsed)
-#>
-#> ✓ Completed in 3.1 minutes
-#> 💰 Estimated cost: $0.29
+#> [Starting] Starting starburst cluster with 100 workers
+#> [Status] Processing 10000 items with 100 workers
+#> [Starting] Submitting 10000 tasks...
+#> [Wait] Progress: 10000/10000 (186.0s)
+#> [OK] Completed in 186.0 seconds
+#> [Cost] Estimated cost: $0.29
 
 # Extract results
 final_values <- sapply(results, function(x) x$final_value)
@@ -180,17 +176,22 @@ session$cleanup(force = TRUE)
 ## How It Works
 
 1.  **Environment Snapshot**: Captures your R packages using renv
-2.  **Container Build**: Creates Docker image with your environment,
+2.  **Container Build**: Creates a Docker image with your environment,
     cached in ECR
-3.  **Task Distribution**: Splits data into chunks across workers
-4.  **Task Submission**: Launches Fargate tasks (or sequential batches
-    if quota-limited)
-5.  **Data Transfer**: Serializes task data to S3 using fast qs format
-6.  **Execution**: Workers pull data, execute function on chunk items,
-    push results
-7.  **Result Collection**: Downloads and combines results in correct
-    order
-8.  **Cleanup**: Automatically shuts down workers
+3.  **Task Creation**: Creates one task per element of your input (`.x`)
+    — there is no automatic chunking; batch small items yourself if
+    per-task overhead matters
+4.  **Worker Launch**: Starts EC2 workers by default (Spot-enabled), or
+    Fargate tasks if you pass `launch_type = "FARGATE"`; falls back to
+    waves if quota-limited
+5.  **Data Transfer**: Serializes each task’s function, inputs, and
+    globals to S3 using the fast `qs2` format
+6.  **Execution**: Each worker pulls a task from S3, runs your function,
+    pushes the result back to S3
+7.  **Result Collection**: Downloads and combines results in the
+    original order
+8.  **Cleanup**: Automatically shuts workers down (warm-pool timeout
+    configurable)
 
 ## Cost Management
 
@@ -204,21 +205,22 @@ starburst_config(
 
 # Costs shown transparently
 results <- starburst_map(data, fn, workers = 100)
-#> 💰 Estimated cost: ~$3.50/hour
-#> ✓ Completed in 23 minutes
-#> 💰 Estimated cost: $1.34
+#> [Starting] Starting starburst cluster with 100 workers
+#> [OK] Completed in 1380.0 seconds
+#> [Cost] Estimated cost: $1.34
 ```
 
 ## Quota Management
 
-staRburst automatically handles AWS Fargate quota limitations:
+When using the Fargate backend, staRburst automatically handles AWS
+Fargate vCPU quota limits (EC2 uses your standard On-Demand/Spot
+limits):
 
 ``` r
 
-results <- starburst_map(data, fn, workers = 100, cpu = 4)
-#> ⚠ Requested 100 workers (400 vCPUs) but quota allows 25 workers (100 vCPUs)
-#> ⚠ Using 25 workers instead
-#> 💰 Estimated cost: ~$1.40/hour
+results <- starburst_map(data, fn, workers = 100, cpu = 4, launch_type = "FARGATE")
+#> [!] Requested 100 workers (400 vCPUs) but quota allows 25 workers (100 vCPUs)
+#> [!] Using 25 workers instead
 ```
 
 Your work still completes, just with fewer workers. You can request

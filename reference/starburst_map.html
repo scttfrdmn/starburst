@@ -9,7 +9,7 @@ Fargate) using the staRburst Future backend."><meta property="og:image" content=
 
     <a class="navbar-brand me-2" href="../index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.9</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,6 +71,9 @@ Fargate) using the staRburst Future backend.</p>
 <span>  platform <span class="op">=</span> <span class="st">"X86_64"</span>,</span>
 <span>  region <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  timeout <span class="op">=</span> <span class="fl">3600</span>,</span>
+<span>  launch_type <span class="op">=</span> <span class="st">"EC2"</span>,</span>
+<span>  instance_type <span class="op">=</span> <span class="st">"c7g.xlarge"</span>,</span>
+<span>  use_spot <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  .progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -112,6 +115,19 @@ Fargate) using the staRburst Future backend.</p>
 <dd><p>Maximum runtime in seconds per task</p></dd>
 
 
+<dt id="arg-launch-type">launch_type<a class="anchor" aria-label="anchor" href="#arg-launch-type"></a></dt>
+<dd><p>Compute backend: "EC2" (default) or "FARGATE"</p></dd>
+
+
+<dt id="arg-instance-type">instance_type<a class="anchor" aria-label="anchor" href="#arg-instance-type"></a></dt>
+<dd><p>EC2 instance type when <code>launch_type = "EC2"</code>
+(default: "c7g.xlarge")</p></dd>
+
+
+<dt id="arg-use-spot">use_spot<a class="anchor" aria-label="anchor" href="#arg-use-spot"></a></dt>
+<dd><p>Use EC2 Spot instances for cost savings (default: TRUE)</p></dd>
+
+
 <dt id="arg--progress">.progress<a class="anchor" aria-label="anchor" href="#arg--progress"></a></dt>
 <dd><p>Show progress bar (default: TRUE)</p></dd>
 
@@ -140,6 +156,10 @@ Fargate) using the staRburst Future backend.</p>
 <span class="r-in"><span>    cpu <span class="op">=</span> <span class="fl">4</span>,</span></span>
 <span class="r-in"><span>    memory <span class="op">=</span> <span class="st">"8GB"</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="co"># Use the Fargate backend instead of the EC2 default</span></span></span>
+<span class="r-in"><span>  <span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">starburst_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">100</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">^</span><span class="fl">2</span>,</span></span>
+<span class="r-in"><span>                           workers <span class="op">=</span> <span class="fl">10</span>, launch_type <span class="op">=</span> <span class="st">"FARGATE"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>

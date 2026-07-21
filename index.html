@@ -30,7 +30,7 @@
 
     <a class="navbar-brand me-2" href="index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.9</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -125,7 +125,8 @@
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://starburst.ing">starburst</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># One-time setup (2 minutes)</span></span>
+<span><span class="co"># One-time setup (~2 min to provision; first run also builds the worker image,</span></span>
+<span><span class="co"># +5-10 min once)</span></span>
 <span><span class="fu"><a href="reference/starburst_setup.html">starburst_setup</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Run parallel computation on AWS</span></span>
@@ -134,16 +135,12 @@
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu">expensive_computation</span><span class="op">(</span><span class="va">x</span><span class="op">)</span>,</span>
 <span>  workers <span class="op">=</span> <span class="fl">50</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; 🚀 Starting starburst cluster with 50 workers</span></span>
-<span><span class="co">#&gt; 💰 Estimated cost: ~$2.80/hour</span></span>
-<span><span class="co">#&gt; 📊 Processing 1000 items with 50 workers</span></span>
-<span><span class="co">#&gt; 📦 Created 50 chunks (avg 20 items per chunk)</span></span>
-<span><span class="co">#&gt; 🚀 Submitting tasks...</span></span>
-<span><span class="co">#&gt; ✓ Submitted 50 tasks</span></span>
-<span><span class="co">#&gt; ⏳ Progress: 50/50 tasks (3.2 minutes elapsed)</span></span>
-<span><span class="co">#&gt;</span></span>
-<span><span class="co">#&gt; ✓ Completed in 3.2 minutes</span></span>
-<span><span class="co">#&gt; 💰 Estimated cost: $0.15</span></span></code></pre></div>
+<span><span class="co">#&gt; [Starting] Starting starburst cluster with 50 workers</span></span>
+<span><span class="co">#&gt; [Status] Processing 1000 items with 50 workers</span></span>
+<span><span class="co">#&gt; [Starting] Submitting 1000 tasks...</span></span>
+<span><span class="co">#&gt; [Wait] Progress: 1000/1000 (192.0s)</span></span>
+<span><span class="co">#&gt; [OK] Completed in 192.0 seconds</span></span>
+<span><span class="co">#&gt; [Cost] Estimated cost: $0.15</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="example-monte-carlo-simulation">Example: Monte Carlo Simulation<a class="anchor" aria-label="anchor" href="#example-monte-carlo-simulation"></a>
@@ -169,13 +166,12 @@
 <span>  <span class="va">simulate_portfolio</span>,</span>
 <span>  workers <span class="op">=</span> <span class="fl">100</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; 🚀 Starting starburst cluster with 100 workers</span></span>
-<span><span class="co">#&gt; 💰 Estimated cost: ~$5.60/hour</span></span>
-<span><span class="co">#&gt; 📊 Processing 10000 items with 100 workers</span></span>
-<span><span class="co">#&gt; ⏳ Progress: 100/100 tasks (3.1 minutes elapsed)</span></span>
-<span><span class="co">#&gt;</span></span>
-<span><span class="co">#&gt; ✓ Completed in 3.1 minutes</span></span>
-<span><span class="co">#&gt; 💰 Estimated cost: $0.29</span></span>
+<span><span class="co">#&gt; [Starting] Starting starburst cluster with 100 workers</span></span>
+<span><span class="co">#&gt; [Status] Processing 10000 items with 100 workers</span></span>
+<span><span class="co">#&gt; [Starting] Submitting 10000 tasks...</span></span>
+<span><span class="co">#&gt; [Wait] Progress: 10000/10000 (186.0s)</span></span>
+<span><span class="co">#&gt; [OK] Completed in 186.0 seconds</span></span>
+<span><span class="co">#&gt; [Cost] Estimated cost: $0.29</span></span>
 <span></span>
 <span><span class="co"># Extract results</span></span>
 <span><span class="va">final_values</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">results</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">$</span><span class="va">final_value</span><span class="op">)</span></span>
@@ -260,19 +256,19 @@
 <li>
 <strong>Environment Snapshot</strong>: Captures your R packages using renv</li>
 <li>
-<strong>Container Build</strong>: Creates Docker image with your environment, cached in ECR</li>
+<strong>Container Build</strong>: Creates a Docker image with your environment, cached in ECR</li>
 <li>
-<strong>Task Distribution</strong>: Splits data into chunks across workers</li>
+<strong>Task Creation</strong>: Creates one task per element of your input (<code>.x</code>) — there is no automatic chunking; batch small items yourself if per-task overhead matters</li>
 <li>
-<strong>Task Submission</strong>: Launches Fargate tasks (or sequential batches if quota-limited)</li>
+<strong>Worker Launch</strong>: Starts EC2 workers by default (Spot-enabled), or Fargate tasks if you pass <code>launch_type = "FARGATE"</code>; falls back to waves if quota-limited</li>
 <li>
-<strong>Data Transfer</strong>: Serializes task data to S3 using fast qs format</li>
+<strong>Data Transfer</strong>: Serializes each task’s function, inputs, and globals to S3 using the fast <code>qs2</code> format</li>
 <li>
-<strong>Execution</strong>: Workers pull data, execute function on chunk items, push results</li>
+<strong>Execution</strong>: Each worker pulls a task from S3, runs your function, pushes the result back to S3</li>
 <li>
-<strong>Result Collection</strong>: Downloads and combines results in correct order</li>
+<strong>Result Collection</strong>: Downloads and combines results in the original order</li>
 <li>
-<strong>Cleanup</strong>: Automatically shuts down workers</li>
+<strong>Cleanup</strong>: Automatically shuts workers down (warm-pool timeout configurable)</li>
 </ol>
 </div>
 <div class="section level2">
@@ -287,19 +283,18 @@
 <span></span>
 <span><span class="co"># Costs shown transparently</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">fn</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 💰 Estimated cost: ~$3.50/hour</span></span>
-<span><span class="co">#&gt; ✓ Completed in 23 minutes</span></span>
-<span><span class="co">#&gt; 💰 Estimated cost: $1.34</span></span></code></pre></div>
+<span><span class="co">#&gt; [Starting] Starting starburst cluster with 100 workers</span></span>
+<span><span class="co">#&gt; [OK] Completed in 1380.0 seconds</span></span>
+<span><span class="co">#&gt; [Cost] Estimated cost: $1.34</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="quota-management">Quota Management<a class="anchor" aria-label="anchor" href="#quota-management"></a>
 </h2>
-<p>staRburst automatically handles AWS Fargate quota limitations:</p>
+<p>When using the Fargate backend, staRburst automatically handles AWS Fargate vCPU quota limits (EC2 uses your standard On-Demand/Spot limits):</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">fn</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
-<span><span class="co">#&gt; ⚠ Requested 100 workers (400 vCPUs) but quota allows 25 workers (100 vCPUs)</span></span>
-<span><span class="co">#&gt; ⚠ Using 25 workers instead</span></span>
-<span><span class="co">#&gt; 💰 Estimated cost: ~$1.40/hour</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">fn</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span>, launch_type <span class="op">=</span> <span class="st">"FARGATE"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [!] Requested 100 workers (400 vCPUs) but quota allows 25 workers (100 vCPUs)</span></span>
+<span><span class="co">#&gt; [!] Using 25 workers instead</span></span></code></pre></div>
 <p>Your work still completes, just with fewer workers. You can request quota increases through AWS Service Quotas.</p>
 </div>
 <div class="section level2">

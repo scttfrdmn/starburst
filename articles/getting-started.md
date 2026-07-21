@@ -20,12 +20,51 @@ the one that fits how your code is written:
 | Configure account/backend defaults | [`starburst_config()`](https://starburst.ing/reference/starburst_config.md) |
 
 If you’re new, start with
-[`starburst_map()`](https://starburst.ing/reference/starburst_map.md).
-This guide uses the `future`/`furrr` integration (`plan(starburst)`) for
-most examples because it drops into existing future-based code
-unchanged; every example works with
-[`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
-too.
+[`starburst_map()`](https://starburst.ing/reference/starburst_map.md) —
+the next section walks through a first job with it. If you already have
+`future`/`furrr` code, skip to [Migrating existing future / furrr
+code](#migrating-existing-future-furrr-code); the two styles are
+equivalent and shown side by side there.
+
+### How it works (the mental model)
+
+            Local R session
+                  |
+                  |  (1) serialize your function + inputs + detected globals (qs2)
+                  |      AWS credentials are read HERE, from your local environment
+                  v
+       S3 bucket  +  staRburst control plane (ECS/ECR)
+                  |
+                  |  (2) launch workers: EC2 (default, Spot) or Fargate
+                  |      each worker's R packages come from your renv.lock, baked
+                  |      into a Docker image cached in ECR
+                  v
+       Remote R workers  (one task per input element)
+                  |
+                  |  (3) each worker pulls a task from S3, runs it, writes the
+                  |      result + logs back to S3
+                  v
+       Local R session  <-- results collected in order (starburst_map / cluster)
+            or
+       Detached-session store in S3  <-- collected later via starburst_session_attach()
+
+**What to know from this picture:**
+
+- **Credentials** are used only on your machine (to call AWS) and by the
+  workers’ IAM role — you never put keys in your code or in S3.
+- **Uploaded** per task: your function, its inputs, and auto-detected
+  globals — not your whole workspace. Large data should go to S3
+  yourself and be read on the worker.
+- **Dependencies** come from your `renv.lock`, installed into the worker
+  image once and cached in ECR (this is the first-run build cost).
+- **After a failure or disconnect**, workers keep running against S3
+  until a timeout; nothing is silently lost. `session$cleanup()` (or
+  normal completion of
+  [`starburst_map()`](https://starburst.ing/reference/starburst_map.md))
+  tears down workers and removes the job’s S3 objects.
+- **Detached sessions** differ only in step 3’s return path: results
+  persist in S3 so you can close R and collect later, instead of
+  blocking the local session.
 
 ### Installation
 
@@ -59,13 +98,15 @@ minutes** (it is cached and reused afterwards, and you can skip it with
 `starburst_setup(build_image = FALSE)` and build lazily on first job
 launch).
 
-### Basic Usage
+### Your first job
 
-The simplest way to use staRburst is with the `furrr` package:
+The simplest way to use staRburst is
+[`starburst_map()`](https://starburst.ing/reference/starburst_map.md) —
+hand it your inputs and a function, and it runs the function over each
+input on AWS workers:
 
 ``` r
 
-library(furrr)
 library(starburst)
 
 # Define your work
@@ -78,24 +119,59 @@ expensive_simulation <- function(i) {
   mean(results)
 }
 
-# Local execution (single core)
+# Run across 50 cloud workers (EC2 by default)
+results <- starburst_map(1:100, expensive_simulation, workers = 50)
+#> [Starting] Starting starburst cluster with 50 workers
+#> [Status] Processing 100 items with 50 workers
+#> [Starting] Submitting 100 tasks...
+#> [Wait] Progress: 100/100 (128.0s)
+#> [OK] Completed in 128.0 seconds
+#> [Cost] Estimated cost: $0.85
+```
+
+That is the whole workflow:
+[`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md)
+once, then
+[`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
+per job. Everything below builds on this.
+
+### Migrating existing `future` / `furrr` code
+
+If you already use `future` or `furrr`, you don’t need
+[`starburst_map()`](https://starburst.ing/reference/starburst_map.md) —
+set the plan to `starburst` and your existing `future_map()` /
+`future_lapply()` calls run on AWS unchanged. The two styles are
+equivalent; use whichever matches your code:
+
+``` r
+
+library(furrr)
+library(starburst)
+
+# Local baseline
 plan(sequential)
-system.time({
-  results_local <- future_map(1:100, expensive_simulation)
-})
-#> ~16 minutes on typical laptop
+results_local <- future_map(1:100, expensive_simulation)
 
-# Cloud execution (50 workers)
+# Same code, now on 50 cloud workers — just change the plan
 plan(starburst, workers = 50)
-system.time({
-  results_cloud <- future_map(1:100, expensive_simulation)
-})
-#> ~2 minutes (including 45s startup)
-#> Cost: ~$0.85
+results_cloud <- future_map(1:100, expensive_simulation)
 
-# Results are identical
+# Results are identical to the local run
 identical(results_local, results_cloud)
 #> [1] TRUE
+```
+
+The two calls below do the same thing — pick the one that fits your
+codebase:
+
+``` r
+
+# Direct API
+results <- starburst_map(1:100, expensive_simulation, workers = 50)
+
+# future / furrr
+plan(starburst, workers = 50)
+results <- future_map(1:100, expensive_simulation)
 ```
 
 ### Example 1: Monte Carlo Simulation
@@ -307,7 +383,12 @@ results <- future_map(data, process)
 #> Total cost: $1.34
 ```
 
-### Quota Management
+### Quota Management (Fargate backend)
+
+> This section applies to the **Fargate** backend. On the default
+> **EC2** backend, worker count is bounded by your normal EC2 On-Demand
+> / Spot instance limits, not the Fargate vCPU quota below. If you stay
+> on EC2 you can usually skip this.
 
 #### Check Your Quota
 

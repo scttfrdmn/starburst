@@ -9,7 +9,7 @@ of your R session. You can close R and reattach later to collect results."><meta
 
     <a class="navbar-brand me-2" href="../index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.9</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -127,12 +127,59 @@ of your R session. You can close R and reattach later to collect results.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A StarburstSession object with methods:</p><ul><li><p><code>submit(expr, ...)</code> - Submit a task to the session</p></li>
-<li><p><code>status()</code> - Get progress summary</p></li>
-<li><p><code>collect(wait = FALSE)</code> - Collect completed results</p></li>
-<li><p><code>extend(seconds = 3600)</code> - Extend timeout</p></li>
-<li><p><code>cleanup()</code> - Terminate and cleanup</p></li>
-</ul></div>
+    <p>A <code>StarburstSession</code> object (also carrying <code>$session_id</code>, the
+  handle you pass to <code><a href="starburst_session_attach.html">starburst_session_attach</a></code>) with methods:</p><dl><dt><code>submit(expr, globals = NULL, packages = NULL)</code></dt>
+<dd><p>Submit one task
+      (a quoted expression). Returns the task id. Call repeatedly to fan out work.</p></dd>
+
+    <dt><code>status()</code></dt>
+<dd><p>Return a progress summary (counts of pending / running
+      / completed / failed tasks). Safe to call from a fresh R session after
+      reattaching.</p></dd>
+
+    <dt><code>collect(wait = FALSE)</code></dt>
+<dd><p>Retrieve results. With <code>wait = FALSE</code>
+      returns whatever has completed so far; with <code>wait = TRUE</code> blocks until
+      all submitted tasks finish. Results come back in submission order.</p></dd>
+
+    <dt><code>extend(seconds = 3600)</code></dt>
+<dd><p>Extend the active/absolute timeout of a
+      still-running session.</p></dd>
+
+    <dt><code>cleanup()</code></dt>
+<dd><p>Stop all tasks/workers for the session and delete its
+      S3 objects. Call when done; otherwise the session self-terminates at
+      <code>absolute_timeout</code>.</p></dd>
+
+
+</dl></div>
+    <div class="section level2">
+    <h2 id="lifecycle">Lifecycle<a class="anchor" aria-label="anchor" href="#lifecycle"></a></h2>
+
+
+<p><code>starburst_session()</code> launches workers immediately and returns a handle.
+Submit tasks, then either poll <code>status()</code>/<code>collect()</code> in the same
+session, or record <code>session$session_id</code>, close R, and later
+<code><a href="starburst_session_attach.html">starburst_session_attach</a>(session_id)</code> to reconnect and collect.
+A session ends when you call <code>cleanup()</code>, when <code>session_timeout</code>
+elapses with no activity, or at <code>absolute_timeout</code> — whichever comes first.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="failure-behavior">Failure behavior<a class="anchor" aria-label="anchor" href="#failure-behavior"></a></h2>
+
+
+<p>A failed task is recorded (surfaced via <code>status()</code>) and does not abort the
+others; its error is raised when you <code>collect()</code> that result. If the client
+dies, workers keep running against S3 until a timeout, which is what makes
+reattaching possible. <code>cleanup()</code> is the only thing that frees resources
+early — sessions do not auto-clean on garbage collection.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="starburst_session_attach.html">starburst_session_attach</a></code>,
+  <code><a href="starburst_list_sessions.html">starburst_list_sessions</a></code>; <code><a href="starburst_map.html">starburst_map</a></code> for
+  ephemeral (non-detached) fan-out.</p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

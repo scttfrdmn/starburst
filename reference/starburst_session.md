@@ -70,17 +70,62 @@ starburst_session(
 
 ## Value
 
-A StarburstSession object with methods:
+A `StarburstSession` object (also carrying `$session_id`, the handle you
+pass to
+[`starburst_session_attach`](https://starburst.ing/reference/starburst_session_attach.md))
+with methods:
 
-- `submit(expr, ...)` - Submit a task to the session
+- `submit(expr, globals = NULL, packages = NULL)`:
 
-- `status()` - Get progress summary
+  Submit one task (a quoted expression). Returns the task id. Call
+  repeatedly to fan out work.
 
-- `collect(wait = FALSE)` - Collect completed results
+- `status()`:
 
-- `extend(seconds = 3600)` - Extend timeout
+  Return a progress summary (counts of pending / running / completed /
+  failed tasks). Safe to call from a fresh R session after reattaching.
 
-- `cleanup()` - Terminate and cleanup
+- `collect(wait = FALSE)`:
+
+  Retrieve results. With `wait = FALSE` returns whatever has completed
+  so far; with `wait = TRUE` blocks until all submitted tasks finish.
+  Results come back in submission order.
+
+- `extend(seconds = 3600)`:
+
+  Extend the active/absolute timeout of a still-running session.
+
+- `cleanup()`:
+
+  Stop all tasks/workers for the session and delete its S3 objects. Call
+  when done; otherwise the session self-terminates at
+  `absolute_timeout`.
+
+## Lifecycle
+
+`starburst_session()` launches workers immediately and returns a handle.
+Submit tasks, then either poll `status()`/`collect()` in the same
+session, or record `session$session_id`, close R, and later
+[`starburst_session_attach`](https://starburst.ing/reference/starburst_session_attach.md)`(session_id)`
+to reconnect and collect. A session ends when you call `cleanup()`, when
+`session_timeout` elapses with no activity, or at `absolute_timeout` —
+whichever comes first.
+
+## Failure behavior
+
+A failed task is recorded (surfaced via `status()`) and does not abort
+the others; its error is raised when you `collect()` that result. If the
+client dies, workers keep running against S3 until a timeout, which is
+what makes reattaching possible. `cleanup()` is the only thing that
+frees resources early — sessions do not auto-clean on garbage
+collection.
+
+## See also
+
+[`starburst_session_attach`](https://starburst.ing/reference/starburst_session_attach.md),
+[`starburst_list_sessions`](https://starburst.ing/reference/starburst_list_sessions.md);
+[`starburst_map`](https://starburst.ing/reference/starburst_map.md) for
+ephemeral (non-detached) fan-out.
 
 ## Examples
 

@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.9</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -392,9 +392,8 @@ Average online rate: 28.9%</code></pre>
 <thead><tr class="header">
 <th>Method</th>
 <th>Customers</th>
-<th>Time</th>
+<th>Compute time</th>
 <th>Cost</th>
-<th>Speedup</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
@@ -402,28 +401,34 @@ Average online rate: 28.9%</code></pre>
 <td>500</td>
 <td>3.8 sec</td>
 <td>$0</td>
-<td>-</td>
 </tr>
 <tr class="even">
 <td>Local (est.)</td>
 <td>5,000</td>
 <td>38 sec</td>
 <td>$0</td>
-<td>1x</td>
 </tr>
 <tr class="odd">
 <td>staRburst</td>
 <td>5,000</td>
-<td>6.2 sec</td>
+<td>6.2 sec (compute only)</td>
 <td>$0.003</td>
-<td>6.1x</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Key Insights</strong>: - Excellent parallelization efficiency
-(6x speedup) - Minimal cost for significant time savings - Scales well
-to larger datasets (100K+ customers) - Can process 100 customers/second
-with 20 workers</p>
+<blockquote>
+<p><strong>Reading these numbers honestly:</strong> the staRburst row is
+<em>compute time only</em> on a warm pool and excludes the one-time
+startup (~2 minutes) and image pull. For a job that finishes in ~38
+seconds locally, that startup makes local the faster choice — these
+figures are illustrative, not a net-win claim. The payoff comes at scale
+(100K+ customers or heavier per-record work). See
+<code><a href="../articles/performance.html">vignette("performance")</a></code>.</p>
+</blockquote>
+<p><strong>Key Insights</strong>: - Feature engineering parallelizes
+near-linearly once workers are warm - Minimal per-task cost - The win is
+at scale, where startup overhead is amortized away - Can process 100
+customers/second with 20 workers</p>
 </div>
 <div class="section level2">
 <h2 id="advanced-adding-ml-ready-features">Advanced: Adding ML-Ready Features<a class="anchor" aria-label="anchor" href="#advanced-adding-ml-ready-features"></a>

@@ -9,7 +9,7 @@ using the staRburst Future backend."><meta property="og:image" content="https://
 
     <a class="navbar-brand me-2" href="../index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.9</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -68,7 +68,10 @@ using the staRburst Future backend.</p>
 <span>  memory <span class="op">=</span> <span class="st">"8GB"</span>,</span>
 <span>  platform <span class="op">=</span> <span class="st">"X86_64"</span>,</span>
 <span>  region <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  timeout <span class="op">=</span> <span class="fl">3600</span></span>
+<span>  timeout <span class="op">=</span> <span class="fl">3600</span>,</span>
+<span>  launch_type <span class="op">=</span> <span class="st">"EC2"</span>,</span>
+<span>  instance_type <span class="op">=</span> <span class="st">"c7g.xlarge"</span>,</span>
+<span>  use_spot <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -99,6 +102,19 @@ using the staRburst Future backend.</p>
 <dt id="arg-timeout">timeout<a class="anchor" aria-label="anchor" href="#arg-timeout"></a></dt>
 <dd><p>Maximum runtime in seconds</p></dd>
 
+
+<dt id="arg-launch-type">launch_type<a class="anchor" aria-label="anchor" href="#arg-launch-type"></a></dt>
+<dd><p>Compute backend: "EC2" (default) or "FARGATE"</p></dd>
+
+
+<dt id="arg-instance-type">instance_type<a class="anchor" aria-label="anchor" href="#arg-instance-type"></a></dt>
+<dd><p>EC2 instance type when <code>launch_type = "EC2"</code>
+(default: "c7g.xlarge")</p></dd>
+
+
+<dt id="arg-use-spot">use_spot<a class="anchor" aria-label="anchor" href="#arg-use-spot"></a></dt>
+<dd><p>Use EC2 Spot instances for cost savings (default: TRUE)</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -111,6 +127,9 @@ using the staRburst Future backend.</p>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="starburst_is_configured.html">starburst_is_configured</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="va">cluster</span> <span class="op">&lt;-</span> <span class="fu">starburst_cluster</span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">results</span> <span class="op">&lt;-</span> <span class="va">cluster</span><span class="op">$</span><span class="fu">map</span><span class="op">(</span><span class="va">data</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span> <span class="op">*</span> <span class="fl">2</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="co"># Fargate backend instead of the EC2 default</span></span></span>
+<span class="r-in"><span>  <span class="va">fg</span> <span class="op">&lt;-</span> <span class="fu">starburst_cluster</span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">20</span>, launch_type <span class="op">=</span> <span class="st">"FARGATE"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
