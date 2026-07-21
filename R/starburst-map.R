@@ -11,6 +11,10 @@
 #' @param platform CPU architecture (X86_64 or ARM64)
 #' @param region AWS region
 #' @param timeout Maximum runtime in seconds per task
+#' @param launch_type Compute backend: "EC2" (default) or "FARGATE"
+#' @param instance_type EC2 instance type when \code{launch_type = "EC2"}
+#'   (default: "c7g.xlarge")
+#' @param use_spot Use EC2 Spot instances for cost savings (default: TRUE)
 #' @param .progress Show progress bar (default: TRUE)
 #' @param ... Additional arguments passed to .f
 #'
@@ -31,11 +35,16 @@
 #'     cpu = 4,
 #'     memory = "8GB"
 #'   )
+#'
+#'   # Use the Fargate backend instead of the EC2 default
+#'   results <- starburst_map(1:100, function(x) x^2,
+#'                            workers = 10, launch_type = "FARGATE")
 #' }
 #' }
 starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
                           platform = "X86_64", region = NULL, timeout = 3600,
-                          .progress = TRUE, ...) {
+                          launch_type = "EC2", instance_type = "c7g.xlarge",
+                          use_spot = TRUE, .progress = TRUE, ...) {
 
   # Validate inputs
   validate_workers(workers)
@@ -68,7 +77,10 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
     memory = memory,
     platform = platform,
     region = region,
-    timeout = timeout
+    timeout = timeout,
+    launch_type = launch_type,
+    instance_type = instance_type,
+    use_spot = use_spot
   )
 
   future::plan(strategy)
@@ -176,6 +188,10 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 #' @param platform CPU architecture (X86_64 or ARM64)
 #' @param region AWS region
 #' @param timeout Maximum runtime in seconds
+#' @param launch_type Compute backend: "EC2" (default) or "FARGATE"
+#' @param instance_type EC2 instance type when \code{launch_type = "EC2"}
+#'   (default: "c7g.xlarge")
+#' @param use_spot Use EC2 Spot instances for cost savings (default: TRUE)
 #'
 #' @return A starburst_cluster object
 #' @export
@@ -185,10 +201,15 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 #' if (starburst_is_configured()) {
 #'   cluster <- starburst_cluster(workers = 20)
 #'   results <- cluster$map(data, function(x) x * 2)
+#'
+#'   # Fargate backend instead of the EC2 default
+#'   fg <- starburst_cluster(workers = 20, launch_type = "FARGATE")
 #' }
 #' }
 starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
-                              platform = "X86_64", region = NULL, timeout = 3600) {
+                              platform = "X86_64", region = NULL, timeout = 3600,
+                              launch_type = "EC2", instance_type = "c7g.xlarge",
+                              use_spot = TRUE) {
 
   # Get configuration
   config <- get_starburst_config()
@@ -202,7 +223,10 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
     memory = memory,
     platform = platform,
     region = region,
-    timeout = timeout
+    timeout = timeout,
+    launch_type = launch_type,
+    instance_type = instance_type,
+    use_spot = use_spot
   )
 
   future::plan(strategy)

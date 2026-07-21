@@ -328,16 +328,22 @@ Average online rate: 28.9%
 
 ## Performance Comparison
 
-| Method | Customers | Time | Cost | Speedup |
-|--------|-----------|------|------|---------|
-| Local | 500 | 3.8 sec | $0 | - |
-| Local (est.) | 5,000 | 38 sec | $0 | 1x |
-| staRburst | 5,000 | 6.2 sec | $0.003 | 6.1x |
+| Method | Customers | Compute time | Cost |
+|--------|-----------|------|------|
+| Local | 500 | 3.8 sec | $0 |
+| Local (est.) | 5,000 | 38 sec | $0 |
+| staRburst | 5,000 | 6.2 sec (compute only) | $0.003 |
+
+> **Reading these numbers honestly:** the staRburst row is *compute time only* on a
+> warm pool and excludes the one-time startup (~2 minutes) and image pull. For a job
+> that finishes in ~38 seconds locally, that startup makes local the faster choice —
+> these figures are illustrative, not a net-win claim. The payoff comes at scale
+> (100K+ customers or heavier per-record work). See `vignette("performance")`.
 
 **Key Insights**:
-- Excellent parallelization efficiency (6x speedup)
-- Minimal cost for significant time savings
-- Scales well to larger datasets (100K+ customers)
+- Feature engineering parallelizes near-linearly once workers are warm
+- Minimal per-task cost
+- The win is at scale, where startup overhead is amortized away
 - Can process 100 customers/second with 20 workers
 
 ## Advanced: Adding ML-Ready Features

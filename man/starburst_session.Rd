@@ -42,19 +42,47 @@ starburst_session(
 \item{warm_pool_timeout}{EC2 warm pool timeout in seconds (default: 3600)}
 }
 \value{
-A StarburstSession object with methods:
-  \itemize{
-    \item \code{submit(expr, ...)} - Submit a task to the session
-    \item \code{status()} - Get progress summary
-    \item \code{collect(wait = FALSE)} - Collect completed results
-    \item \code{extend(seconds = 3600)} - Extend timeout
-    \item \code{cleanup()} - Terminate and cleanup
+A \code{StarburstSession} object (also carrying \code{$session_id}, the
+  handle you pass to \code{\link{starburst_session_attach}}) with methods:
+  \describe{
+    \item{\code{submit(expr, globals = NULL, packages = NULL)}}{Submit one task
+      (a quoted expression). Returns the task id. Call repeatedly to fan out work.}
+    \item{\code{status()}}{Return a progress summary (counts of pending / running
+      / completed / failed tasks). Safe to call from a fresh R session after
+      reattaching.}
+    \item{\code{collect(wait = FALSE)}}{Retrieve results. With \code{wait = FALSE}
+      returns whatever has completed so far; with \code{wait = TRUE} blocks until
+      all submitted tasks finish. Results come back in submission order.}
+    \item{\code{extend(seconds = 3600)}}{Extend the active/absolute timeout of a
+      still-running session.}
+    \item{\code{cleanup()}}{Stop all tasks/workers for the session and delete its
+      S3 objects. Call when done; otherwise the session self-terminates at
+      \code{absolute_timeout}.}
   }
 }
 \description{
 Creates a new detached session that can run computations independently
 of your R session. You can close R and reattach later to collect results.
 }
+\section{Lifecycle}{
+
+\code{starburst_session()} launches workers immediately and returns a handle.
+Submit tasks, then either poll \code{status()}/\code{collect()} in the same
+session, or record \code{session$session_id}, close R, and later
+\code{\link{starburst_session_attach}(session_id)} to reconnect and collect.
+A session ends when you call \code{cleanup()}, when \code{session_timeout}
+elapses with no activity, or at \code{absolute_timeout} — whichever comes first.
+}
+
+\section{Failure behavior}{
+
+A failed task is recorded (surfaced via \code{status()}) and does not abort the
+others; its error is raised when you \code{collect()} that result. If the client
+dies, workers keep running against S3 until a timeout, which is what makes
+reattaching possible. \code{cleanup()} is the only thing that frees resources
+early — sessions do not auto-clean on garbage collection.
+}
+
 \examples{
 \donttest{
 if (starburst_is_configured()) {
@@ -76,4 +104,9 @@ if (starburst_is_configured()) {
   results <- session$collect(wait = TRUE)
 }
 }
+}
+\seealso{
+\code{\link{starburst_session_attach}},
+  \code{\link{starburst_list_sessions}}; \code{\link{starburst_map}} for
+  ephemeral (non-detached) fan-out.
 }

@@ -1,3 +1,26 @@
+# starburst 0.3.9 (development)
+
+## Bug fixes
+
+* **`starburst_map()` and `starburst_cluster()` now accept `launch_type`,
+  `instance_type`, and `use_spot`** and forward them to the backend. Previously
+  these functions had no backend arguments, so a call like
+  `starburst_map(x, f, launch_type = "FARGATE")` silently passed `launch_type`
+  to the mapped function `.f` (typically an "unused argument" error) instead of
+  switching the backend — contradicting the 0.3.7 migration note. Backend
+  selection now works uniformly across `plan(starburst)`, `starburst_map()`,
+  `starburst_cluster()`, and `starburst_session()`.
+
+## Documentation
+
+* Consistency sweep addressing an external documentation review: EC2 is now
+  consistently presented as the default/recommended backend with Fargate as the
+  optional alternative; the README and example console output match the current
+  engine (ASCII status markers, one task per input element — no chunking step);
+  the Getting Started tutorial leads with `starburst_map()`; a grouped reference
+  index and an architecture diagram were added; and `starburst_config()` keys are
+  now catalogued.
+
 # starburst 0.3.8 (2026-03-06)
 
 ## Reliability & CRAN readiness
