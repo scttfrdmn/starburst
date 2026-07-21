@@ -27,16 +27,27 @@ and Fargate (serverless) backends.
 
 ## Installation
 
-``` r
+> **Note on versions.** This documentation describes the **development
+> version, 0.3.9**. The current CRAN release is **0.3.8**, which does
+> **not** include some APIs documented here (notably backend arguments —
+> `launch_type`/`instance_type`/ `use_spot` — on
+> [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
+> and
+> [`starburst_cluster()`](https://starburst.ing/reference/starburst_cluster.md)).
+> To use the APIs as documented, install from GitHub.
 
-install.packages("starburst")
-```
-
-Development version from GitHub:
+Development version (0.3.9 — matches this documentation):
 
 ``` r
 
 remotes::install_github("scttfrdmn/starburst")
+```
+
+Latest CRAN release (0.3.8):
+
+``` r
+
+install.packages("starburst")
 ```
 
 ## Quick Start
@@ -49,18 +60,19 @@ library(starburst)
 # +5-10 min once)
 starburst_setup()
 
-# Run parallel computation on AWS
+# Run parallel computation on AWS (each task should be real work — seconds+ —
+# so it's worth shipping; batch tiny items first). Console output is illustrative:
 results <- starburst_map(
-  1:1000,
+  inputs,                       # e.g. a list of scenarios / parameter sets
   function(x) expensive_computation(x),
   workers = 50
 )
 #> [Starting] Starting starburst cluster with 50 workers
-#> [Status] Processing 1000 items with 50 workers
-#> [Starting] Submitting 1000 tasks...
-#> [Wait] Progress: 1000/1000 (192.0s)
-#> [OK] Completed in 192.0 seconds
-#> [Cost] Estimated cost: $0.15
+#> [Status] Processing 200 items with 50 workers
+#> [Starting] Submitting 200 tasks...
+#> [Wait] Progress: 200/200
+#> [OK] Completed
+#> [Cost] Estimated cost: (printed per run)
 ```
 
 ## Example: Monte Carlo Simulation
@@ -81,18 +93,16 @@ simulate_portfolio <- function(seed) {
   )
 }
 
-# Run 10,000 simulations on 100 AWS workers
+# Each simulation is tiny (sub-millisecond), so BATCH them: 100 tasks of 100
+# simulations each, not 10,000 one-simulation tasks. (Thousands of tiny tasks are
+# an anti-pattern — see the "Workload Shapes" guide for measured numbers.)
+batches <- split(1:10000, ceiling(seq_along(1:10000) / 100))
 results <- starburst_map(
-  1:10000,
-  simulate_portfolio,
-  workers = 100
+  batches,
+  function(seeds) lapply(seeds, simulate_portfolio),
+  workers = 50
 )
-#> [Starting] Starting starburst cluster with 100 workers
-#> [Status] Processing 10000 items with 100 workers
-#> [Starting] Submitting 10000 tasks...
-#> [Wait] Progress: 10000/10000 (186.0s)
-#> [OK] Completed in 186.0 seconds
-#> [Cost] Estimated cost: $0.29
+results <- unlist(results, recursive = FALSE)  # flatten to 10,000 results
 
 # Extract results
 final_values <- sapply(results, function(x) x$final_value)
@@ -101,11 +111,12 @@ sharpe_ratios <- sapply(results, function(x) x$sharpe_ratio)
 # Summary
 mean(final_values)    # Average portfolio outcome
 quantile(final_values, c(0.05, 0.95))  # Risk range
-
-# Comparison:
-# Local (single core): ~4 hours
-# Cloud (100 workers): 3 minutes, $0.29
 ```
+
+> For real, measured performance (when the cloud wins, when it loses,
+> and how to size tasks/workers), see the [Workload
+> Shapes](https://starburst.ing/articles/workload-shapes.html) and
+> [Performance](https://starburst.ing/articles/performance.html) guides.
 
 ## Advanced Usage
 
@@ -153,24 +164,24 @@ Run long jobs and disconnect - results persist in S3:
 
 ``` r
 
-# Start detached session
-session <- starburst_session(workers = 50, detached = TRUE)
+# Start a detached session (EC2 + Spot by default)
+session <- starburst_session(workers = 50)
 
-# Submit work and get session ID
-session$submit(quote({
-  results <- starburst_map(huge_dataset, expensive_function)
-  saveRDS(results, "results.rds")
-}))
+# Fan work out by submitting one task per input
+task_ids <- lapply(inputs, function(input) {
+  session$submit(quote(expensive_function(input)),
+                 globals = list(input = input))
+})
 session_id <- session$session_id
 
-# Disconnect - job continues running
-# Later (hours/days), reconnect:
+# Disconnect - job continues running.
+# Later (hours/days), reconnect from a fresh R session:
 session <- starburst_session_attach(session_id)
-status <- session$status()  # Check progress
-results <- session$collect()  # Get results
+status  <- session$status()          # Check progress
+results <- session$collect(wait = TRUE)  # Collect results (in submission order)
 
 # Cleanup when done
-session$cleanup(force = TRUE)
+session$cleanup()
 ```
 
 ## How It Works
@@ -197,10 +208,10 @@ session$cleanup(force = TRUE)
 
 ``` r
 
-# Set cost limits
+# Set an hourly cost ceiling (USD/hour)
 starburst_config(
-  max_cost_per_job = 10,      # Hard limit
-  cost_alert_threshold = 5     # Warning at $5
+  max_hourly_cost = 10,       # Jobs estimated over $10/hour won't start
+  cost_alert_threshold = 5     # Warn at $5/hour
 )
 
 # Costs shown transparently
@@ -243,9 +254,8 @@ quota increases through AWS Service Quotas.
 ``` r
 
 starburst_config(
-  region = "us-east-1",
-  max_cost_per_job = 10,
-  cost_alert_threshold = 5
+  max_hourly_cost = 10,        # USD/hour rate ceiling
+  cost_alert_threshold = 5     # USD/hour warning
 )
 ```
 
@@ -289,17 +299,25 @@ Started](https://starburst.ing/articles/getting-started.html) guide.
 
 ## Roadmap
 
-### v0.3.8 (Current - on CRAN)
+### v0.3.9 (development — this documentation)
+
+- ✅ Backend arguments (`launch_type`/`instance_type`/`use_spot`) on
+  [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)/[`starburst_cluster()`](https://starburst.ing/reference/starburst_cluster.md)
+- ✅ One-step EC2 setup
+  ([`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md)
+  provisions the default capacity provider)
+- ✅ Measured performance/workload-shape guides
+
+### v0.3.8 (current CRAN release)
 
 - ✅ Direct API (`starburst_map`, `starburst_cluster`)
-- ✅ AWS Fargate integration
-- ✅ EC2 backend support with spot instances
+- ✅ EC2 backend (default, with spot instances) + Fargate (serverless
+  alternative)
 - ✅ Detached session mode for long-running jobs
 - ✅ Automatic environment management
 - ✅ Cost tracking and quota handling
-- ✅ Full `future` backend integration
-- ✅ Support for `future.apply`, `furrr`, `targets`
-- ✅ Comprehensive AWS integration testing
+- ✅ Full `future` backend integration (`future.apply`, `furrr`,
+  `targets`)
 - ✅ Security hardening (safe command execution, worker limits)
 - ✅ Published on CRAN (0 errors, 0 warnings, 0 notes)
 
@@ -333,7 +351,7 @@ Copyright 2026 Scott Friedman
   title = {staRburst: Seamless AWS Cloud Bursting for R},
   author = {Scott Friedman},
   year = {2026},
-  version = {0.3.8},
+  version = {0.3.9},
   url = {https://starburst.ing},
   license = {Apache-2.0}
 }

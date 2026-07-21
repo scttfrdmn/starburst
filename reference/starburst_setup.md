@@ -10,7 +10,8 @@ starburst_setup(
   force = FALSE,
   use_public_base = TRUE,
   ecr_image_ttl_days = NULL,
-  build_image = TRUE
+  build_image = TRUE,
+  setup_ec2 = TRUE
 )
 ```
 
@@ -46,6 +47,19 @@ starburst_setup(
   build. The image is then built lazily on first worker launch via
   [`ensure_environment()`](https://starburst.ing/reference/ensure_environment.md).
   Useful for CI / connectivity checks.
+
+- setup_ec2:
+
+  Provision the EC2 capacity provider and Auto Scaling Group for the
+  default instance type during setup (default: TRUE). This is what makes
+  the default EC2 backend work out of the box — without it, the first
+  [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)/`plan(starburst)`
+  run on EC2 would fail because no capacity provider exists. It creates
+  infrastructure at `DesiredCapacity = 0` (no billable instances are
+  launched during setup). Set to FALSE if you only use the Fargate
+  backend, which needs no capacity provider. Provision additional
+  instance types later with
+  [`starburst_setup_ec2`](https://starburst.ing/reference/starburst_setup_ec2.md).
 
 ## Value
 

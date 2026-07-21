@@ -114,11 +114,15 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
+<blockquote>
+<p><strong>Note on versions.</strong> This documentation describes the <strong>development version, 0.3.9</strong>. The current CRAN release is <strong>0.3.8</strong>, which does <strong>not</strong> include some APIs documented here (notably backend arguments — <code>launch_type</code>/<code>instance_type</code>/ <code>use_spot</code> — on <code><a href="reference/starburst_map.html">starburst_map()</a></code> and <code><a href="reference/starburst_cluster.html">starburst_cluster()</a></code>). To use the APIs as documented, install from GitHub.</p>
+</blockquote>
+<p>Development version (0.3.9 — matches this documentation):</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"starburst"</span><span class="op">)</span></span></code></pre></div>
-<p>Development version from GitHub:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"scttfrdmn/starburst"</span><span class="op">)</span></span></code></pre></div>
+<p>Latest CRAN release (0.3.8):</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"starburst"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
@@ -130,18 +134,19 @@
 <span><span class="co"># +5-10 min once)</span></span>
 <span><span class="fu"><a href="reference/starburst_setup.html">starburst_setup</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Run parallel computation on AWS</span></span>
+<span><span class="co"># Run parallel computation on AWS (each task should be real work — seconds+ —</span></span>
+<span><span class="co"># so it's worth shipping; batch tiny items first). Console output is illustrative:</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_map.html">starburst_map</a></span><span class="op">(</span></span>
-<span>  <span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>,</span>
+<span>  <span class="va">inputs</span>,                       <span class="co"># e.g. a list of scenarios / parameter sets</span></span>
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu">expensive_computation</span><span class="op">(</span><span class="va">x</span><span class="op">)</span>,</span>
 <span>  workers <span class="op">=</span> <span class="fl">50</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; [Starting] Starting starburst cluster with 50 workers</span></span>
-<span><span class="co">#&gt; [Status] Processing 1000 items with 50 workers</span></span>
-<span><span class="co">#&gt; [Starting] Submitting 1000 tasks...</span></span>
-<span><span class="co">#&gt; [Wait] Progress: 1000/1000 (192.0s)</span></span>
-<span><span class="co">#&gt; [OK] Completed in 192.0 seconds</span></span>
-<span><span class="co">#&gt; [Cost] Estimated cost: $0.15</span></span></code></pre></div>
+<span><span class="co">#&gt; [Status] Processing 200 items with 50 workers</span></span>
+<span><span class="co">#&gt; [Starting] Submitting 200 tasks...</span></span>
+<span><span class="co">#&gt; [Wait] Progress: 200/200</span></span>
+<span><span class="co">#&gt; [OK] Completed</span></span>
+<span><span class="co">#&gt; [Cost] Estimated cost: (printed per run)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="example-monte-carlo-simulation">Example: Monte Carlo Simulation<a class="anchor" aria-label="anchor" href="#example-monte-carlo-simulation"></a>
@@ -161,18 +166,16 @@
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co"># Run 10,000 simulations on 100 AWS workers</span></span>
+<span><span class="co"># Each simulation is tiny (sub-millisecond), so BATCH them: 100 tasks of 100</span></span>
+<span><span class="co"># simulations each, not 10,000 one-simulation tasks. (Thousands of tiny tasks are</span></span>
+<span><span class="co"># an anti-pattern — see the "Workload Shapes" guide for measured numbers.)</span></span>
+<span><span class="va">batches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span><span class="op">)</span> <span class="op">/</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_map.html">starburst_map</a></span><span class="op">(</span></span>
-<span>  <span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>,</span>
-<span>  <span class="va">simulate_portfolio</span>,</span>
-<span>  workers <span class="op">=</span> <span class="fl">100</span></span>
+<span>  <span class="va">batches</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">seeds</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">seeds</span>, <span class="va">simulate_portfolio</span><span class="op">)</span>,</span>
+<span>  workers <span class="op">=</span> <span class="fl">50</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; [Starting] Starting starburst cluster with 100 workers</span></span>
-<span><span class="co">#&gt; [Status] Processing 10000 items with 100 workers</span></span>
-<span><span class="co">#&gt; [Starting] Submitting 10000 tasks...</span></span>
-<span><span class="co">#&gt; [Wait] Progress: 10000/10000 (186.0s)</span></span>
-<span><span class="co">#&gt; [OK] Completed in 186.0 seconds</span></span>
-<span><span class="co">#&gt; [Cost] Estimated cost: $0.29</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">results</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>  <span class="co"># flatten to 10,000 results</span></span>
 <span></span>
 <span><span class="co"># Extract results</span></span>
 <span><span class="va">final_values</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">results</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">$</span><span class="va">final_value</span><span class="op">)</span></span>
@@ -180,11 +183,10 @@
 <span></span>
 <span><span class="co"># Summary</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">final_values</span><span class="op">)</span>    <span class="co"># Average portfolio outcome</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">final_values</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.95</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Risk range</span></span>
-<span></span>
-<span><span class="co"># Comparison:</span></span>
-<span><span class="co"># Local (single core): ~4 hours</span></span>
-<span><span class="co"># Cloud (100 workers): 3 minutes, $0.29</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">final_values</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.95</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Risk range</span></span></code></pre></div>
+<blockquote>
+<p>For real, measured performance (when the cloud wins, when it loses, and how to size tasks/workers), see the <a href="https://starburst.ing/articles/workload-shapes.html">Workload Shapes</a> and <a href="https://starburst.ing/articles/performance.html">Performance</a> guides.</p>
+</blockquote>
 </div>
 <div class="section level2">
 <h2 id="advanced-usage">Advanced Usage<a class="anchor" aria-label="anchor" href="#advanced-usage"></a>
@@ -230,24 +232,24 @@
 </h3>
 <p>Run long jobs and disconnect - results persist in S3:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Start detached session</span></span>
-<span><span class="va">session</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_session.html">starburst_session</a></span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">50</span>, detached <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Start a detached session (EC2 + Spot by default)</span></span>
+<span><span class="va">session</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_session.html">starburst_session</a></span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Submit work and get session ID</span></span>
-<span><span class="va">session</span><span class="op">$</span><span class="fu">submit</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substitute.html" class="external-link">quote</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="va">huge_dataset</span>, <span class="va">expensive_function</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">results</span>, <span class="st">"results.rds"</span><span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># Fan work out by submitting one task per input</span></span>
+<span><span class="va">task_ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">inputs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">input</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">session</span><span class="op">$</span><span class="fu">submit</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substitute.html" class="external-link">quote</a></span><span class="op">(</span><span class="fu">expensive_function</span><span class="op">(</span><span class="va">input</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                 globals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>input <span class="op">=</span> <span class="va">input</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
 <span><span class="va">session_id</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="va">session_id</span></span>
 <span></span>
-<span><span class="co"># Disconnect - job continues running</span></span>
-<span><span class="co"># Later (hours/days), reconnect:</span></span>
+<span><span class="co"># Disconnect - job continues running.</span></span>
+<span><span class="co"># Later (hours/days), reconnect from a fresh R session:</span></span>
 <span><span class="va">session</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_session_attach.html">starburst_session_attach</a></span><span class="op">(</span><span class="va">session_id</span><span class="op">)</span></span>
-<span><span class="va">status</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="fu">status</span><span class="op">(</span><span class="op">)</span>  <span class="co"># Check progress</span></span>
-<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="fu">collect</span><span class="op">(</span><span class="op">)</span>  <span class="co"># Get results</span></span>
+<span><span class="va">status</span>  <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="fu">status</span><span class="op">(</span><span class="op">)</span>          <span class="co"># Check progress</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="fu">collect</span><span class="op">(</span>wait <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>  <span class="co"># Collect results (in submission order)</span></span>
 <span></span>
 <span><span class="co"># Cleanup when done</span></span>
-<span><span class="va">session</span><span class="op">$</span><span class="fu">cleanup</span><span class="op">(</span>force <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">session</span><span class="op">$</span><span class="fu">cleanup</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -276,10 +278,10 @@
 <h2 id="cost-management">Cost Management<a class="anchor" aria-label="anchor" href="#cost-management"></a>
 </h2>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Set cost limits</span></span>
+<code class="sourceCode R"><span><span class="co"># Set an hourly cost ceiling (USD/hour)</span></span>
 <span><span class="fu"><a href="reference/starburst_config.html">starburst_config</a></span><span class="op">(</span></span>
-<span>  max_cost_per_job <span class="op">=</span> <span class="fl">10</span>,      <span class="co"># Hard limit</span></span>
-<span>  cost_alert_threshold <span class="op">=</span> <span class="fl">5</span>     <span class="co"># Warning at $5</span></span>
+<span>  max_hourly_cost <span class="op">=</span> <span class="fl">10</span>,       <span class="co"># Jobs estimated over $10/hour won't start</span></span>
+<span>  cost_alert_threshold <span class="op">=</span> <span class="fl">5</span>     <span class="co"># Warn at $5/hour</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Costs shown transparently</span></span>
@@ -322,9 +324,8 @@
 </h3>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/starburst_config.html">starburst_config</a></span><span class="op">(</span></span>
-<span>  region <span class="op">=</span> <span class="st">"us-east-1"</span>,</span>
-<span>  max_cost_per_job <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  cost_alert_threshold <span class="op">=</span> <span class="fl">5</span></span>
+<span>  max_hourly_cost <span class="op">=</span> <span class="fl">10</span>,        <span class="co"># USD/hour rate ceiling</span></span>
+<span>  cost_alert_threshold <span class="op">=</span> <span class="fl">5</span>     <span class="co"># USD/hour warning</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
@@ -423,19 +424,25 @@
 <h2 id="roadmap">Roadmap<a class="anchor" aria-label="anchor" href="#roadmap"></a>
 </h2>
 <div class="section level3">
-<h3 id="v038-current---on-cran">v0.3.8 (Current - on CRAN)<a class="anchor" aria-label="anchor" href="#v038-current---on-cran"></a>
+<h3 id="v039-development--this-documentation">v0.3.9 (development — this documentation)<a class="anchor" aria-label="anchor" href="#v039-development--this-documentation"></a>
+</h3>
+<ul>
+<li>✅ Backend arguments (<code>launch_type</code>/<code>instance_type</code>/<code>use_spot</code>) on <code><a href="reference/starburst_map.html">starburst_map()</a></code>/<code><a href="reference/starburst_cluster.html">starburst_cluster()</a></code>
+</li>
+<li>✅ One-step EC2 setup (<code><a href="reference/starburst_setup.html">starburst_setup()</a></code> provisions the default capacity provider)</li>
+<li>✅ Measured performance/workload-shape guides</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="v038-current-cran-release">v0.3.8 (current CRAN release)<a class="anchor" aria-label="anchor" href="#v038-current-cran-release"></a>
 </h3>
 <ul>
 <li>✅ Direct API (<code>starburst_map</code>, <code>starburst_cluster</code>)</li>
-<li>✅ AWS Fargate integration</li>
-<li>✅ EC2 backend support with spot instances</li>
+<li>✅ EC2 backend (default, with spot instances) + Fargate (serverless alternative)</li>
 <li>✅ Detached session mode for long-running jobs</li>
 <li>✅ Automatic environment management</li>
 <li>✅ Cost tracking and quota handling</li>
-<li>✅ Full <code>future</code> backend integration</li>
-<li>✅ Support for <code>future.apply</code>, <code>furrr</code>, <code>targets</code>
-</li>
-<li>✅ Comprehensive AWS integration testing</li>
+<li>✅ Full <code>future</code> backend integration (<code>future.apply</code>, <code>furrr</code>, <code>targets</code>)</li>
 <li>✅ Security hardening (safe command execution, worker limits)</li>
 <li>✅ Published on CRAN (0 errors, 0 warnings, 0 notes)</li>
 </ul>
@@ -469,7 +476,7 @@
 <span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">  title = {staRburst: Seamless AWS Cloud Bursting for R},</span></span>
 <span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">  author = {Scott Friedman},</span></span>
 <span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
-<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">  version = {0.3.8},</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">  version = {0.3.9},</span></span>
 <span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">  url = {https://starburst.ing},</span></span>
 <span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">  license = {Apache-2.0}</span></span>
 <span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>

@@ -67,7 +67,6 @@ using the staRburst Future backend.</p>
 <span>  workers <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  cpu <span class="op">=</span> <span class="fl">4</span>,</span>
 <span>  memory <span class="op">=</span> <span class="st">"8GB"</span>,</span>
-<span>  platform <span class="op">=</span> <span class="st">"X86_64"</span>,</span>
 <span>  region <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  timeout <span class="op">=</span> <span class="fl">3600</span>,</span>
 <span>  launch_type <span class="op">=</span> <span class="st">"EC2"</span>,</span>
@@ -92,10 +91,6 @@ using the staRburst Future backend.</p>
 <dd><p>Memory per worker</p></dd>
 
 
-<dt id="arg-platform">platform<a class="anchor" aria-label="anchor" href="#arg-platform"></a></dt>
-<dd><p>CPU architecture (X86_64 or ARM64)</p></dd>
-
-
 <dt id="arg-region">region<a class="anchor" aria-label="anchor" href="#arg-region"></a></dt>
 <dd><p>AWS region</p></dd>
 
@@ -110,7 +105,9 @@ using the staRburst Future backend.</p>
 
 <dt id="arg-instance-type">instance_type<a class="anchor" aria-label="anchor" href="#arg-instance-type"></a></dt>
 <dd><p>EC2 instance type when <code>launch_type = "EC2"</code>
-(default: "c7g.xlarge")</p></dd>
+(default: "c7g.xlarge"). Worker CPU architecture follows the instance type
+(Graviton <code>*g.*</code> = ARM64, Intel/AMD = x86_64); there is no separate
+platform argument.</p></dd>
 
 
 <dt id="arg-use-spot">use_spot<a class="anchor" aria-label="anchor" href="#arg-use-spot"></a></dt>

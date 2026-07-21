@@ -137,6 +137,28 @@ section walks through a first job with it. If you already have
 <code>future</code>/<code>furrr</code> code, skip to <a href="#migrating-existing-future-furrr-code">Migrating existing future /
 furrr code</a>; the two styles are equivalent and shown side by side
 there.</p>
+<div class="section level4">
+<h4 id="which-backend-ec2-default-vs-fargate">Which backend? EC2 (default) vs Fargate<a class="anchor" aria-label="anchor" href="#which-backend-ec2-default-vs-fargate"></a>
+</h4>
+<p>Every API above runs on one of two compute backends, chosen with
+<code>launch_type</code>:</p>
+<ul>
+<li>
+<strong>EC2 — the default and recommended choice.</strong> Faster
+(no cold start), cheaper with Spot (the default), and more flexible (any
+instance type, warm pools). <code><a href="../reference/starburst_setup.html">starburst_setup()</a></code> provisions
+its capacity provider for you, so it works out of the box.</li>
+<li>
+<strong>Fargate — an optional serverless alternative</strong>
+(<code>launch_type = "FARGATE"</code>). Fully managed and needs
+<strong>no</strong> <code>starburst_setup_ec2</code> / capacity
+provider, but has cold-start latency and is bounded by your account’s
+Fargate vCPU quota. Reach for it if you specifically want task-based
+serverless execution.</li>
+</ul>
+<p>You don’t have to choose up front — leave the default (EC2) and add
+<code>launch_type = "FARGATE"</code> later if you want to compare.</p>
+</div>
 </div>
 <div class="section level3">
 <h3 id="how-it-works-the-mental-model">How it works (the mental model)<a class="anchor" aria-label="anchor" href="#how-it-works-the-mental-model"></a>
@@ -391,16 +413,30 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 <div class="section level3">
 <h3 id="working-with-data">Working with Data<a class="anchor" aria-label="anchor" href="#working-with-data"></a>
 </h3>
+<p>Base R’s <code><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv()</a></code>/<code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS()</a></code> cannot read
+<code>s3://</code> URLs — you need an S3 client on the worker. A small
+helper keeps the examples below concrete and copy-pasteable (the worker
+image already includes <code>paws.storage</code>):</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Download an s3://bucket/key object to a temp file and read it on the worker.</span></span>
+<span><span class="va">read_s3</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">s3_uri</span>, <span class="va">reader</span> <span class="op">=</span> <span class="va">readRDS</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/regmatches.html" class="external-link">regmatches</a></span><span class="op">(</span><span class="va">s3_uri</span>, <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">regexec</a></span><span class="op">(</span><span class="st">"^s3://([^/]+)/(.+)$"</span>, <span class="va">s3_uri</span><span class="op">)</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span>  <span class="va">bucket</span> <span class="op">&lt;-</span> <span class="va">m</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span>; <span class="va">key</span> <span class="op">&lt;-</span> <span class="va">m</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span></span>
+<span>  <span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu">paws.storage</span><span class="fu">::</span><span class="fu"><a href="https://paws-r.r-universe.dev/paws.storage/reference/s3.html" class="external-link">s3</a></span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="fu">get_object</span><span class="op">(</span>Bucket <span class="op">=</span> <span class="va">bucket</span>, Key <span class="op">=</span> <span class="va">key</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/readBin.html" class="external-link">writeBin</a></span><span class="op">(</span><span class="va">obj</span><span class="op">$</span><span class="va">Body</span>, <span class="va">tmp</span><span class="op">)</span></span>
+<span>  <span class="fu">reader</span><span class="op">(</span><span class="va">tmp</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 <div class="section level4">
 <h4 id="data-already-in-s3">Data Already in S3<a class="anchor" aria-label="anchor" href="#data-already-in-s3"></a>
 </h4>
 <p>If your data is already in S3, workers can read it directly:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="va">file_list</span>, <span class="kw">function</span><span class="op">(</span><span class="va">file</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># Workers read directly from S3</span></span>
-<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"s3://my-bucket/%s"</span>, <span class="va">file</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="co"># Each worker pulls its file from S3 (read_s3 defined above)</span></span>
+<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">read_s3</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"s3://my-bucket/%s"</span>, <span class="va">file</span><span class="op">)</span>, reader <span class="op">=</span> <span class="va">read.csv</span><span class="op">)</span></span>
 <span>  <span class="fu">process</span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -408,7 +444,7 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 <h4 id="uploading-local-data">Uploading Local Data<a class="anchor" aria-label="anchor" href="#uploading-local-data"></a>
 </h4>
 <p>For smaller datasets, you can pass data as arguments:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load data locally</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"local_file.csv"</span><span class="op">)</span></span>
 <span></span>
@@ -426,18 +462,19 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 <p>For very large objects, upload once to S3 yourself and have each
 worker read it from there, rather than serializing the object into every
 task:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Upload once, using your preferred S3 client (e.g. paws.storage or the AWS CLI)</span></span>
-<span><span class="va">large_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"huge_file.rds"</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Upload once from your machine</span></span>
+<span><span class="fu">paws.storage</span><span class="fu">::</span><span class="fu"><a href="https://paws-r.r-universe.dev/paws.storage/reference/s3.html" class="external-link">s3</a></span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="fu">put_object</span><span class="op">(</span></span>
+<span>  Bucket <span class="op">=</span> <span class="st">"my-bucket"</span>, Key <span class="op">=</span> <span class="st">"large_data.rds"</span>,</span>
+<span>  Body <span class="op">=</span> <span class="st">"huge_file.rds"</span></span>
+<span><span class="op">)</span></span>
 <span><span class="va">s3_path</span> <span class="op">&lt;-</span> <span class="st">"s3://my-bucket/large_data.rds"</span></span>
-<span><span class="co"># e.g. paws.storage::s3()$put_object(Bucket = "my-bucket",</span></span>
-<span><span class="co">#        Key = "large_data.rds", Body = "huge_file.rds")</span></span>
 <span></span>
-<span><span class="co"># Workers read from S3 inside the task</span></span>
+<span><span class="co"># Workers read from S3 inside the task (read_s3 helper defined above)</span></span>
 <span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">url</a></span><span class="op">(</span><span class="va">s3_path</span><span class="op">)</span><span class="op">)</span>  <span class="co"># or an S3 client of your choice</span></span>
+<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">read_s3</span><span class="op">(</span><span class="va">s3_path</span><span class="op">)</span>   <span class="co"># readRDS by default</span></span>
 <span>  <span class="fu">process</span><span class="op">(</span><span class="va">data</span>, <span class="va">i</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -448,7 +485,7 @@ task:</p>
 <div class="section level4">
 <h4 id="estimate-costs">Estimate Costs<a class="anchor" aria-label="anchor" href="#estimate-costs"></a>
 </h4>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Check cost before running</span></span>
 <span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span>, memory <span class="op">=</span> <span class="st">"8GB"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Estimated cost: ~$3.50/hour</span></span></code></pre></div>
@@ -456,11 +493,11 @@ task:</p>
 <div class="section level4">
 <h4 id="set-cost-limits">Set Cost Limits<a class="anchor" aria-label="anchor" href="#set-cost-limits"></a>
 </h4>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Set maximum cost per job</span></span>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Set an hourly cost ceiling (USD/hour) — jobs above this rate won't start</span></span>
 <span><span class="fu"><a href="../reference/starburst_config.html">starburst_config</a></span><span class="op">(</span></span>
-<span>  max_cost_per_job <span class="op">=</span> <span class="fl">10</span>,      <span class="co"># Don't start jobs that would cost &gt;$10</span></span>
-<span>  cost_alert_threshold <span class="op">=</span> <span class="fl">5</span>     <span class="co"># Warn when approaching $5</span></span>
+<span>  max_hourly_cost <span class="op">=</span> <span class="fl">10</span>,       <span class="co"># Don't start jobs estimated over $10/hour</span></span>
+<span>  cost_alert_threshold <span class="op">=</span> <span class="fl">5</span>     <span class="co"># Warn at $5/hour</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Now jobs exceeding limit will error before starting</span></span>
@@ -470,7 +507,7 @@ task:</p>
 <div class="section level4">
 <h4 id="track-actual-costs">Track Actual Costs<a class="anchor" aria-label="anchor" href="#track-actual-costs"></a>
 </h4>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="va">data</span>, <span class="va">process</span><span class="op">)</span></span>
@@ -491,7 +528,7 @@ below. If you stay on EC2 you can usually skip this.</p>
 <div class="section level4">
 <h4 id="check-your-quota">Check Your Quota<a class="anchor" aria-label="anchor" href="#check-your-quota"></a>
 </h4>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/starburst_quota_status.html">starburst_quota_status</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Fargate vCPU Quota: 100 / 100 used</span></span>
 <span><span class="co">#&gt; Allows: ~25 workers with 4 vCPUs each</span></span>
@@ -501,7 +538,7 @@ below. If you stay on EC2 you can usually skip this.</p>
 <div class="section level4">
 <h4 id="request-quota-increase">Request Quota Increase<a class="anchor" aria-label="anchor" href="#request-quota-increase"></a>
 </h4>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/starburst_request_quota_increase.html">starburst_request_quota_increase</a></span><span class="op">(</span>vcpus <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Requesting Fargate vCPU quota increase:</span></span>
 <span><span class="co">#&gt;   Current: 100 vCPUs</span></span>
@@ -515,7 +552,7 @@ below. If you stay on EC2 you can usually skip this.</p>
 </h4>
 <p>If you request more workers than your quota allows, staRburst
 automatically uses wave-based execution:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Quota allows 25 workers, but you request 100</span></span>
 <span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span></span>
@@ -544,7 +581,7 @@ automatically uses wave-based execution:</p>
 <div class="section level4">
 <h4 id="view-worker-logs">View Worker Logs<a class="anchor" aria-label="anchor" href="#view-worker-logs"></a>
 </h4>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># View logs from most recent cluster</span></span>
 <span><span class="fu"><a href="../reference/starburst_logs.html">starburst_logs</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -557,7 +594,7 @@ automatically uses wave-based execution:</p>
 <div class="section level4">
 <h4 id="check-cluster-status">Check Cluster Status<a class="anchor" aria-label="anchor" href="#check-cluster-status"></a>
 </h4>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/starburst_status.html">starburst_status</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Active Clusters:</span></span>
 <span><span class="co">#&gt;   • starburst-xyz123: 50 workers running</span></span>
@@ -568,11 +605,11 @@ automatically uses wave-based execution:</p>
 </h4>
 <p><strong>Environment mismatch</strong>: Packages not found on
 workers</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Rebuild environment</span></span>
 <span><span class="fu"><a href="../reference/starburst_rebuild_environment.html">starburst_rebuild_environment</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Task failures</strong>: Some tasks failing</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Check logs</span></span>
 <span><span class="fu"><a href="../reference/starburst_logs.html">starburst_logs</a></span><span class="op">(</span>task_id <span class="op">=</span> <span class="st">"failed-task-id"</span><span class="op">)</span></span>
 <span></span>
@@ -580,7 +617,7 @@ workers</p>
 <span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, memory <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span>  <span class="co"># Default is 8GB</span></span></code></pre></div>
 <p><strong>Slow data transfer</strong>: Large objects taking too
 long</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Use Arrow for data frames</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/apache/arrow/" class="external-link">arrow</a></span><span class="op">)</span></span>
 <span><span class="fu">write_parquet</span><span class="op">(</span><span class="va">my_data</span>, <span class="st">"s3://bucket/data.parquet"</span><span class="op">)</span></span>
@@ -599,11 +636,11 @@ long</p>
 <h4 id="use-for-right-sized-workloads">1. Use for Right-Sized Workloads<a class="anchor" aria-label="anchor" href="#use-for-right-sized-workloads"></a>
 </h4>
 <p>✅ <strong>Good</strong>: Each task takes &gt;5 minutes</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># 100 tasks, each takes 10 minutes</span></span>
 <span><span class="co"># Local: 1000 minutes, Cloud: ~10 minutes</span></span></code></pre></div>
 <p>❌ <strong>Bad</strong>: Each task takes &lt;1 minute</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># 10000 tasks, each takes 30 seconds</span></span>
 <span><span class="co"># Startup overhead (45s) dominates</span></span></code></pre></div>
 </div>
@@ -611,11 +648,11 @@ long</p>
 <h4 id="batch-small-tasks">2. Batch Small Tasks<a class="anchor" aria-label="anchor" href="#batch-small-tasks"></a>
 </h4>
 <p>Instead of:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># 10,000 tiny tasks</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="va">small_function</span><span class="op">)</span></span></code></pre></div>
 <p>Do:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># 100 batches of 100 tasks each</span></span>
 <span><span class="va">batches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span><span class="op">)</span> <span class="op">/</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -630,34 +667,34 @@ long</p>
 <h4 id="use-s3-for-large-data">3. Use S3 for Large Data<a class="anchor" aria-label="anchor" href="#use-s3-for-large-data"></a>
 </h4>
 <p>Don’t:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">big_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"10GB_file.csv"</span><span class="op">)</span>  <span class="co"># Upload for every task</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="fu">process</span><span class="op">(</span><span class="va">big_data</span>, <span class="va">i</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Do:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Upload once to S3</span></span>
-<span><span class="va">s3_path</span> <span class="op">&lt;-</span> <span class="st">"s3://bucket/big_data.csv"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">big_data</span>, <span class="va">s3_path</span><span class="op">)</span></span>
+<span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".csv"</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">big_data</span>, <span class="va">tmp</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu">paws.storage</span><span class="fu">::</span><span class="fu"><a href="https://paws-r.r-universe.dev/paws.storage/reference/s3.html" class="external-link">s3</a></span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="fu">put_object</span><span class="op">(</span>Bucket <span class="op">=</span> <span class="st">"bucket"</span>, Key <span class="op">=</span> <span class="st">"big_data.csv"</span>, Body <span class="op">=</span> <span class="va">tmp</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Workers read from S3</span></span>
+<span><span class="co"># Workers read from S3 (read_s3 helper from "Working with Data" above)</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">s3_path</span><span class="op">)</span></span>
+<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">read_s3</span><span class="op">(</span><span class="st">"s3://bucket/big_data.csv"</span>, reader <span class="op">=</span> <span class="va">read.csv</span><span class="op">)</span></span>
 <span>  <span class="fu">process</span><span class="op">(</span><span class="va">data</span>, <span class="va">i</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="set-reasonable-limits">4. Set Reasonable Limits<a class="anchor" aria-label="anchor" href="#set-reasonable-limits"></a>
 </h4>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/starburst_config.html">starburst_config</a></span><span class="op">(</span></span>
-<span>  max_cost_per_job <span class="op">=</span> <span class="fl">50</span>,           <span class="co"># Prevent accidents</span></span>
+<span>  max_hourly_cost <span class="op">=</span> <span class="fl">50</span>,            <span class="co"># Cap the hourly rate (USD/hour)</span></span>
 <span>  cost_alert_threshold <span class="op">=</span> <span class="fl">25</span>        <span class="co"># Get warned early</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="clean-up">5. Clean Up<a class="anchor" aria-label="anchor" href="#clean-up"></a>
 </h4>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># staRburst auto-cleans, but you can force it</span></span>
 <span><span class="fu">plan</span><span class="op">(</span><span class="va">sequential</span><span class="op">)</span>  <span class="co"># Switch back to local</span></span>
 <span><span class="co"># Old cluster resources are cleaned up automatically</span></span></code></pre></div>
@@ -669,7 +706,7 @@ long</p>
 <div class="section level4">
 <h4 id="cpu-and-memory">CPU and Memory<a class="anchor" aria-label="anchor" href="#cpu-and-memory"></a>
 </h4>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># High CPU, low memory (CPU-bound work)</span></span>
 <span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, cpu <span class="op">=</span> <span class="fl">8</span>, memory <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span></span>
 <span></span>
@@ -679,14 +716,14 @@ long</p>
 <div class="section level4">
 <h4 id="timeout">Timeout<a class="anchor" aria-label="anchor" href="#timeout"></a>
 </h4>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Increase timeout for long-running tasks (default 1 hour)</span></span>
 <span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">10</span>, timeout <span class="op">=</span> <span class="fl">7200</span><span class="op">)</span>  <span class="co"># 2 hours</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="region">Region<a class="anchor" aria-label="anchor" href="#region"></a>
 </h4>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Use specific region (default from config)</span></span>
 <span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, region <span class="op">=</span> <span class="st">"us-west-2"</span><span class="op">)</span></span></code></pre></div>
 </div>

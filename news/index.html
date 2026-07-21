@@ -56,9 +56,22 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.9" id="starburst-039-development">starburst 0.3.9 (development)<a class="anchor" aria-label="anchor" href="#starburst-039-development"></a></h2>
 <div class="section level3">
+<h3 id="new-features-0-3-9">New features<a class="anchor" aria-label="anchor" href="#new-features-0-3-9"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/starburst_setup.html">starburst_setup()</a></code> now provisions the default EC2 capacity provider</strong> (for <code>c7g.xlarge</code>) so the default EC2 backend works out of the box — previously the first <code><a href="../reference/starburst_map.html">starburst_map()</a></code>/<code>plan(starburst)</code> run failed because no capacity provider existed. It is created at <code>DesiredCapacity = 0</code> (no billable instances launch during setup). Pass <code>setup_ec2 = FALSE</code> to skip (Fargate-only users). (<a href="https://github.com/scttfrdmn/starburst/issues/37" class="external-link">#37</a>)</li>
+</ul></div>
+<div class="section level3">
+<h3 id="breaking-changes-0-3-9">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-3-9"></a></h3>
+<ul><li>
+<strong>Removed the <code>platform</code> argument from <code><a href="../reference/starburst_map.html">starburst_map()</a></code> and <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code>.</strong> It was ignored (architecture is inferred from <code>instance_type</code>: Graviton <code>*g.*</code> → ARM64, else x86_64), and its <code>"X86_64"</code> default even contradicted the ARM64 <code>c7g.xlarge</code> default. Drop it from calls; the backend picks the architecture from <code>instance_type</code>. (<code>platform</code> remains on <code><a href="../reference/starburst_estimate.html">starburst_estimate()</a></code>, where it is functional.)</li>
+<li>
+<strong>Renamed <code>starburst_config(max_cost_per_job=)</code> to <code>max_hourly_cost</code>.</strong> The limit was always enforced as an hourly <em>rate</em> (USD/hour), not a total-job cap; the new name matches the behavior. Update any <code>starburst_config(max_cost_per_job = ...)</code> calls to <code>max_hourly_cost = ...</code>.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="bug-fixes-0-3-9">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-3-9"></a></h3>
 <ul><li>
 <strong><code><a href="../reference/starburst_map.html">starburst_map()</a></code> and <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code> now accept <code>launch_type</code>, <code>instance_type</code>, and <code>use_spot</code></strong> and forward them to the backend. Previously these functions had no backend arguments, so a call like <code>starburst_map(x, f, launch_type = "FARGATE")</code> silently passed <code>launch_type</code> to the mapped function <code>.f</code> (typically an “unused argument” error) instead of switching the backend — contradicting the 0.3.7 migration note. Backend selection now works uniformly across <code>plan(starburst)</code>, <code><a href="../reference/starburst_map.html">starburst_map()</a></code>, <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code>, and <code><a href="../reference/starburst_session.html">starburst_session()</a></code>.</li>
+<li>Fixed broken/misleading examples: the README detached-session example used a nonexistent <code>detached = TRUE</code> argument; S3-read examples used base <code><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv()</a></code>/ <code>readRDS(url())</code> which cannot read <code>s3://</code>; and the API rate-limit example aggregated to 10× its stated global limit across workers.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="documentation-0-3-9">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-3-9"></a></h3>

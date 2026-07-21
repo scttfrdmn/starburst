@@ -67,7 +67,7 @@ one or more of the arguments below to update them.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">starburst_config</span><span class="op">(</span></span>
-<span>  max_cost_per_job <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  max_hourly_cost <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cost_alert_threshold <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  auto_cleanup_s3 <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -78,14 +78,15 @@ one or more of the arguments below to update them.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-max-cost-per-job">max_cost_per_job<a class="anchor" aria-label="anchor" href="#arg-max-cost-per-job"></a></dt>
-<dd><p>Maximum estimated cost (USD) for a single job. Jobs whose
-estimate exceeds this error before launching. <code>NULL</code> leaves it unchanged.</p></dd>
+<dl><dt id="arg-max-hourly-cost">max_hourly_cost<a class="anchor" aria-label="anchor" href="#arg-max-hourly-cost"></a></dt>
+<dd><p>Maximum estimated **hourly** cost (USD/hour) for a job.
+Jobs whose estimated hourly rate exceeds this error before launching. This is a
+rate limit, not a total-job-cost cap. <code>NULL</code> leaves it unchanged.</p></dd>
 
 
 <dt id="arg-cost-alert-threshold">cost_alert_threshold<a class="anchor" aria-label="anchor" href="#arg-cost-alert-threshold"></a></dt>
-<dd><p>Estimated cost (USD) at which a warning is emitted.
-<code>NULL</code> leaves it unchanged.</p></dd>
+<dd><p>Estimated **hourly** cost (USD/hour) at which a
+warning is emitted. <code>NULL</code> leaves it unchanged.</p></dd>
 
 
 <dt id="arg-auto-cleanup-s-">auto_cleanup_s3<a class="anchor" aria-label="anchor" href="#arg-auto-cleanup-s-"></a></dt>
@@ -129,9 +130,9 @@ to be set by hand: <code>region</code>, <code>bucket</code>, <code>cluster</code
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="starburst_is_configured.html">starburst_is_configured</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>  <span class="co"># Update cost guardrails</span></span></span>
+<span class="r-in"><span>  <span class="co"># Update cost guardrails (both are hourly rates, USD/hour)</span></span></span>
 <span class="r-in"><span>  <span class="fu">starburst_config</span><span class="op">(</span></span></span>
-<span class="r-in"><span>    max_cost_per_job <span class="op">=</span> <span class="fl">10</span>,</span></span>
+<span class="r-in"><span>    max_hourly_cost <span class="op">=</span> <span class="fl">10</span>,</span></span>
 <span class="r-in"><span>    cost_alert_threshold <span class="op">=</span> <span class="fl">5</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>

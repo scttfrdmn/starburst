@@ -12,7 +12,6 @@ starburst_map(
   workers = 10,
   cpu = 4,
   memory = "8GB",
-  platform = "X86_64",
   region = NULL,
   timeout = 3600,
   launch_type = "EC2",
@@ -45,10 +44,6 @@ starburst_map(
 
   Memory per worker (e.g., 8GB)
 
-- platform:
-
-  CPU architecture (X86_64 or ARM64)
-
 - region:
 
   AWS region
@@ -63,7 +58,10 @@ starburst_map(
 
 - instance_type:
 
-  EC2 instance type when `launch_type = "EC2"` (default: "c7g.xlarge")
+  EC2 instance type when `launch_type = "EC2"` (default: "c7g.xlarge").
+  The worker CPU architecture follows the instance type — Graviton types
+  (e.g. `c7g.*`) run ARM64, Intel/AMD types (e.g. `c7i.*`) run x86_64 —
+  so there is no separate platform argument.
 
 - use_spot:
 

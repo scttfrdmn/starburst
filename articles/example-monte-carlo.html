@@ -186,31 +186,37 @@ asset returns.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"100 simulations completed in %.1f seconds\n"</span>, <span class="va">local_time</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Estimated time for 10,000: %.1f minutes\n"</span>,</span>
 <span>            <span class="va">local_time</span> <span class="op">*</span> <span class="fl">100</span> <span class="op">/</span> <span class="fl">60</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
-<pre><code>100 simulations completed in 2.3 seconds
-Estimated time for 10,000: 3.8 minutes</code></pre>
-<p>For 10,000 simulations locally: <strong>~3.8 minutes</strong></p>
+<p><strong>Illustrative output</strong> (depends on your machine):</p>
+<pre><code>100 simulations completed in ~2 seconds
+Estimated time for 10,000: ~a few minutes</code></pre>
 </div>
 <div class="section level2">
 <h2 id="cloud-execution-with-starburst">Cloud Execution with staRburst<a class="anchor" aria-label="anchor" href="#cloud-execution-with-starburst"></a>
 </h2>
-<p>Run all 10,000 simulations on AWS:</p>
+<p>Each simulation is tiny (well under a millisecond), so this is a
+<strong>batch-it</strong> workload: submitting 10,000 one-simulation
+tasks would be dominated by per-task S3 overhead (see the <a href="https://starburst.ing/articles/workload-shapes.html">Workload
+Shapes</a> guide, which measures that anti-pattern at ~77 minutes).
+Instead, batch into ~100 tasks of 100 simulations each:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Run 10,000 simulations on 50 workers</span></span>
+<code class="sourceCode R"><span><span class="co"># 100 tasks x 100 simulations = 10,000 simulations, batched</span></span>
+<span><span class="va">batches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span><span class="op">)</span> <span class="op">/</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span></span>
-<span>  <span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>,</span>
-<span>  <span class="va">simulate_portfolio</span>,</span>
+<span>  <span class="va">batches</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">seeds</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">seeds</span>, <span class="va">simulate_portfolio</span><span class="op">)</span>,</span>
 <span>  workers <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  cpu <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  memory <span class="op">=</span> <span class="st">"4GB"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<span><span class="op">)</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">results</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>  <span class="co"># flatten to 10,000 results</span></span></code></pre></div>
+<p><strong>Illustrative output</strong> (times/cost vary — see the
+Workload Shapes and Performance guides for measured numbers):</p>
 <pre><code>[Starting] Starting starburst cluster with 50 workers
-[Status] Processing 10000 items with 50 workers
-[Starting] Submitting 10000 tasks...
-[Wait] Progress: 10000/10000 (72.4s)
-[OK] Completed in 72.4 seconds
-[Cost] Estimated cost: $0.06</code></pre>
+[Status] Processing 100 items with 50 workers
+[Starting] Submitting 100 tasks...
+[Wait] Progress: 100/100
+[OK] Completed
+[Cost] Estimated cost: (printed per run)</code></pre>
 </div>
 <div class="section level2">
 <h2 id="results-analysis">Results Analysis<a class="anchor" aria-label="anchor" href="#results-analysis"></a>
@@ -251,68 +257,27 @@ Estimated time for 10,000: 3.8 minutes</code></pre>
 <span>       <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Initial Value"</span>, <span class="st">"VaR (5%)"</span><span class="op">)</span>,</span>
 <span>       col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"red"</span>, <span class="st">"orange"</span><span class="op">)</span>,</span>
 <span>       lwd <span class="op">=</span> <span class="fl">2</span>, lty <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong> (values depend on the random
+draws):</p>
 <pre><code>=== Portfolio Simulation Results (10,000 scenarios) ===
 Mean final value: $1,102,450
 Median final value: $1,097,230
-
-Mean return: 10.24%
-Std dev of returns: 12.83%
-
+Mean return: 10.24%   Std dev: 12.83%
 Value at Risk (5%): $892,340
-Expected Shortfall (5%): $845,120
-
-Mean Sharpe Ratio: 0.82
-Mean Max Drawdown: 8.45%
-
 Probability of loss: 18.34%</code></pre>
 </div>
 <div class="section level2">
-<h2 id="performance-comparison">Performance Comparison<a class="anchor" aria-label="anchor" href="#performance-comparison"></a>
+<h2 id="performance">Performance<a class="anchor" aria-label="anchor" href="#performance"></a>
 </h2>
-<table class="table">
-<thead><tr class="header">
-<th>Method</th>
-<th>Workers</th>
-<th>Time</th>
-<th>Cost</th>
-<th>Speedup</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>Local</td>
-<td>1</td>
-<td>3.8 min</td>
-<td>$0</td>
-<td>1x</td>
-</tr>
-<tr class="even">
-<td>staRburst</td>
-<td>10</td>
-<td>0.6 min</td>
-<td>$0.03</td>
-<td>6.3x</td>
-</tr>
-<tr class="odd">
-<td>staRburst</td>
-<td>25</td>
-<td>0.3 min</td>
-<td>$0.04</td>
-<td>12.7x</td>
-</tr>
-<tr class="even">
-<td>staRburst</td>
-<td>50</td>
-<td>0.2 min</td>
-<td>$0.06</td>
-<td>19x</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Key Insights</strong>: - Near-linear scaling up to 50 workers
-- Cost remains minimal ($0.06) even with 50 workers - Sweet spot: 25-50
-workers for this workload - Total iteration time: &lt;2 minutes from
-start to results</p>
+<p>Monte Carlo of tiny per-simulation tasks is a
+<strong>batching</strong> story, not a raw-fan-out story: batch to ~100
+tasks (as above) and the run is dominated by real compute rather than
+per-task overhead. For <strong>measured</strong> cold/warm numbers —
+including how batching turns a ~77-minute naive run into minutes, and
+how to pick worker counts — see the <a href="https://starburst.ing/articles/workload-shapes.html">Workload
+Shapes</a> and <a href="https://starburst.ing/articles/performance.html">Performance</a>
+guides. We don’t repeat hand-written speedup tables here; those guides
+are the single source of truth.</p>
 </div>
 <div class="section level2">
 <h2 id="when-to-use-this-pattern">When to Use This Pattern<a class="anchor" aria-label="anchor" href="#when-to-use-this-pattern"></a>

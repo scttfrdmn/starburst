@@ -26,6 +26,25 @@ the next section walks through a first job with it. If you already have
 code](#migrating-existing-future-furrr-code); the two styles are
 equivalent and shown side by side there.
 
+#### Which backend? EC2 (default) vs Fargate
+
+Every API above runs on one of two compute backends, chosen with
+`launch_type`:
+
+- **EC2 — the default and recommended choice.** Faster (no cold start),
+  cheaper with Spot (the default), and more flexible (any instance type,
+  warm pools).
+  [`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md)
+  provisions its capacity provider for you, so it works out of the box.
+- **Fargate — an optional serverless alternative**
+  (`launch_type = "FARGATE"`). Fully managed and needs **no**
+  `starburst_setup_ec2` / capacity provider, but has cold-start latency
+  and is bounded by your account’s Fargate vCPU quota. Reach for it if
+  you specifically want task-based serverless execution.
+
+You don’t have to choose up front — leave the default (EC2) and add
+`launch_type = "FARGATE"` later if you want to compare.
+
 ### How it works (the mental model)
 
             Local R session
@@ -290,6 +309,25 @@ all_variants <- do.call(rbind, lapply(results, `[[`, "variants"))
 
 ### Working with Data
 
+Base R’s
+[`read.csv()`](https://rdrr.io/r/utils/read.table.html)/[`readRDS()`](https://rdrr.io/r/base/readRDS.html)
+cannot read `s3://` URLs — you need an S3 client on the worker. A small
+helper keeps the examples below concrete and copy-pasteable (the worker
+image already includes `paws.storage`):
+
+``` r
+
+# Download an s3://bucket/key object to a temp file and read it on the worker.
+read_s3 <- function(s3_uri, reader = readRDS) {
+  m <- regmatches(s3_uri, regexec("^s3://([^/]+)/(.+)$", s3_uri))[[1]]
+  bucket <- m[2]; key <- m[3]
+  tmp <- tempfile()
+  obj <- paws.storage::s3()$get_object(Bucket = bucket, Key = key)
+  writeBin(obj$Body, tmp)
+  reader(tmp)
+}
+```
+
 #### Data Already in S3
 
 If your data is already in S3, workers can read it directly:
@@ -299,8 +337,8 @@ If your data is already in S3, workers can read it directly:
 plan(starburst, workers = 50)
 
 results <- future_map(file_list, function(file) {
-  # Workers read directly from S3
-  data <- read.csv(sprintf("s3://my-bucket/%s", file))
+  # Each worker pulls its file from S3 (read_s3 defined above)
+  data <- read_s3(sprintf("s3://my-bucket/%s", file), reader = read.csv)
   process(data)
 })
 ```
@@ -330,17 +368,18 @@ read it from there, rather than serializing the object into every task:
 
 ``` r
 
-# Upload once, using your preferred S3 client (e.g. paws.storage or the AWS CLI)
-large_data <- readRDS("huge_file.rds")
+# Upload once from your machine
+paws.storage::s3()$put_object(
+  Bucket = "my-bucket", Key = "large_data.rds",
+  Body = "huge_file.rds"
+)
 s3_path <- "s3://my-bucket/large_data.rds"
-# e.g. paws.storage::s3()$put_object(Bucket = "my-bucket",
-#        Key = "large_data.rds", Body = "huge_file.rds")
 
-# Workers read from S3 inside the task
+# Workers read from S3 inside the task (read_s3 helper defined above)
 plan(starburst, workers = 100)
 
 results <- future_map(1:1000, function(i) {
-  data <- readRDS(url(s3_path))  # or an S3 client of your choice
+  data <- read_s3(s3_path)   # readRDS by default
   process(data, i)
 })
 ```
@@ -360,10 +399,10 @@ plan(starburst, workers = 100, cpu = 4, memory = "8GB")
 
 ``` r
 
-# Set maximum cost per job
+# Set an hourly cost ceiling (USD/hour) — jobs above this rate won't start
 starburst_config(
-  max_cost_per_job = 10,      # Don't start jobs that would cost >$10
-  cost_alert_threshold = 5     # Warn when approaching $5
+  max_hourly_cost = 10,       # Don't start jobs estimated over $10/hour
+  cost_alert_threshold = 5     # Warn at $5/hour
 )
 
 # Now jobs exceeding limit will error before starting
@@ -565,12 +604,12 @@ Do:
 ``` r
 
 # Upload once to S3
-s3_path <- "s3://bucket/big_data.csv"
-write.csv(big_data, s3_path)
+tmp <- tempfile(fileext = ".csv"); write.csv(big_data, tmp, row.names = FALSE)
+paws.storage::s3()$put_object(Bucket = "bucket", Key = "big_data.csv", Body = tmp)
 
-# Workers read from S3
+# Workers read from S3 (read_s3 helper from "Working with Data" above)
 results <- future_map(1:1000, function(i) {
-  data <- read.csv(s3_path)
+  data <- read_s3("s3://bucket/big_data.csv", reader = read.csv)
   process(data, i)
 })
 ```
@@ -580,7 +619,7 @@ results <- future_map(1:1000, function(i) {
 ``` r
 
 starburst_config(
-  max_cost_per_job = 50,           # Prevent accidents
+  max_hourly_cost = 50,            # Cap the hourly rate (USD/hour)
   cost_alert_threshold = 25        # Get warned early
 )
 ```

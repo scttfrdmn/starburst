@@ -9,7 +9,7 @@ them.
 
 ``` r
 starburst_config(
-  max_cost_per_job = NULL,
+  max_hourly_cost = NULL,
   cost_alert_threshold = NULL,
   auto_cleanup_s3 = NULL,
   ...
@@ -18,15 +18,16 @@ starburst_config(
 
 ## Arguments
 
-- max_cost_per_job:
+- max_hourly_cost:
 
-  Maximum estimated cost (USD) for a single job. Jobs whose estimate
-  exceeds this error before launching. `NULL` leaves it unchanged.
+  Maximum estimated \*\*hourly\*\* cost (USD/hour) for a job. Jobs whose
+  estimated hourly rate exceeds this error before launching. This is a
+  rate limit, not a total-job-cost cap. `NULL` leaves it unchanged.
 
 - cost_alert_threshold:
 
-  Estimated cost (USD) at which a warning is emitted. `NULL` leaves it
-  unchanged.
+  Estimated \*\*hourly\*\* cost (USD/hour) at which a warning is
+  emitted. `NULL` leaves it unchanged.
 
 - auto_cleanup_s3:
 
@@ -74,9 +75,9 @@ for initial provisioning.
 ``` r
 # \donttest{
 if (starburst_is_configured()) {
-  # Update cost guardrails
+  # Update cost guardrails (both are hourly rates, USD/hour)
   starburst_config(
-    max_cost_per_job = 10,
+    max_hourly_cost = 10,
     cost_alert_threshold = 5
   )
 

@@ -65,7 +65,8 @@
 <span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  use_public_base <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  ecr_image_ttl_days <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  build_image <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  build_image <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  setup_ec2 <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -100,6 +101,17 @@ Set to FALSE to provision AWS resources (S3/ECR/ECS/VPC), write config, and
 check quotas without triggering the multi-minute Docker image build. The
 image is then built lazily on first worker launch via
 <code><a href="ensure_environment.html">ensure_environment()</a></code>. Useful for CI / connectivity checks.</p></dd>
+
+
+<dt id="arg-setup-ec-">setup_ec2<a class="anchor" aria-label="anchor" href="#arg-setup-ec-"></a></dt>
+<dd><p>Provision the EC2 capacity provider and Auto Scaling Group for
+the default instance type during setup (default: TRUE). This is what makes the
+default EC2 backend work out of the box — without it, the first
+<code><a href="starburst_map.html">starburst_map()</a></code>/<code>plan(starburst)</code> run on EC2 would fail because no
+capacity provider exists. It creates infrastructure at <code>DesiredCapacity = 0</code>
+(no billable instances are launched during setup). Set to FALSE if you only use
+the Fargate backend, which needs no capacity provider. Provision additional
+instance types later with <code><a href="starburst_setup_ec2.html">starburst_setup_ec2</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

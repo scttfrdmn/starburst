@@ -383,25 +383,33 @@ failures</p>
 <h2 id="rate-limiting-considerations">Rate Limiting Considerations<a class="anchor" aria-label="anchor" href="#rate-limiting-considerations"></a>
 </h2>
 <p>When working with real APIs:</p>
+<p>Each worker throttles itself <strong>independently</strong>, so the
+<em>aggregate</em> rate is the per-worker rate times the number of
+workers. To respect a global API limit, give each worker its share:
+<code>per_worker_rate = global_limit / workers</code>.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Add jitter to respect rate limits</span></span>
-<span><span class="va">fetch_with_rate_limit</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">ticker</span>, <span class="va">rate_limit</span> <span class="op">=</span> <span class="fl">100</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># Add delay based on rate limit (calls per minute)</span></span>
-<span>  <span class="va">delay</span> <span class="op">&lt;-</span> <span class="fl">60</span> <span class="op">/</span> <span class="va">rate_limit</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">0.1</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># per_worker_rate is calls/minute allowed to THIS worker</span></span>
+<span><span class="va">fetch_with_rate_limit</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">ticker</span>, <span class="va">per_worker_rate</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">delay</span> <span class="op">&lt;-</span> <span class="fl">60</span> <span class="op">/</span> <span class="va">per_worker_rate</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">0.1</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="va">delay</span><span class="op">)</span></span>
-<span></span>
 <span>  <span class="fu">fetch_company_data</span><span class="op">(</span><span class="va">ticker</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co"># Use with staRburst</span></span>
+<span><span class="va">global_limit</span> <span class="op">&lt;-</span> <span class="fl">100</span>   <span class="co"># API allows 100 calls/minute total</span></span>
+<span><span class="va">workers</span>      <span class="op">&lt;-</span> <span class="fl">10</span></span>
+<span><span class="va">per_worker</span>   <span class="op">&lt;-</span> <span class="va">global_limit</span> <span class="op">/</span> <span class="va">workers</span>   <span class="co"># 10 calls/min each</span></span>
+<span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span></span>
 <span>  <span class="va">tickers</span>,</span>
-<span>  <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu">fetch_with_rate_limit</span><span class="op">(</span><span class="va">x</span>, rate_limit <span class="op">=</span> <span class="fl">100</span><span class="op">)</span>,</span>
-<span>  workers <span class="op">=</span> <span class="fl">10</span>  <span class="co"># Adjust workers based on API rate limit</span></span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu">fetch_with_rate_limit</span><span class="op">(</span><span class="va">x</span>, per_worker_rate <span class="op">=</span> <span class="va">per_worker</span><span class="op">)</span>,</span>
+<span>  workers <span class="op">=</span> <span class="va">workers</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><strong>Rate limit calculation</strong>: - API limit: 100
-calls/minute - Workers: 10 - Max throughput: 1000 calls/minute (10
-workers × 100 calls/min) - Adjust workers to stay under limit</p>
+calls/minute (global) - Workers: 10 → each worker allowed 100 / 10 = 10
+calls/minute - Aggregate throughput: 10 workers × 10 calls/min =
+<strong>100 calls/minute</strong> (at the limit) - Rule:
+<code>per_worker_rate = global_limit / workers</code> keeps the fleet
+under the cap</p>
 </div>
 <div class="section level2">
 <h2 id="error-handling-best-practices">Error Handling Best Practices<a class="anchor" aria-label="anchor" href="#error-handling-best-practices"></a>

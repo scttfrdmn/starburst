@@ -105,37 +105,43 @@ cat(sprintf("Estimated time for 10,000: %.1f minutes\n",
             local_time * 100 / 60))
 ```
 
-**Typical output**:
+**Illustrative output** (depends on your machine):
 
-    100 simulations completed in 2.3 seconds
-    Estimated time for 10,000: 3.8 minutes
-
-For 10,000 simulations locally: **~3.8 minutes**
+    100 simulations completed in ~2 seconds
+    Estimated time for 10,000: ~a few minutes
 
 ## Cloud Execution with staRburst
 
-Run all 10,000 simulations on AWS:
+Each simulation is tiny (well under a millisecond), so this is a
+**batch-it** workload: submitting 10,000 one-simulation tasks would be
+dominated by per-task S3 overhead (see the [Workload
+Shapes](https://starburst.ing/articles/workload-shapes.html) guide,
+which measures that anti-pattern at ~77 minutes). Instead, batch into
+~100 tasks of 100 simulations each:
 
 ``` r
 
-# Run 10,000 simulations on 50 workers
+# 100 tasks x 100 simulations = 10,000 simulations, batched
+batches <- split(1:10000, ceiling(seq_along(1:10000) / 100))
 results <- starburst_map(
-  1:10000,
-  simulate_portfolio,
+  batches,
+  function(seeds) lapply(seeds, simulate_portfolio),
   workers = 50,
   cpu = 2,
   memory = "4GB"
 )
+results <- unlist(results, recursive = FALSE)  # flatten to 10,000 results
 ```
 
-**Typical output**:
+**Illustrative output** (times/cost vary — see the Workload Shapes and
+Performance guides for measured numbers):
 
     [Starting] Starting starburst cluster with 50 workers
-    [Status] Processing 10000 items with 50 workers
-    [Starting] Submitting 10000 tasks...
-    [Wait] Progress: 10000/10000 (72.4s)
-    [OK] Completed in 72.4 seconds
-    [Cost] Estimated cost: $0.06
+    [Status] Processing 100 items with 50 workers
+    [Starting] Submitting 100 tasks...
+    [Wait] Progress: 100/100
+    [OK] Completed
+    [Cost] Estimated cost: (printed per run)
 
 ## Results Analysis
 
@@ -179,35 +185,27 @@ legend("topright",
        lwd = 2, lty = 2)
 ```
 
-**Typical output**:
+**Illustrative output** (values depend on the random draws):
 
     === Portfolio Simulation Results (10,000 scenarios) ===
     Mean final value: $1,102,450
     Median final value: $1,097,230
-
-    Mean return: 10.24%
-    Std dev of returns: 12.83%
-
+    Mean return: 10.24%   Std dev: 12.83%
     Value at Risk (5%): $892,340
-    Expected Shortfall (5%): $845,120
-
-    Mean Sharpe Ratio: 0.82
-    Mean Max Drawdown: 8.45%
-
     Probability of loss: 18.34%
 
-## Performance Comparison
+## Performance
 
-| Method    | Workers | Time    | Cost   | Speedup |
-|-----------|---------|---------|--------|---------|
-| Local     | 1       | 3.8 min | \$0    | 1x      |
-| staRburst | 10      | 0.6 min | \$0.03 | 6.3x    |
-| staRburst | 25      | 0.3 min | \$0.04 | 12.7x   |
-| staRburst | 50      | 0.2 min | \$0.06 | 19x     |
-
-**Key Insights**: - Near-linear scaling up to 50 workers - Cost remains
-minimal (\$0.06) even with 50 workers - Sweet spot: 25-50 workers for
-this workload - Total iteration time: \<2 minutes from start to results
+Monte Carlo of tiny per-simulation tasks is a **batching** story, not a
+raw-fan-out story: batch to ~100 tasks (as above) and the run is
+dominated by real compute rather than per-task overhead. For
+**measured** cold/warm numbers — including how batching turns a
+~77-minute naive run into minutes, and how to pick worker counts — see
+the [Workload
+Shapes](https://starburst.ing/articles/workload-shapes.html) and
+[Performance](https://starburst.ing/articles/performance.html) guides.
+We don’t repeat hand-written speedup tables here; those guides are the
+single source of truth.
 
 ## When to Use This Pattern
 
