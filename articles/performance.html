@@ -115,27 +115,96 @@ recurring jobs)</li>
 <div class="section level2">
 <h2 id="real-performance-data">Real Performance Data<a class="anchor" aria-label="anchor" href="#real-performance-data"></a>
 </h2>
-<p><strong>Workload</strong>: 500M Monte Carlo iterations (9.7 hours
-sequential)</p>
-<pre><code>Sequential (1 core):        9.7 hours
-M4 Pro (10 perf cores):     67.5 minutes
-AWS EC2 c8a (50 workers):   ~30 minutes    ← winner
-
-Cloud speedup: 2.2x vs M4 Pro parallel, 19x vs sequential
-Cost: ~$1.10 (spot instances)</code></pre>
-<p><strong>Why 2.2x and not 5x?</strong></p>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Per-core gap</strong>: c8a AMD is ~65–70% of M4 Pro speed
-(3.0 GHz AMD EPYC vs 3.5–4.0 GHz Apple Silicon)</li>
-<li>
-<strong>Startup overhead</strong>: ~2 minutes for first result (pool
-warmup + S3 transfer) — amortized across subsequent runs</li>
-<li>
-<strong>Straggler effect</strong>: some variation in task completion
-time across workers</li>
-</ol>
+<p>These are <strong>real measured runs</strong> from
+<code>bench/benchmark.R</code> (see <code>bench/README.md</code>) on
+live AWS — full cold starts, nothing excluded. They’re chosen to show
+<em>both</em> sides, so you can calibrate when bursting is worth it.
+Same setup for both: staRburst 0.3.9, us-east-1, EC2
+<code>c7i.xlarge</code> Spot, cold start, baseline on an 8-core Apple M4
+Pro (2026-07-21).</p>
+<div class="section level3">
+<h3 id="when-it-pays-off-heavy-per-task-work">✅ When it pays off — heavy per-task work<a class="anchor" aria-label="anchor" href="#when-it-pays-off-heavy-per-task-work"></a>
+</h3>
+<p>30 tasks, each ~10 s of dense linear algebra (repeated SVD):</p>
+<table class="table">
+<thead><tr class="header">
+<th>Phase</th>
+<th>Time</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Local (sequential, 1 pass over 30 tasks)</td>
+<td>319.3 s (5.3 min)</td>
+</tr>
+<tr class="even">
+<td>Cloud: startup (provision + image pull)</td>
+<td>87.5 s</td>
+</tr>
+<tr class="odd">
+<td>Cloud: compute + collect (30 workers)</td>
+<td>38.4 s</td>
+</tr>
+<tr class="even">
+<td><strong>Cloud total (cold)</strong></td>
+<td><strong>125.8 s (2.1 min)</strong></td>
+</tr>
+<tr class="odd">
+<td>Est. cost</td>
+<td>$0.06</td>
+</tr>
+</tbody>
+</table>
+<p><strong>~2.5× faster even counting the full ~90 s cold
+startup</strong> — because the 30 tasks finish in parallel in ~38 s
+instead of ~5 min sequentially. Run this as a warm pool or a parameter
+sweep and the startup amortizes away, pushing the speedup higher.</p>
+</div>
+<div class="section level3">
+<h3 id="when-it-doesnt-light-per-task-work">❌ When it doesn’t — light per-task work<a class="anchor" aria-label="anchor" href="#when-it-doesnt-light-per-task-work"></a>
+</h3>
+<p>20 tasks, each a fraction of a second (small terrain-stat grids):</p>
+<table class="table">
+<thead><tr class="header">
+<th>Phase</th>
+<th>Time</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Local (sequential)</td>
+<td>0.1 s</td>
+</tr>
+<tr class="even">
+<td>Cloud: startup</td>
+<td>74.7 s</td>
+</tr>
+<tr class="odd">
+<td>Cloud: compute + collect</td>
+<td>27.9 s</td>
+</tr>
+<tr class="even">
+<td><strong>Cloud total (cold)</strong></td>
+<td><strong>102.6 s</strong></td>
+</tr>
+<tr class="odd">
+<td>Est. cost</td>
+<td>$0.03</td>
+</tr>
+</tbody>
+</table>
+<p><strong>~1000× <em>slower</em> than local.</strong> The work is
+trivial, so the fixed startup is pure overhead with nothing to amortize
+it against. Running this locally is the right call.</p>
+</div>
+<div class="section level3">
+<h3 id="the-lesson">The lesson<a class="anchor" aria-label="anchor" href="#the-lesson"></a>
+</h3>
+<p>Same tool, same 20–30 workers, opposite verdicts. The only thing that
+changed is <strong>how much work each task does</strong>. If your tasks
+are seconds-to-minutes each and you have many of them, staRburst wins;
+if they’re sub-second, stay local. The rest of this guide makes that
+boundary precise.</p>
 <hr>
+</div>
 </div>
 <div class="section level2">
 <h2 id="per-task-overhead">Per-Task Overhead<a class="anchor" aria-label="anchor" href="#per-task-overhead"></a>
@@ -185,15 +254,15 @@ For faster tasks, batch them.</p>
 </h2>
 <p>The most important optimization. Instead of sending 10,000 tiny
 tasks, group them:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Bad: 10,000 tasks of 0.1s each — overhead dominates</span></span>
 <span><span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="va">quick_fn</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Good: 100 tasks of 100s each — overhead is negligible</span></span>
 <span><span class="va">batches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span><span class="op">)</span> <span class="op">/</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="va">batches</span>, <span class="kw">function</span><span class="op">(</span><span class="va">batch</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">batch</span>, <span class="va">quick_fn</span><span class="op">)</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Batch size formula:</strong></p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Profile your function first</span></span>
 <span><span class="va">per_item_time</span> <span class="op">&lt;-</span> <span class="fl">0.5</span>   <span class="co"># seconds, from local profiling</span></span>
 <span><span class="va">target_task_duration</span> <span class="op">&lt;-</span> <span class="fl">60</span>  <span class="co"># aim for 60s minimum per task</span></span>
@@ -239,7 +308,7 @@ tasks, group them:</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Recommended: c8a with spot instances</span></span>
 <span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>,</span>
 <span>  workers     <span class="op">=</span> <span class="fl">50</span>,</span>
@@ -254,44 +323,49 @@ c8a spot:       $2.16/hr   ← 70% savings, low interruption risk</code></pre>
 <div class="section level2">
 <h2 id="the-startup-cost-problem">The Startup Cost Problem<a class="anchor" aria-label="anchor" href="#the-startup-cost-problem"></a>
 </h2>
-<p>Workers need ~2 minutes to start cold (pool warmup + environment
-sync). This cost is <strong>fixed</strong> — it doesn’t scale with job
-size. The key is to amortize it.</p>
+<p>Workers need ~75–90 s to start cold (pool warmup + image pull +
+environment sync). This cost is <strong>fixed</strong> — it doesn’t
+scale with job size. The key is to amortize it. The numbers below
+extrapolate from the measured “heavy” run above (5.3 min local vs ~90 s
+startup + ~38 s compute on 30 workers).</p>
 <div class="section level3">
-<h3 id="run-once-marginal-value">Run once — marginal value<a class="anchor" aria-label="anchor" href="#run-once-marginal-value"></a>
+<h3 id="run-once-cold-modest-win">Run once (cold) — modest win<a class="anchor" aria-label="anchor" href="#run-once-cold-modest-win"></a>
 </h3>
-<pre><code>Local parallel (M4 Pro):  67.5 min, $0
-Cloud 50 workers (cold):  46.5 min, $3.82
-  → Saved 21 min for $3.82 = $10.91/hr saved
-  → Marginal</code></pre>
+<pre><code>Local (sequential):        5.3 min, $0
+Cloud 30 workers (cold):   2.1 min ($0.06)   [87s startup + 38s compute]
+  → ~2.5x faster, laptop freed — worth it, but startup is most of the cloud time</code></pre>
 </div>
 <div class="section level3">
 <h3 id="run-10-times-parameter-sweep-much-better">Run 10 times (parameter sweep) — much better<a class="anchor" aria-label="anchor" href="#run-10-times-parameter-sweep-much-better"></a>
 </h3>
-<pre><code>Local parallel:            675 min (10 × 67.5), laptop tied up
-Cloud (workers stay warm): 375 min (10 min startup once + 10 × 36.5)
-  → Saved 5 hours for $38 = $7.64/hr saved
-  → Good value, laptop stays usable</code></pre>
+<pre><code>Local (sequential):        53 min (10 × 5.3), laptop tied up
+Cloud (pool stays warm):   ~8 min (90s startup ONCE + 10 × ~38s compute)
+  → Startup paid once, then each run is ~38s. Big win, laptop stays usable.</code></pre>
 </div>
 <div class="section level3">
 <h3 id="daily-recurring-job-excellent">Daily recurring job — excellent<a class="anchor" aria-label="anchor" href="#daily-recurring-job-excellent"></a>
 </h3>
-<pre><code>100 runs/month
-Local:   6,750 min, laptop tied up 4.7 hrs/day
-Cloud:   3,660 min, 0.1% startup overhead
-  → ~$380/month, 51 hours saved</code></pre>
+<pre><code>Warm pool started once in the morning; every run pays ~0 startup.
+  → Per-run cost is just compute+collect (~38s here); startup overhead ≈ 0%.
+  → Best case for staRburst — see the "keep warm pool" pattern below.</code></pre>
 <hr>
 </div>
 </div>
 <div class="section level2">
 <h2 id="decision-framework">Decision Framework<a class="anchor" aria-label="anchor" href="#decision-framework"></a>
 </h2>
-<p><strong>How long is the workload?</strong></p>
-<pre><code>&lt; 30 min:     Don't bother
-30–60 min:    Local probably better
-1–4 hours:    Cloud starts to make sense
-4–8 hours:    Cloud clearly better
-&gt; 8 hours:    Easy choice</code></pre>
+<p>The real question isn’t total job length — it’s <strong>per-task work
+vs. the ~90 s cold startup</strong>, and <strong>how many times you’ll
+run it</strong>. The measured examples above bracket it: the heavy
+workload won at ~5 min of sequential work; the trivial one lost badly.
+As a rule of thumb for a <strong>single cold run</strong>:</p>
+<pre><code>Per-task work is sub-second:   Stay local (startup is pure overhead)
+Tasks are seconds–minutes,
+  and there are many:          Cloud wins — this is the sweet spot
+Total sequential work &lt; ~2 min: Local usually wins on a cold start</code></pre>
+<p>Running it <strong>more than once</strong> changes everything — a
+warm pool pays the ~90 s startup once, so even modest jobs win on the
+2nd+ run (see below).</p>
 <p><strong>How many times will you run it?</strong></p>
 <pre><code>Once:          Startup is ~20% of job time
 2–5 times:     Startup amortizes to ~5–10%
@@ -310,7 +384,7 @@ HPC cluster:       Use your cluster</code></pre>
 <div class="section level3">
 <h3 id="pattern-one-shot-analysis-use-local">Pattern: One-shot analysis — use local<a class="anchor" aria-label="anchor" href="#pattern-one-shot-analysis-use-local"></a>
 </h3>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">parallel</span><span class="op">)</span></span>
 <span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/parallel/makeCluster.html" class="external-link">makeCluster</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/parallel/detectCores.html" class="external-link">detectCores</a></span><span class="op">(</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/parallel/clusterApply.html" class="external-link">parLapply</a></span><span class="op">(</span><span class="va">cl</span>, <span class="va">data</span>, <span class="va">your_function</span><span class="op">)</span></span>
@@ -319,7 +393,7 @@ HPC cluster:       Use your cluster</code></pre>
 <div class="section level3">
 <h3 id="pattern-parameter-sweep-use-cloud">Pattern: Parameter sweep — use cloud<a class="anchor" aria-label="anchor" href="#pattern-parameter-sweep-use-cloud"></a>
 </h3>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Pay startup cost once, run many combinations</span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">alpha</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">1.0</span>, <span class="fl">0.1</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">for</span> <span class="op">(</span><span class="va">beta</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">1.0</span>, <span class="fl">0.1</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -334,7 +408,7 @@ HPC cluster:       Use your cluster</code></pre>
 <div class="section level3">
 <h3 id="pattern-daily-production-job-keep-warm-pool">Pattern: Daily production job — keep warm pool<a class="anchor" aria-label="anchor" href="#pattern-daily-production-job-keep-warm-pool"></a>
 </h3>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Start warm pool once in the morning</span></span>
 <span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, warm_pool_timeout <span class="op">=</span> <span class="fl">28800</span><span class="op">)</span>  <span class="co"># 8 hours</span></span>
 <span></span>
@@ -346,7 +420,7 @@ HPC cluster:       Use your cluster</code></pre>
 <div class="section level3">
 <h3 id="pattern-hybrid-develop-local-scale-on-cloud">Pattern: Hybrid — develop local, scale on cloud<a class="anchor" aria-label="anchor" href="#pattern-hybrid-develop-local-scale-on-cloud"></a>
 </h3>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Iterate quickly on a small sample locally</span></span>
 <span><span class="va">results_test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">100</span><span class="op">]</span>, <span class="va">your_function</span><span class="op">)</span></span>
 <span></span>
@@ -396,7 +470,7 @@ running.</p>
 <h2 id="common-pitfalls">Common Pitfalls<a class="anchor" aria-label="anchor" href="#common-pitfalls"></a>
 </h2>
 <p><strong>Too many small tasks:</strong></p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Bad: each task is 0.1s — overhead is 20-30x the work</span></span>
 <span><span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
@@ -404,14 +478,14 @@ running.</p>
 <span><span class="va">batches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span><span class="op">)</span> <span class="op">/</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="va">batches</span>, <span class="kw">function</span><span class="op">(</span><span class="va">b</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">b</span>, <span class="va">sqrt</span><span class="op">)</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></code></pre></div>
 <p><strong>More workers than tasks:</strong></p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Bad: 40 workers sit idle</span></span>
 <span><span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="va">fn</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Good: match workers to workload</span></span>
 <span><span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">100</span>, <span class="va">fn</span>, workers <span class="op">=</span> <span class="fl">25</span><span class="op">)</span>  <span class="co"># 4 tasks per worker</span></span></code></pre></div>
 <p><strong>Sending large data to every worker:</strong></p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Bad: huge_matrix serialized and sent to each of 50 workers</span></span>
 <span><span class="va">huge_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1e8</span><span class="op">)</span>, ncol <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">50</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="fu">process</span><span class="op">(</span><span class="va">huge_matrix</span>, <span class="va">i</span><span class="op">)</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
@@ -499,14 +573,14 @@ named profiles configured with SSO in <code>~/.aws/config</code>
 <strong>IAM instance roles</strong>: automatic when running on EC2
 or ECS</li>
 </ul>
-<div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="co"># Standard profile</span></span>
-<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a><span class="bu">export</span> <span class="va">AWS_PROFILE</span><span class="op">=</span>my-aws-account</span>
-<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">"library(starburst); starburst_setup_ec2()"</span></span>
-<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a></span>
-<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a><span class="co"># SSO profile (AWS CLI v2)</span></span>
-<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a><span class="ex">aws</span> login <span class="at">--profile</span> my-sso-profile</span>
-<span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a><span class="bu">export</span> <span class="va">AWS_PROFILE</span><span class="op">=</span>my-sso-profile</span>
-<span id="cb21-8"><a href="#cb21-8" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">"library(starburst); starburst_setup_ec2()"</span></span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="co"># Standard profile</span></span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a><span class="bu">export</span> <span class="va">AWS_PROFILE</span><span class="op">=</span>my-aws-account</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">"library(starburst); starburst_setup_ec2()"</span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a><span class="co"># SSO profile (AWS CLI v2)</span></span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="ex">aws</span> login <span class="at">--profile</span> my-sso-profile</span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a><span class="bu">export</span> <span class="va">AWS_PROFILE</span><span class="op">=</span>my-sso-profile</span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">"library(starburst); starburst_setup_ec2()"</span></span></code></pre></div>
 <p>No explicit configuration is required in staRburst — it defers
 entirely to paws credential discovery.</p>
 </div>
