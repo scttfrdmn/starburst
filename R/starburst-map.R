@@ -283,7 +283,7 @@ starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
 
   # Run all futures (submits to AWS)
   if (.progress) {
-    cat_info(sprintf("[Starting] Submitting %d tasks to AWS Fargate...\n", n))
+    cat_info(sprintf("[Starting] Submitting %d tasks to AWS...\n", n))
   }
 
   for (future in futures) {

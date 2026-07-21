@@ -167,7 +167,7 @@ local_start <- Sys.time()
 local_results <- lapply(head(tickers, 50), fetch_company_data_mock)
 local_time <- as.numeric(difftime(Sys.time(), local_start, units = "secs"))
 
-cat(sprintf("✓ Completed 50 calls in %.1f seconds\n", local_time))
+cat(sprintf("[OK] Completed 50 calls in %.1f seconds\n", local_time))
 cat(sprintf("  Estimated time for %d: %.1f minutes\n",
             n_companies, local_time * n_companies / 50 / 60))
 ```
@@ -175,7 +175,7 @@ cat(sprintf("  Estimated time for %d: %.1f minutes\n",
 **Typical output**:
 ```
 Fetching data for 1000 companies locally...
-✓ Completed 50 calls in 24.3 seconds
+[OK] Completed 50 calls in 24.3 seconds
   Estimated time for 1000: 8.1 minutes
 ```
 
@@ -197,16 +197,12 @@ results <- starburst_map(
 
 **Typical output**:
 ```
-🚀 Starting starburst cluster with 25 workers
-💰 Estimated cost: ~$1.00/hour
-📊 Processing 1000 items with 25 workers
-📦 Created 25 chunks (avg 40 items per chunk)
-🚀 Submitting tasks...
-✓ Submitted 25 tasks
-⏳ Progress: 25/25 tasks (0.8 minutes elapsed)
-
-✓ Completed in 0.8 minutes
-💰 Actual cost: $0.01
+[Starting] Starting starburst cluster with 25 workers
+[Status] Processing 1000 items with 25 workers
+[Starting] Submitting 1000 tasks...
+[Wait] Progress: 1000/1000 (48.0s)
+[OK] Completed in 48.0 seconds
+[Cost] Estimated cost: $0.01
 ```
 
 ## Results Processing
