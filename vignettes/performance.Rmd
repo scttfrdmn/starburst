@@ -187,14 +187,20 @@ Warm pool started once in the morning; every run pays ~0 startup.
 
 ## Decision Framework
 
-**How long is the workload?**
+The real question isn't total job length — it's **per-task work vs. the ~90 s cold
+startup**, and **how many times you'll run it**. The measured examples above bracket it:
+the heavy workload won at ~5 min of sequential work; the trivial one lost badly. As a
+rule of thumb for a **single cold run**:
+
 ```
-< 30 min:     Don't bother
-30–60 min:    Local probably better
-1–4 hours:    Cloud starts to make sense
-4–8 hours:    Cloud clearly better
-> 8 hours:    Easy choice
+Per-task work is sub-second:   Stay local (startup is pure overhead)
+Tasks are seconds–minutes,
+  and there are many:          Cloud wins — this is the sweet spot
+Total sequential work < ~2 min: Local usually wins on a cold start
 ```
+
+Running it **more than once** changes everything — a warm pool pays the ~90 s startup
+once, so even modest jobs win on the 2nd+ run (see below).
 
 **How many times will you run it?**
 ```
