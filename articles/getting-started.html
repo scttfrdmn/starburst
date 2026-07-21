@@ -57,7 +57,7 @@
     <li><a class="dropdown-item" href="../articles/performance.html">Performance &amp; When to Use Cloud</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="../reference/examples.html">Runnable Scripts</a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/scttfrdmn/starburst/tree/main/examples">Runnable Scripts</a></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -93,11 +93,56 @@
 laptop to 100+ AWS workers. This vignette walks through setup and common
 usage patterns.</p>
 <div class="section level3">
+<h3 id="which-api-should-i-use">Which API should I use?<a class="anchor" aria-label="anchor" href="#which-api-should-i-use"></a>
+</h3>
+<p>staRburst offers a few entry points. They share the same engine —
+pick the one that fits how your code is written:</p>
+<table class="table">
+<colgroup>
+<col width="54%">
+<col width="45%">
+</colgroup>
+<thead><tr class="header">
+<th>Need</th>
+<th>Use</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Map a function over inputs (simplest)</td>
+<td><code><a href="../reference/starburst_map.html">starburst_map()</a></code></td>
+</tr>
+<tr class="even">
+<td>Existing <code>future</code> / <code>furrr</code> code</td>
+<td>
+<code>plan(starburst)</code> then <code>future_map()</code>
+</td>
+</tr>
+<tr class="odd">
+<td>Long-running job that survives disconnects</td>
+<td><code><a href="../reference/starburst_session.html">starburst_session()</a></code></td>
+</tr>
+<tr class="even">
+<td>Explicit, reusable worker cluster</td>
+<td><code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code></td>
+</tr>
+<tr class="odd">
+<td>Configure account/backend defaults</td>
+<td><code><a href="../reference/starburst_config.html">starburst_config()</a></code></td>
+</tr>
+</tbody>
+</table>
+<p>If you’re new, start with <code><a href="../reference/starburst_map.html">starburst_map()</a></code>. This guide
+uses the <code>future</code>/<code>furrr</code> integration
+(<code>plan(starburst)</code>) for most examples because it drops into
+existing future-based code unchanged; every example works with
+<code><a href="../reference/starburst_map.html">starburst_map()</a></code> too.</p>
+</div>
+<div class="section level3">
 <h3 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h3>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Install from GitHub</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"yourname/starburst"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"scttfrdmn/starburst"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="one-time-setup">One-Time Setup<a class="anchor" aria-label="anchor" href="#one-time-setup"></a>
@@ -107,12 +152,18 @@ only needs to be done once.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://starburst.ing">starburst</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Interactive setup wizard (takes ~2 minutes)</span></span>
+<span><span class="co"># Interactive setup wizard</span></span>
 <span><span class="fu"><a href="../reference/starburst_setup.html">starburst_setup</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>This will: - Validate your AWS credentials - Create an S3 bucket for
 data transfer - Create an ECR repository for Docker images - Set up ECS
 cluster and VPC resources - Check Fargate quotas and offer to request
-increases</p>
+increases - Build the initial worker image</p>
+<p>Provisioning the AWS resources takes about <strong>2
+minutes</strong>. On the <strong>first run</strong>, staRburst also
+builds the worker Docker image, which adds <strong>5–10 minutes</strong>
+(it is cached and reused afterwards, and you can skip it with
+<code>starburst_setup(build_image = FALSE)</code> and build lazily on
+first job launch).</p>
 </div>
 <div class="section level3">
 <h3 id="basic-usage">Basic Usage<a class="anchor" aria-label="anchor" href="#basic-usage"></a>
@@ -141,7 +192,7 @@ package:</p>
 <span><span class="co">#&gt; ~16 minutes on typical laptop</span></span>
 <span></span>
 <span><span class="co"># Cloud execution (50 workers)</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="op">{</span></span>
 <span>  <span class="va">results_cloud</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">100</span>, <span class="va">expensive_simulation</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
@@ -175,7 +226,7 @@ package:</p>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co"># Run 10,000 simulations on 100 workers</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="va">simulate_portfolio</span>, .options <span class="op">=</span> <span class="fu">furrr_options</span><span class="op">(</span>seed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -212,7 +263,7 @@ package:</p>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co"># Run 10,000 bootstrap samples</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">boot_results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="va">bootstrap_regression</span>, data <span class="op">=</span> <span class="va">data</span><span class="op">)</span></span>
 <span></span>
@@ -252,7 +303,7 @@ package:</p>
 <span><span class="co"># Process 1000 samples on 100 workers</span></span>
 <span><span class="va">sample_ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="st">"s3://my-genomics-data/samples/"</span>, pattern <span class="op">=</span> <span class="st">".fastq$"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="va">sample_ids</span>, <span class="va">process_sample</span>, .progress <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
@@ -269,7 +320,7 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 </h4>
 <p>If your data is already in S3, workers can read it directly:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="va">file_list</span>, <span class="kw">function</span><span class="op">(</span><span class="va">file</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="co"># Workers read directly from S3</span></span>
@@ -286,7 +337,7 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"local_file.csv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># staRburst automatically uploads to S3 and distributes</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="co"># Each worker gets a copy of 'data'</span></span>
@@ -296,18 +347,21 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 <div class="section level4">
 <h4 id="large-data-optimization">Large Data Optimization<a class="anchor" aria-label="anchor" href="#large-data-optimization"></a>
 </h4>
-<p>For very large objects, pre-upload to S3:</p>
+<p>For very large objects, upload once to S3 yourself and have each
+worker read it from there, rather than serializing the object into every
+task:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Upload once</span></span>
-<span><span class="va">large_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"huge_file.csv"</span><span class="op">)</span></span>
-<span><span class="va">s3_path</span> <span class="op">&lt;-</span> <span class="fu">starburst_upload</span><span class="op">(</span><span class="va">large_data</span>, <span class="st">"s3://my-bucket/large_data.rds"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Upload once, using your preferred S3 client (e.g. paws.storage or the AWS CLI)</span></span>
+<span><span class="va">large_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"huge_file.rds"</span><span class="op">)</span></span>
+<span><span class="va">s3_path</span> <span class="op">&lt;-</span> <span class="st">"s3://my-bucket/large_data.rds"</span></span>
+<span><span class="co"># e.g. paws.storage::s3()$put_object(Bucket = "my-bucket",</span></span>
+<span><span class="co">#        Key = "large_data.rds", Body = "huge_file.rds")</span></span>
 <span></span>
-<span><span class="co"># Workers read from S3</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="co"># Workers read from S3 inside the task</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># Read from S3 inside worker</span></span>
-<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="va">s3_path</span><span class="op">)</span></span>
+<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">url</a></span><span class="op">(</span><span class="va">s3_path</span><span class="op">)</span><span class="op">)</span>  <span class="co"># or an S3 client of your choice</span></span>
 <span>  <span class="fu">process</span><span class="op">(</span><span class="va">data</span>, <span class="va">i</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -320,7 +374,7 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 </h4>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Check cost before running</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span>, memory <span class="op">=</span> <span class="st">"8GB"</span><span class="op">)</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span>, memory <span class="op">=</span> <span class="st">"8GB"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Estimated cost: ~$3.50/hour</span></span></code></pre></div>
 </div>
 <div class="section level4">
@@ -334,14 +388,14 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Now jobs exceeding limit will error before starting</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span>  <span class="co"># Would cost ~$35/hour</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span>  <span class="co"># Would cost ~$35/hour</span></span>
 <span><span class="co">#&gt; Error: Estimated cost ($35/hr) exceeds limit ($10/hr)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="track-actual-costs">Track Actual Costs<a class="anchor" aria-label="anchor" href="#track-actual-costs"></a>
 </h4>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="va">data</span>, <span class="va">process</span><span class="op">)</span></span>
 <span></span>
@@ -371,8 +425,8 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 <span><span class="co">#&gt;   Current: 100 vCPUs</span></span>
 <span><span class="co">#&gt;   Requested: 500 vCPUs</span></span>
 <span><span class="co">#&gt;</span></span>
-<span><span class="co">#&gt; ✓ Quota increase requested (Case ID: 12345678)</span></span>
-<span><span class="co">#&gt; ✓ AWS typically approves within 1-24 hours</span></span></code></pre></div>
+<span><span class="co">#&gt; [OK] Quota increase requested (Case ID: 12345678)</span></span>
+<span><span class="co">#&gt; [OK] AWS typically approves within 1-24 hours</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="wave-based-execution">Wave-Based Execution<a class="anchor" aria-label="anchor" href="#wave-based-execution"></a>
@@ -381,25 +435,25 @@ days) - Cloud (100 workers): ~2 hours - Cost: ~$47</p>
 automatically uses wave-based execution:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Quota allows 25 workers, but you request 100</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">100</span>, cpu <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co">#&gt; ⚠ Requested: 100 workers (400 vCPUs)</span></span>
-<span><span class="co">#&gt; ⚠ Current quota: 100 vCPUs (allows 25 workers max)</span></span>
+<span><span class="co">#&gt; [!] Requested: 100 workers (400 vCPUs)</span></span>
+<span><span class="co">#&gt; [!] Current quota: 100 vCPUs (allows 25 workers max)</span></span>
 <span><span class="co">#&gt;</span></span>
-<span><span class="co">#&gt; 📋 Execution plan:</span></span>
-<span><span class="co">#&gt;   • Running in 4 waves of 25 workers each</span></span>
+<span><span class="co">#&gt; [Plan] Execution plan:</span></span>
+<span><span class="co">#&gt;   - Running in 4 waves of 25 workers each</span></span>
 <span><span class="co">#&gt;</span></span>
-<span><span class="co">#&gt; 💡 Request quota increase to 500 vCPUs? [y/n]: y</span></span>
+<span><span class="co">#&gt; [TIP] Request quota increase to 500 vCPUs? [y/n]: y</span></span>
 <span><span class="co">#&gt;</span></span>
-<span><span class="co">#&gt; ✓ Quota increase requested</span></span>
-<span><span class="co">#&gt; ⚡ Starting wave 1 (25 workers)...</span></span>
+<span><span class="co">#&gt; [OK] Quota increase requested</span></span>
+<span><span class="co">#&gt; [Starting] Starting wave 1 (25 workers)...</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, <span class="va">expensive_function</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co">#&gt; ⚡ Wave 1: 100% complete (250 tasks)</span></span>
-<span><span class="co">#&gt; ⚡ Wave 2: 100% complete (500 tasks)</span></span>
-<span><span class="co">#&gt; ⚡ Wave 3: 100% complete (750 tasks)</span></span>
-<span><span class="co">#&gt; ⚡ Wave 4: 100% complete (1000 tasks)</span></span></code></pre></div>
+<span><span class="co">#&gt; [Wave] Wave 1: 100% complete (250 tasks)</span></span>
+<span><span class="co">#&gt; [Wave] Wave 2: 100% complete (500 tasks)</span></span>
+<span><span class="co">#&gt; [Wave] Wave 3: 100% complete (750 tasks)</span></span>
+<span><span class="co">#&gt; [Wave] Wave 4: 100% complete (1000 tasks)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">
@@ -441,7 +495,7 @@ workers</p>
 <span><span class="fu"><a href="../reference/starburst_logs.html">starburst_logs</a></span><span class="op">(</span>task_id <span class="op">=</span> <span class="st">"failed-task-id"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Often due to memory limits - increase worker memory</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, memory <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span>  <span class="co"># Default is 8GB</span></span></code></pre></div>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, memory <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span>  <span class="co"># Default is 8GB</span></span></code></pre></div>
 <p><strong>Slow data transfer</strong>: Large objects taking too
 long</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
@@ -535,24 +589,24 @@ long</p>
 </h4>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># High CPU, low memory (CPU-bound work)</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, cpu <span class="op">=</span> <span class="fl">8</span>, memory <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, cpu <span class="op">=</span> <span class="fl">8</span>, memory <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Low CPU, high memory (memory-bound work)</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">25</span>, cpu <span class="op">=</span> <span class="fl">4</span>, memory <span class="op">=</span> <span class="st">"32GB"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">25</span>, cpu <span class="op">=</span> <span class="fl">4</span>, memory <span class="op">=</span> <span class="st">"32GB"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="timeout">Timeout<a class="anchor" aria-label="anchor" href="#timeout"></a>
 </h4>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Increase timeout for long-running tasks (default 1 hour)</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">10</span>, timeout <span class="op">=</span> <span class="fl">7200</span><span class="op">)</span>  <span class="co"># 2 hours</span></span></code></pre></div>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">10</span>, timeout <span class="op">=</span> <span class="fl">7200</span><span class="op">)</span>  <span class="co"># 2 hours</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="region">Region<a class="anchor" aria-label="anchor" href="#region"></a>
 </h4>
 <div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Use specific region (default from config)</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, region <span class="op">=</span> <span class="st">"us-west-2"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, region <span class="op">=</span> <span class="st">"us-west-2"</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">

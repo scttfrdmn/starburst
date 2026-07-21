@@ -1,7 +1,7 @@
-# Map Function Over Data Using AWS Fargate
+# Map a Function Over Data on AWS Workers
 
-Parallel map function that executes on AWS Fargate using the Future
-backend
+Parallel map function that executes across AWS workers (EC2 by default,
+or Fargate) using the staRburst Future backend.
 
 ## Usage
 

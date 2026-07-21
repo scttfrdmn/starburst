@@ -119,13 +119,13 @@ local_results <- lapply(
 )
 
 local_time <- as.numeric(difftime(Sys.time(), local_start, units = "secs"))
-cat(sprintf("✓ Completed in %.2f seconds\n\n", local_time))
+cat(sprintf("[OK] Completed in %.2f seconds\n\n", local_time))
 ```
 
 **Typical output**:
 
     Running 1000 bootstrap iterations locally...
-    ✓ Completed in 2.1 seconds
+    [OK] Completed in 2.1 seconds
 
 ## Cloud Execution with staRburst
 
@@ -150,16 +150,12 @@ results <- starburst_map(
 
 **Typical output**:
 
-    🚀 Starting starburst cluster with 25 workers
-    💰 Estimated cost: ~$1.00/hour
-    📊 Processing 10000 items with 25 workers
-    📦 Created 25 chunks (avg 400 items per chunk)
-    🚀 Submitting tasks...
-    ✓ Submitted 25 tasks
-    ⏳ Progress: 25/25 tasks (0.3 minutes elapsed)
-
-    ✓ Completed in 0.3 minutes
-    💰 Actual cost: $0.01
+    [Starting] Starting starburst cluster with 25 workers
+    [Status] Processing 10000 items with 25 workers
+    [Starting] Submitting 10000 tasks...
+    [Wait] Progress: 10000/10000 (18.0s)
+    [OK] Completed in 18.0 seconds
+    [Cost] Estimated cost: $0.01
 
 ## Results Analysis
 
@@ -190,10 +186,10 @@ cat(sprintf("\nProbability that B > A: %.1f%%\n", prob_b_wins))
 
 # Statistical significance
 if (ci_95[1] > 0) {
-  cat("\n✓ Result is statistically significant at 95% confidence level\n")
+  cat("\n[OK] Result is statistically significant at 95% confidence level\n")
   cat("  (95% CI does not include zero)\n")
 } else {
-  cat("\n✗ Result is NOT statistically significant at 95% confidence level\n")
+  cat("\n[X] Result is NOT statistically significant at 95% confidence level\n")
   cat("  (95% CI includes zero)\n")
 }
 
@@ -216,7 +212,7 @@ cat(sprintf("95%% CI for relative lift: [%.1f%%, %.1f%%]\n",
 
     Probability that B > A: 99.7%
 
-    ✓ Result is statistically significant at 95% confidence level
+    [OK] Result is statistically significant at 95% confidence level
       (95% CI does not include zero)
 
     Relative lift: 8.2%
@@ -251,15 +247,26 @@ legend("topright",
 
 ## Performance Comparison
 
-| Method       | Iterations | Time    | Cost   | Speedup |
-|--------------|------------|---------|--------|---------|
-| Local        | 1,000      | 2.1 sec | \$0    | 1x      |
-| Local (est.) | 10,000     | 21 sec  | \$0    | 1x      |
-| staRburst    | 10,000     | 18 sec  | \$0.01 | 6.9x    |
+| Method       | Iterations | Compute time          | Cost   |
+|--------------|------------|-----------------------|--------|
+| Local        | 1,000      | 2.1 sec               | \$0    |
+| Local (est.) | 10,000     | 21 sec                | \$0    |
+| staRburst    | 10,000     | 18 sec (compute only) | \$0.01 |
 
-**Key Insights**: - Bootstrap is highly parallelizable - Fast iterations
-still benefit from cloud parallelization - Minimal cost even with 10,000
-iterations - Can easily scale to 100,000+ iterations for more precision
+> **Reading these numbers honestly:** the staRburst row is *compute time
+> only* on a warm pool and excludes the one-time startup (~2 minutes)
+> and image pull. For a job that finishes in ~20 seconds locally, that
+> startup makes local the faster choice — the numbers here are
+> illustrative, not a claim that bursting a 20-second job wins.
+> Bootstrap *does* parallelize well; the payoff is real once iterations
+> are expensive or you scale to 100,000+. See
+> [`vignette("performance")`](https://starburst.ing/articles/performance.md)
+> for the sizing heuristics.
+
+**Key Insights**: - Bootstrap is highly parallelizable - Minimal
+per-task cost even with 10,000 iterations - The win comes at scale
+(100,000+ iterations or expensive per-iteration work), where startup
+overhead is amortized away
 
 ## Advanced: Multi-Metric Bootstrap
 

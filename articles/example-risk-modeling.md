@@ -250,7 +250,7 @@ local_results <- lapply(test_scenarios, value_portfolio_scenario,
 
 local_time <- as.numeric(difftime(Sys.time(), local_start, units = "secs"))
 
-cat(sprintf("✓ Completed in %.2f seconds\n", local_time))
+cat(sprintf("[OK] Completed in %.2f seconds\n", local_time))
 cat(sprintf("  Average time per scenario: %.3f seconds\n",
             local_time / length(test_scenarios)))
 cat(sprintf("  Estimated time for 10,000 scenarios: %.1f minutes\n",
@@ -260,7 +260,7 @@ cat(sprintf("  Estimated time for 10,000 scenarios: %.1f minutes\n",
 **Typical output**:
 
     Running local benchmark (120 scenarios)...
-    ✓ Completed in 8.4 seconds
+    [OK] Completed in 8.4 seconds
       Average time per scenario: 0.070 seconds
       Estimated time for 10,000 scenarios: 11.7 minutes
 
@@ -306,7 +306,7 @@ results <- starburst_map(
 
 cloud_time <- as.numeric(difftime(Sys.time(), cloud_start, units = "mins"))
 
-cat(sprintf("\n✓ Completed in %.2f minutes\n", cloud_time))
+cat(sprintf("\n[OK] Completed in %.2f minutes\n", cloud_time))
 ```
 
 **Typical output**:
@@ -317,16 +317,12 @@ cat(sprintf("\n✓ Completed in %.2f minutes\n", cloud_time))
       Sensitivity scenarios: 45
       Total scenarios: 10,145
 
-    🚀 Starting starburst cluster with 50 workers
-    💰 Estimated cost: ~$4.00/hour
-    📊 Processing 10145 items with 50 workers
-    📦 Created 50 chunks (avg 203 items per chunk)
-    🚀 Submitting tasks...
-    ✓ Submitted 50 tasks
-    ⏳ Progress: 50/50 tasks (1.8 minutes elapsed)
-
-    ✓ Completed in 1.8 minutes
-    💰 Actual cost: $0.12
+    [Starting] Starting starburst cluster with 50 workers
+    [Status] Processing 10145 items with 50 workers
+    [Starting] Submitting 10145 tasks...
+    [Wait] Progress: 10145/10145 (108.0s)
+    [OK] Completed in 108.0 seconds
+    [Cost] Estimated cost: $0.12
 
 ## Risk Metrics Analysis
 

@@ -43,7 +43,7 @@
 - [`starburst_logs()`](https://starburst.ing/reference/starburst_logs.md)
   : View worker logs
 - [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
-  : Map Function Over Data Using AWS Fargate
+  : Map a Function Over Data on AWS Workers
 - [`starburst_quota_status()`](https://starburst.ing/reference/starburst_quota_status.md)
   : Show quota status
 - [`starburst_rebuild_environment()`](https://starburst.ing/reference/starburst_rebuild_environment.md)

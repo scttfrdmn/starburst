@@ -36,7 +36,7 @@
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="articles/performance.html">Performance &amp; When to Use Cloud</a></li>
   </ul></li>
-<li class="nav-item"><a class="nav-link" href="reference/examples.html">Runnable Scripts</a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/scttfrdmn/starburst/tree/main/examples">Runnable Scripts</a></li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json"></form></li>
@@ -54,95 +54,11 @@
 
 <div id="changelog" class="section level1">
 
-<p>All notable changes to this project will be documented in this file.</p>
-<p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/" class="external-link">Keep a Changelog</a>, and this project adheres to <a href="https://semver.org/spec/v2.0.0.html" class="external-link">Semantic Versioning</a>.</p>
-<div class="section level2">
-<h2 id="unreleased"><a href="https://github.com/yourusername/starburst/compare/v0.1.0...HEAD" class="external-link">Unreleased</a><a class="anchor" aria-label="anchor" href="#unreleased"></a></h2>
-<div class="section level3">
-<h3 id="changed">Changed<a class="anchor" aria-label="anchor" href="#changed"></a></h3>
-<ul><li>License changed from MIT to Apache License 2.0</li>
-<li>Copyright holder: Scott Friedman (2026)</li>
-</ul></div>
-</div>
-<div class="section level2">
-<h2 id="id_010---2026-02-03">
-<a href="https://github.com/yourusername/starburst/releases/tag/v0.1.0" class="external-link">0.1.0</a> - 2026-02-03<a class="anchor" aria-label="anchor" href="#id_010---2026-02-03"></a></h2>
-<div class="section level3">
-<h3 id="added">Added<a class="anchor" aria-label="anchor" href="#added"></a></h3>
-<div class="section level4">
-<h4 id="critical-blockers">Critical Blockers<a class="anchor" aria-label="anchor" href="#critical-blockers"></a></h4>
-<ul><li>Docker image building from renv.lock with ECR authentication and push</li>
-<li>ECS task definition management with IAM role creation</li>
-<li>Wave-based queue management for quota-limited execution</li>
-<li>Task ARN storage in session-level registry</li>
-<li>Active cluster listing from ECS</li>
-<li>Cost calculation from actual task runtimes</li>
-<li>Multi-AZ subnet creation and management</li>
-</ul></div>
-<div class="section level4">
-<h4 id="core-features">Core Features<a class="anchor" aria-label="anchor" href="#core-features"></a></h4>
-<ul><li>Automatic environment synchronization using renv</li>
-<li>Base64-encoded ECR token decoding for authentication</li>
-<li>CloudWatch log group creation and management</li>
-<li>IAM execution role with ECS permissions</li>
-<li>IAM task role with S3 access permissions</li>
-<li>Task definition reuse based on CPU/memory/image compatibility</li>
-<li>In-memory wave queue with pending/running/completed tracking</li>
-<li>Automatic wave progression when quota-limited</li>
-<li>Future resolution integration with wave checking</li>
-<li>Real-time cost tracking from ECS task metadata</li>
-<li>Batch processing support for 100+ tasks</li>
-<li>Subnet tagging and public IP auto-assignment</li>
-</ul></div>
-<div class="section level4">
-<h4 id="dependencies">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies"></a></h4>
-<ul><li>Added <code>digest</code> for renv.lock MD5 hashing</li>
-<li>Added <code>base64enc</code> for ECR authentication token decoding</li>
-</ul></div>
-<div class="section level4">
-<h4 id="testing">Testing<a class="anchor" aria-label="anchor" href="#testing"></a></h4>
-<ul><li>Comprehensive test suite with 62 tests (100% passing)</li>
-<li>Unit tests for task storage (17 tests)</li>
-<li>Integration logic tests (20 tests)</li>
-<li>Wave queue management tests (25 tests)</li>
-<li>Mocked AWS API tests for Docker, task definitions, cost, clusters, and subnets</li>
-<li>Full mockery-based testing infrastructure</li>
-</ul></div>
-<div class="section level4">
-<h4 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a></h4>
-<ul><li>IMPLEMENTATION_SUMMARY.md - Complete implementation overview</li>
-<li>TESTING_GUIDE.md - Comprehensive testing instructions</li>
-<li>IMPLEMENTATION_CHECKLIST.md - Detailed task tracking</li>
-<li>WAVE_QUEUE_FIX.md - Reference semantics fix documentation</li>
-<li>TEST_RESULTS_FINAL.md - Complete test results report</li>
-</ul></div>
-</div>
-<div class="section level3">
-<h3 id="changed-1">Changed<a class="anchor" aria-label="anchor" href="#changed-1"></a></h3>
-<ul><li>
-<code><a href="reference/ensure_environment.html">ensure_environment()</a></code> now returns list with <code>hash</code> and <code>image_uri</code> (previously just hash)</li>
-<li>Plan object structure includes <code>wave_queue</code>, <code>worker_cpu</code>, <code>worker_memory</code>, <code>image_uri</code>
-</li>
-<li>Wave management functions follow functional pattern (return modified plan)</li>
-</ul></div>
-<div class="section level3">
-<h3 id="fixed">Fixed<a class="anchor" aria-label="anchor" href="#fixed"></a></h3>
-<ul><li>Wave queue reference semantics issue (functions now return modified plan)</li>
-<li>Proper state management for quota-limited execution</li>
-<li>Task state transitions (queued → running → completed)</li>
-</ul></div>
-<div class="section level3">
-<h3 id="technical-details">Technical Details<a class="anchor" aria-label="anchor" href="#technical-details"></a></h3>
-<ul><li>Lines of code: ~1,650 (implementation) + ~800 (tests)</li>
-<li>Test coverage: 100% (62/62 tests passing)</li>
-<li>Architecture: Functional programming pattern for state management</li>
-<li>Performance: Zero overhead (copy-on-write optimization)</li>
-</ul></div>
-</div>
+<p>The authoritative, up-to-date changelog for staRburst is <strong><a href="NEWS.html">NEWS.md</a></strong>, which follows the R convention and is rendered on the package website at <a href="https://starburst.ing/news/" class="uri">https://starburst.ing/news/</a>.</p>
+<p>This file previously duplicated release notes and had drifted out of date; it is kept only as a pointer to avoid a second, conflicting source of truth. Please add all release notes to <code>NEWS.md</code>.</p>
 </div>
 
-  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
-    </nav></aside></div>
+  </main></div>
 
 
     <footer><div class="pkgdown-footer-left">

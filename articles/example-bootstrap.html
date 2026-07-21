@@ -57,7 +57,7 @@
     <li><a class="dropdown-item" href="../articles/performance.html">Performance &amp; When to Use Cloud</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="../reference/examples.html">Runnable Scripts</a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/scttfrdmn/starburst/tree/main/examples">Runnable Scripts</a></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -196,10 +196,10 @@ estimates.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">local_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/difftime.html" class="external-link">difftime</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">local_start</span>, units <span class="op">=</span> <span class="st">"secs"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"✓ Completed in %.2f seconds\n\n"</span>, <span class="va">local_time</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"[OK] Completed in %.2f seconds\n\n"</span>, <span class="va">local_time</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Typical output</strong>:</p>
 <pre><code>Running 1000 bootstrap iterations locally...
-✓ Completed in 2.1 seconds</code></pre>
+[OK] Completed in 2.1 seconds</code></pre>
 </div>
 <div class="section level2">
 <h2 id="cloud-execution-with-starburst">Cloud Execution with staRburst<a class="anchor" aria-label="anchor" href="#cloud-execution-with-starburst"></a>
@@ -220,16 +220,12 @@ estimates.</p>
 <span>  memory <span class="op">=</span> <span class="st">"2GB"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><strong>Typical output</strong>:</p>
-<pre><code>🚀 Starting starburst cluster with 25 workers
-💰 Estimated cost: ~$1.00/hour
-📊 Processing 10000 items with 25 workers
-📦 Created 25 chunks (avg 400 items per chunk)
-🚀 Submitting tasks...
-✓ Submitted 25 tasks
-⏳ Progress: 25/25 tasks (0.3 minutes elapsed)
-
-✓ Completed in 0.3 minutes
-💰 Actual cost: $0.01</code></pre>
+<pre><code>[Starting] Starting starburst cluster with 25 workers
+[Status] Processing 10000 items with 25 workers
+[Starting] Submitting 10000 tasks...
+[Wait] Progress: 10000/10000 (18.0s)
+[OK] Completed in 18.0 seconds
+[Cost] Estimated cost: $0.01</code></pre>
 </div>
 <div class="section level2">
 <h2 id="results-analysis">Results Analysis<a class="anchor" aria-label="anchor" href="#results-analysis"></a>
@@ -259,10 +255,10 @@ estimates.</p>
 <span></span>
 <span><span class="co"># Statistical significance</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="va">ci_95</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n✓ Result is statistically significant at 95% confidence level\n"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n[OK] Result is statistically significant at 95% confidence level\n"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  (95% CI does not include zero)\n"</span><span class="op">)</span></span>
 <span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n✗ Result is NOT statistically significant at 95% confidence level\n"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n[X] Result is NOT statistically significant at 95% confidence level\n"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  (95% CI includes zero)\n"</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
@@ -282,7 +278,7 @@ Observed difference: 0.70%
 
 Probability that B &gt; A: 99.7%
 
-✓ Result is statistically significant at 95% confidence level
+[OK] Result is statistically significant at 95% confidence level
   (95% CI does not include zero)
 
 Relative lift: 8.2%
@@ -320,9 +316,8 @@ Relative lift: 8.2%
 <thead><tr class="header">
 <th>Method</th>
 <th>Iterations</th>
-<th>Time</th>
+<th>Compute time</th>
 <th>Cost</th>
-<th>Speedup</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
@@ -330,28 +325,35 @@ Relative lift: 8.2%
 <td>1,000</td>
 <td>2.1 sec</td>
 <td>$0</td>
-<td>1x</td>
 </tr>
 <tr class="even">
 <td>Local (est.)</td>
 <td>10,000</td>
 <td>21 sec</td>
 <td>$0</td>
-<td>1x</td>
 </tr>
 <tr class="odd">
 <td>staRburst</td>
 <td>10,000</td>
-<td>18 sec</td>
+<td>18 sec (compute only)</td>
 <td>$0.01</td>
-<td>6.9x</td>
 </tr>
 </tbody>
 </table>
+<blockquote>
+<p><strong>Reading these numbers honestly:</strong> the staRburst row is
+<em>compute time only</em> on a warm pool and excludes the one-time
+startup (~2 minutes) and image pull. For a job that finishes in ~20
+seconds locally, that startup makes local the faster choice — the
+numbers here are illustrative, not a claim that bursting a 20-second job
+wins. Bootstrap <em>does</em> parallelize well; the payoff is real once
+iterations are expensive or you scale to 100,000+. See
+<code><a href="../articles/performance.html">vignette("performance")</a></code> for the sizing heuristics.</p>
+</blockquote>
 <p><strong>Key Insights</strong>: - Bootstrap is highly parallelizable -
-Fast iterations still benefit from cloud parallelization - Minimal cost
-even with 10,000 iterations - Can easily scale to 100,000+ iterations
-for more precision</p>
+Minimal per-task cost even with 10,000 iterations - The win comes at
+scale (100,000+ iterations or expensive per-iteration work), where
+startup overhead is amortized away</p>
 </div>
 <div class="section level2">
 <h2 id="advanced-multi-metric-bootstrap">Advanced: Multi-Metric Bootstrap<a class="anchor" aria-label="anchor" href="#advanced-multi-metric-bootstrap"></a>

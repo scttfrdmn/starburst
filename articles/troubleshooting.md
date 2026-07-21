@@ -57,8 +57,8 @@ in status - Tasks remain in pending state for \>5 minutes
 
 ``` r
 
-# Check Fargate quota
-config <- get_starburst_config()
+# Check current configuration and quota
+config <- starburst_status()
 sts <- paws.security.identity::sts()
 account <- sts$get_caller_identity()
 
@@ -208,8 +208,9 @@ Sys.setenv(AWS_PROFILE = "your-profile")
 # - IAM: PassRole (to pass ECS task role)
 
 # Solution 3: Run starburst_setup() to create all resources
+# (the S3 bucket, ECR repo, ECS cluster, etc. are created and named for you)
 library(starburst)
-starburst_setup(bucket = "my-starburst-bucket")
+starburst_setup()
 ```
 
 #### Issue 4: High Costs / Runaway Workers

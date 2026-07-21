@@ -36,7 +36,7 @@
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/performance.html">Performance &amp; When to Use Cloud</a></li>
   </ul></li>
-<li class="nav-item"><a class="nav-link" href="../reference/examples.html">Runnable Scripts</a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/scttfrdmn/starburst/tree/main/examples">Runnable Scripts</a></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -52,6 +52,38 @@
       <small>Source: <a href="https://github.com/scttfrdmn/starburst/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.8" id="starburst-038-2026-03-06">starburst 0.3.8 (2026-03-06)<a class="anchor" aria-label="anchor" href="#starburst-038-2026-03-06"></a></h2><p class="text-muted">CRAN release: 2026-03-19</p>
+<div class="section level3">
+<h3 id="reliability--cran-readiness-0-3-8">Reliability &amp; CRAN readiness<a class="anchor" aria-label="anchor" href="#reliability--cran-readiness-0-3-8"></a></h3>
+<div class="section level4">
+<h4 id="bug-fixes-0-3-8">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-3-8"></a></h4>
+<ul><li>
+<strong>Worker script</strong>: Removed an invalid <code>timeout</code> parameter from the paws client configuration that could cause workers to fail on startup.</li>
+<li>
+<strong>Environment sync</strong>: <code><a href="../reference/ensure_environment.html">ensure_environment()</a></code> now walks up the directory tree to find the package-root <code>renv.lock</code> when invoked from a subdirectory (e.g. during tests), and the environment image hash is computed consistently between build and lookup, so cached worker images are reused correctly.</li>
+<li>Hardened <code><a href="../reference/safe_system.html">safe_system()</a></code> usage and resolved <code>qs2</code> serialization edge cases surfaced by integration tests.</li>
+</ul></div>
+<div class="section level4">
+<h4 id="documentation--packaging-0-3-8">Documentation &amp; packaging<a class="anchor" aria-label="anchor" href="#documentation--packaging-0-3-8"></a></h4>
+<ul><li>All <code>\donttest{}</code> examples are guarded with <code><a href="../reference/starburst_is_configured.html">starburst_is_configured()</a></code> so they are safe to run without AWS credentials.</li>
+<li>Pre-built vignettes shipped in <code>inst/doc/</code> and assorted R CMD check / CRAN incoming-feasibility fixes. Package accepted on CRAN.</li>
+</ul></div>
+</div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.7" id="starburst-037-2026-02-17">starburst 0.3.7 (2026-02-17)<a class="anchor" aria-label="anchor" href="#starburst-037-2026-02-17"></a></h2>
+<div class="section level3">
+<h3 id="default-backend-is-now-ec2-0-3-7">Default backend is now EC2<a class="anchor" aria-label="anchor" href="#default-backend-is-now-ec2-0-3-7"></a></h3>
+<ul><li>
+<strong>BREAKING CHANGE:</strong> the default <code>launch_type</code> changed from <code>FARGATE</code> to <strong><code>EC2</code></strong>, with spot instances enabled by default (<code>use_spot = TRUE</code>, <code>instance_type = "c7g.xlarge"</code>). EC2 avoids Fargate cold starts, is 50–90% cheaper with spot, and supports warm pools and a wider range of instance types. Fargate remains fully supported — pass <code>launch_type = "FARGATE"</code> to <code>plan(starburst, ...)</code>, <code><a href="../reference/starburst_map.html">starburst_map()</a></code>, <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code>, or <code><a href="../reference/starburst_session.html">starburst_session()</a></code> to keep the previous behavior.</li>
+<li>Completed the EC2 backend implementation with working end-to-end execution (warm pools, capacity providers, spot support).</li>
+</ul><div class="section level4">
+<h4 id="migration-0-3-7">Migration<a class="anchor" aria-label="anchor" href="#migration-0-3-7"></a></h4>
+<ul><li>If you relied on the Fargate default, add <code>launch_type = "FARGATE"</code> to your <code>plan()</code>/<code>starburst_*()</code> call. No other changes are required; the task API is unchanged across backends.</li>
+</ul></div>
+</div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.6" id="starburst-036-2026-02-16">starburst 0.3.6 (2026-02-16)<a class="anchor" aria-label="anchor" href="#starburst-036-2026-02-16"></a></h2>
 <div class="section level3">

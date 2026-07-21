@@ -54,15 +54,15 @@ starburst_session(
 
 - launch_type:
 
-  "FARGATE" or "EC2" (default: "FARGATE")
+  "EC2" or "FARGATE" (default: "EC2")
 
 - instance_type:
 
-  EC2 instance type for EC2 launch (default: "c6a.large")
+  EC2 instance type for EC2 launch (default: "c7g.xlarge")
 
 - use_spot:
 
-  Use spot instances for EC2 (default: FALSE)
+  Use spot instances for EC2 (default: TRUE)
 
 - warm_pool_timeout:
 

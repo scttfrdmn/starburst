@@ -6,12 +6,33 @@ staRburst makes it trivial to scale your parallel R code from your
 laptop to 100+ AWS workers. This vignette walks through setup and common
 usage patterns.
 
+### Which API should I use?
+
+staRburst offers a few entry points. They share the same engine — pick
+the one that fits how your code is written:
+
+| Need | Use |
+|----|----|
+| Map a function over inputs (simplest) | [`starburst_map()`](https://starburst.ing/reference/starburst_map.md) |
+| Existing `future` / `furrr` code | `plan(starburst)` then `future_map()` |
+| Long-running job that survives disconnects | [`starburst_session()`](https://starburst.ing/reference/starburst_session.md) |
+| Explicit, reusable worker cluster | [`starburst_cluster()`](https://starburst.ing/reference/starburst_cluster.md) |
+| Configure account/backend defaults | [`starburst_config()`](https://starburst.ing/reference/starburst_config.md) |
+
+If you’re new, start with
+[`starburst_map()`](https://starburst.ing/reference/starburst_map.md).
+This guide uses the `future`/`furrr` integration (`plan(starburst)`) for
+most examples because it drops into existing future-based code
+unchanged; every example works with
+[`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
+too.
+
 ### Installation
 
 ``` r
 
 # Install from GitHub
-remotes::install_github("yourname/starburst")
+remotes::install_github("scttfrdmn/starburst")
 ```
 
 ### One-Time Setup
@@ -23,14 +44,20 @@ needs to be done once.
 
 library(starburst)
 
-# Interactive setup wizard (takes ~2 minutes)
+# Interactive setup wizard
 starburst_setup()
 ```
 
 This will: - Validate your AWS credentials - Create an S3 bucket for
 data transfer - Create an ECR repository for Docker images - Set up ECS
 cluster and VPC resources - Check Fargate quotas and offer to request
-increases
+increases - Build the initial worker image
+
+Provisioning the AWS resources takes about **2 minutes**. On the **first
+run**, staRburst also builds the worker Docker image, which adds **5–10
+minutes** (it is cached and reused afterwards, and you can skip it with
+`starburst_setup(build_image = FALSE)` and build lazily on first job
+launch).
 
 ### Basic Usage
 
@@ -59,7 +86,7 @@ system.time({
 #> ~16 minutes on typical laptop
 
 # Cloud execution (50 workers)
-plan(future_starburst, workers = 50)
+plan(starburst, workers = 50)
 system.time({
   results_cloud <- future_map(1:100, expensive_simulation)
 })
@@ -94,7 +121,7 @@ simulate_portfolio <- function(seed) {
 }
 
 # Run 10,000 simulations on 100 workers
-plan(future_starburst, workers = 100)
+plan(starburst, workers = 100)
 
 results <- future_map(1:10000, simulate_portfolio, .options = furrr_options(seed = TRUE))
 
@@ -133,7 +160,7 @@ bootstrap_regression <- function(i, data) {
 }
 
 # Run 10,000 bootstrap samples
-plan(future_starburst, workers = 50)
+plan(starburst, workers = 50)
 
 boot_results <- future_map(1:10000, bootstrap_regression, data = data)
 
@@ -174,7 +201,7 @@ process_sample <- function(sample_id) {
 # Process 1000 samples on 100 workers
 sample_ids <- list.files("s3://my-genomics-data/samples/", pattern = ".fastq$")
 
-plan(future_starburst, workers = 100)
+plan(starburst, workers = 100)
 
 results <- future_map(sample_ids, process_sample, .progress = TRUE)
 
@@ -193,7 +220,7 @@ If your data is already in S3, workers can read it directly:
 
 ``` r
 
-plan(future_starburst, workers = 50)
+plan(starburst, workers = 50)
 
 results <- future_map(file_list, function(file) {
   # Workers read directly from S3
@@ -212,7 +239,7 @@ For smaller datasets, you can pass data as arguments:
 data <- read.csv("local_file.csv")
 
 # staRburst automatically uploads to S3 and distributes
-plan(future_starburst, workers = 50)
+plan(starburst, workers = 50)
 
 results <- future_map(1:1000, function(i) {
   # Each worker gets a copy of 'data'
@@ -222,20 +249,22 @@ results <- future_map(1:1000, function(i) {
 
 #### Large Data Optimization
 
-For very large objects, pre-upload to S3:
+For very large objects, upload once to S3 yourself and have each worker
+read it from there, rather than serializing the object into every task:
 
 ``` r
 
-# Upload once
-large_data <- read.csv("huge_file.csv")
-s3_path <- starburst_upload(large_data, "s3://my-bucket/large_data.rds")
+# Upload once, using your preferred S3 client (e.g. paws.storage or the AWS CLI)
+large_data <- readRDS("huge_file.rds")
+s3_path <- "s3://my-bucket/large_data.rds"
+# e.g. paws.storage::s3()$put_object(Bucket = "my-bucket",
+#        Key = "large_data.rds", Body = "huge_file.rds")
 
-# Workers read from S3
-plan(future_starburst, workers = 100)
+# Workers read from S3 inside the task
+plan(starburst, workers = 100)
 
 results <- future_map(1:1000, function(i) {
-  # Read from S3 inside worker
-  data <- readRDS(s3_path)
+  data <- readRDS(url(s3_path))  # or an S3 client of your choice
   process(data, i)
 })
 ```
@@ -247,7 +276,7 @@ results <- future_map(1:1000, function(i) {
 ``` r
 
 # Check cost before running
-plan(future_starburst, workers = 100, cpu = 4, memory = "8GB")
+plan(starburst, workers = 100, cpu = 4, memory = "8GB")
 #> Estimated cost: ~$3.50/hour
 ```
 
@@ -262,7 +291,7 @@ starburst_config(
 )
 
 # Now jobs exceeding limit will error before starting
-plan(future_starburst, workers = 1000)  # Would cost ~$35/hour
+plan(starburst, workers = 1000)  # Would cost ~$35/hour
 #> Error: Estimated cost ($35/hr) exceeds limit ($10/hr)
 ```
 
@@ -270,7 +299,7 @@ plan(future_starburst, workers = 1000)  # Would cost ~$35/hour
 
 ``` r
 
-plan(future_starburst, workers = 50)
+plan(starburst, workers = 50)
 
 results <- future_map(data, process)
 
@@ -300,8 +329,8 @@ starburst_request_quota_increase(vcpus = 500)
 #>   Current: 100 vCPUs
 #>   Requested: 500 vCPUs
 #>
-#> ✓ Quota increase requested (Case ID: 12345678)
-#> ✓ AWS typically approves within 1-24 hours
+#> [OK] Quota increase requested (Case ID: 12345678)
+#> [OK] AWS typically approves within 1-24 hours
 ```
 
 #### Wave-Based Execution
@@ -312,25 +341,25 @@ automatically uses wave-based execution:
 ``` r
 
 # Quota allows 25 workers, but you request 100
-plan(future_starburst, workers = 100, cpu = 4)
+plan(starburst, workers = 100, cpu = 4)
 
-#> ⚠ Requested: 100 workers (400 vCPUs)
-#> ⚠ Current quota: 100 vCPUs (allows 25 workers max)
+#> [!] Requested: 100 workers (400 vCPUs)
+#> [!] Current quota: 100 vCPUs (allows 25 workers max)
 #>
-#> 📋 Execution plan:
-#>   • Running in 4 waves of 25 workers each
+#> [Plan] Execution plan:
+#>   - Running in 4 waves of 25 workers each
 #>
-#> 💡 Request quota increase to 500 vCPUs? [y/n]: y
+#> [TIP] Request quota increase to 500 vCPUs? [y/n]: y
 #>
-#> ✓ Quota increase requested
-#> ⚡ Starting wave 1 (25 workers)...
+#> [OK] Quota increase requested
+#> [Starting] Starting wave 1 (25 workers)...
 
 results <- future_map(1:1000, expensive_function)
 
-#> ⚡ Wave 1: 100% complete (250 tasks)
-#> ⚡ Wave 2: 100% complete (500 tasks)
-#> ⚡ Wave 3: 100% complete (750 tasks)
-#> ⚡ Wave 4: 100% complete (1000 tasks)
+#> [Wave] Wave 1: 100% complete (250 tasks)
+#> [Wave] Wave 2: 100% complete (500 tasks)
+#> [Wave] Wave 3: 100% complete (750 tasks)
+#> [Wave] Wave 4: 100% complete (1000 tasks)
 ```
 
 ### Troubleshooting
@@ -377,7 +406,7 @@ starburst_rebuild_environment()
 starburst_logs(task_id = "failed-task-id")
 
 # Often due to memory limits - increase worker memory
-plan(future_starburst, workers = 50, memory = "16GB")  # Default is 8GB
+plan(starburst, workers = 50, memory = "16GB")  # Default is 8GB
 ```
 
 **Slow data transfer**: Large objects taking too long
@@ -491,10 +520,10 @@ plan(sequential)  # Switch back to local
 ``` r
 
 # High CPU, low memory (CPU-bound work)
-plan(future_starburst, workers = 50, cpu = 8, memory = "16GB")
+plan(starburst, workers = 50, cpu = 8, memory = "16GB")
 
 # Low CPU, high memory (memory-bound work)
-plan(future_starburst, workers = 25, cpu = 4, memory = "32GB")
+plan(starburst, workers = 25, cpu = 4, memory = "32GB")
 ```
 
 #### Timeout
@@ -502,7 +531,7 @@ plan(future_starburst, workers = 25, cpu = 4, memory = "32GB")
 ``` r
 
 # Increase timeout for long-running tasks (default 1 hour)
-plan(future_starburst, workers = 10, timeout = 7200)  # 2 hours
+plan(starburst, workers = 10, timeout = 7200)  # 2 hours
 ```
 
 #### Region
@@ -510,7 +539,7 @@ plan(future_starburst, workers = 10, timeout = 7200)  # 2 hours
 ``` r
 
 # Use specific region (default from config)
-plan(future_starburst, workers = 50, region = "us-west-2")
+plan(starburst, workers = 50, region = "us-west-2")
 ```
 
 ### Next Steps

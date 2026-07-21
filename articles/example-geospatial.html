@@ -57,7 +57,7 @@
     <li><a class="dropdown-item" href="../articles/performance.html">Performance &amp; When to Use Cloud</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="../reference/examples.html">Runnable Scripts</a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/scttfrdmn/starburst/tree/main/examples">Runnable Scripts</a></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -312,13 +312,13 @@ parallel processing.</p>
 <span></span>
 <span><span class="va">local_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/difftime.html" class="external-link">difftime</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">local_start</span>, units <span class="op">=</span> <span class="st">"secs"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"✓ Completed in %.2f seconds\n"</span>, <span class="va">local_time</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"[OK] Completed in %.2f seconds\n"</span>, <span class="va">local_time</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"  Processed %d stores\n"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">local_metrics</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"  Estimated time for all %d regions: %.1f seconds\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">regions</span><span class="op">)</span>, <span class="va">local_time</span> <span class="op">*</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">regions</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">test_regions</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Typical output</strong>:</p>
 <pre><code>Analyzing 3 regions locally...
-✓ Completed in 4.5 seconds
+[OK] Completed in 4.5 seconds
   Processed 15 stores
   Estimated time for all 20 regions: 30.0 seconds</code></pre>
 <p>For all 20 regions locally: <strong>~30 seconds</strong></p>
@@ -347,21 +347,17 @@ parallel processing.</p>
 <span></span>
 <span><span class="va">cloud_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/difftime.html" class="external-link">difftime</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">cloud_start</span>, units <span class="op">=</span> <span class="st">"secs"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"\n✓ Completed in %.1f seconds\n"</span>, <span class="va">cloud_time</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"\n[OK] Completed in %.1f seconds\n"</span>, <span class="va">cloud_time</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Combine results</span></span>
 <span><span class="va">spatial_metrics</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="va">results</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Typical output</strong>:</p>
-<pre><code>🚀 Starting starburst cluster with 20 workers
-💰 Estimated cost: ~$1.60/hour
-📊 Processing 20 items with 20 workers
-📦 Created 20 chunks (avg 1 region per chunk)
-🚀 Submitting tasks...
-✓ Submitted 20 tasks
-⏳ Progress: 20/20 tasks (4.8 seconds elapsed)
-
-✓ Completed in 4.8 seconds
-💰 Actual cost: $0.002</code></pre>
+<pre><code>[Starting] Starting starburst cluster with 20 workers
+[Status] Processing 20 items with 20 workers
+[Starting] Submitting 20 tasks...
+[Wait] Progress: 20/20 (4.8s)
+[OK] Completed in 4.8 seconds
+[Cost] Estimated cost: $0.002</code></pre>
 </div>
 <div class="section level2">
 <h2 id="results-analysis">Results Analysis<a class="anchor" aria-label="anchor" href="#results-analysis"></a>
@@ -482,7 +478,7 @@ Challenged stores (high competition, low potential): 8
 <thead><tr class="header">
 <th>Method</th>
 <th>Regions</th>
-<th>Time</th>
+<th>Compute time</th>
 <th>Cost</th>
 <th>Speedup</th>
 </tr></thead>
@@ -510,9 +506,20 @@ Challenged stores (high competition, low potential): 8
 </tr>
 </tbody>
 </table>
+<blockquote>
+<p><strong>Reading these numbers honestly:</strong> the staRburst row is
+<em>compute time only</em> on a warm worker pool — it excludes the
+one-time cluster startup (~2 minutes) and image pull. For a job this
+small (seconds of work), that startup dominates and running locally is
+faster overall. This example is sized for illustration; bursting pays
+off when each task runs for minutes and there are many of them. See
+<code><a href="../articles/performance.html">vignette("performance")</a></code> for when cloud is actually worth
+it.</p>
+</blockquote>
 <p><strong>Key Insights</strong>: - Excellent parallelization for
-spatial operations - Near-linear scaling across regions - Minimal cost
-even with complex calculations - Can easily scale to 100+ regions</p>
+spatial operations once workers are warm - Near-linear scaling across
+regions - Minimal per-task cost even with complex calculations - Scales
+to 100+ regions, where startup overhead is amortized away</p>
 </div>
 <div class="section level2">
 <h2 id="advanced-delivery-zone-optimization">Advanced: Delivery Zone Optimization<a class="anchor" aria-label="anchor" href="#advanced-delivery-zone-optimization"></a>

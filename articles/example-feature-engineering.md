@@ -178,7 +178,7 @@ local_features <- engineer_features(sample_customers, transactions)
 
 local_time <- as.numeric(difftime(Sys.time(), local_start, units = "secs"))
 
-cat(sprintf("✓ Completed in %.2f seconds\n", local_time))
+cat(sprintf("[OK] Completed in %.2f seconds\n", local_time))
 cat(sprintf("  Generated %d features per customer\n", ncol(local_features) - 1))
 cat(sprintf("  Estimated time for all %s customers: %.1f minutes\n",
             format(n_customers, big.mark = ","),
@@ -188,7 +188,7 @@ cat(sprintf("  Estimated time for all %s customers: %.1f minutes\n",
 **Typical output**:
 
     Processing features for 500 customers locally...
-    ✓ Completed in 3.8 seconds
+    [OK] Completed in 3.8 seconds
       Generated 15 features per customer
       Estimated time for all 5,000 customers: 38.0 seconds
 
@@ -227,7 +227,7 @@ results <- starburst_map(
 
 cloud_time <- as.numeric(difftime(Sys.time(), cloud_start, units = "secs"))
 
-cat(sprintf("\n✓ Completed in %.1f seconds\n", cloud_time))
+cat(sprintf("\n[OK] Completed in %.1f seconds\n", cloud_time))
 
 # Combine results
 features <- do.call(rbind, results)
@@ -235,16 +235,12 @@ features <- do.call(rbind, results)
 
 **Typical output**:
 
-    🚀 Starting starburst cluster with 20 workers
-    💰 Estimated cost: ~$1.60/hour
-    📊 Processing 20 items with 20 workers
-    📦 Created 20 chunks (avg 250 customers per chunk)
-    🚀 Submitting tasks...
-    ✓ Submitted 20 tasks
-    ⏳ Progress: 20/20 tasks (6.2 seconds elapsed)
-
-    ✓ Completed in 6.2 seconds
-    💰 Actual cost: $0.003
+    [Starting] Starting starburst cluster with 20 workers
+    [Status] Processing 20 items with 20 workers
+    [Starting] Submitting 20 tasks...
+    [Wait] Progress: 20/20 (6.2s)
+    [OK] Completed in 6.2 seconds
+    [Cost] Estimated cost: $0.003
 
 ## Results Analysis
 
