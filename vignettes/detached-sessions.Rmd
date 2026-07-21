@@ -35,7 +35,7 @@ For analyses that take hours or days:
 ```{r}
 library(starburst)
 
-# Create a detached session
+# Create a detached session (EC2 workers with Spot by default)
 session <- starburst_session(
   workers = 10,
   cpu = 4,
@@ -127,20 +127,27 @@ session$extend(seconds = 3600)
 session$cleanup()
 ```
 
-## Advanced Usage
+## Choosing and tuning the backend
 
-### EC2 Launch Type
-
-For better price/performance:
+Sessions use **EC2 with Spot instances by default** — no extra arguments needed.
+You can tune the instance type, or opt into Fargate:
 
 ```{r}
+# Default is already EC2 + Spot; override the instance type if you like
 session <- starburst_session(
   workers = 50,
-  launch_type = "EC2",
-  instance_type = "c8a.xlarge",  # AMD 8th gen
-  use_spot = TRUE                 # 70% cheaper
+  instance_type = "c8a.xlarge",  # AMD 8th gen; default is c7g.xlarge
+  use_spot = TRUE                 # default TRUE — ~70% cheaper
+)
+
+# Opt into the Fargate backend (serverless, task-based) instead
+session <- starburst_session(
+  workers = 50,
+  launch_type = "FARGATE"
 )
 ```
+
+## Advanced Usage
 
 ### Error Handling
 
