@@ -235,3 +235,35 @@ test_that("plan guard prevents detached mode misuse", {
     "Detached mode cannot be used with plan"
   )
 })
+
+test_that("collect(wait=TRUE) returns when user tasks finish despite live bootstrap tasks", {
+  # Regression for #38: the all_completed check must ignore bootstrap-* tasks,
+  # which stay "claimed"/"running" for the session's life. Otherwise wait=TRUE
+  # hangs until timeout even though every real result has landed in S3.
+  skip_if_not_installed("mockery")
+
+  statuses <- list(
+    "bootstrap-session-x-1" = list(state = "claimed"),
+    "bootstrap-session-x-2" = list(state = "running"),
+    "task-aaa" = list(state = "completed"),
+    "task-bbb" = list(state = "completed")
+  )
+
+  mockery::stub(collect_session_results, "list_task_statuses", function(...) statuses)
+  mockery::stub(collect_session_results, "get_s3_client", function(...) {
+    list(download_file = function(Bucket, Key, Filename) {
+      qs2::qs_save(list(error = FALSE, value = 42), Filename)
+    })
+  })
+
+  session <- list(backend = list(session_id = "session-x", region = "us-east-1",
+                                 bucket = "b"))
+
+  # Must return quickly (well under the timeout) with both user results, not hang.
+  start <- Sys.time()
+  res <- collect_session_results(session, wait = TRUE, timeout = 30)
+  elapsed <- as.numeric(difftime(Sys.time(), start, units = "secs"))
+
+  expect_named(res, c("task-aaa", "task-bbb"), ignore.order = TRUE)
+  expect_lt(elapsed, 10)  # returned promptly, did not spin to timeout
+})
