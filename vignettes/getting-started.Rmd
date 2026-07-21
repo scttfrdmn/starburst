@@ -37,6 +37,44 @@ first job with it. If you already have `future`/`furrr` code, skip to
 [Migrating existing future / furrr code](#migrating-existing-future-furrr-code);
 the two styles are equivalent and shown side by side there.
 
+## How it works (the mental model)
+
+```
+        Local R session
+              |
+              |  (1) serialize your function + inputs + detected globals (qs2)
+              |      AWS credentials are read HERE, from your local environment
+              v
+   S3 bucket  +  staRburst control plane (ECS/ECR)
+              |
+              |  (2) launch workers: EC2 (default, Spot) or Fargate
+              |      each worker's R packages come from your renv.lock, baked
+              |      into a Docker image cached in ECR
+              v
+   Remote R workers  (one task per input element)
+              |
+              |  (3) each worker pulls a task from S3, runs it, writes the
+              |      result + logs back to S3
+              v
+   Local R session  <-- results collected in order (starburst_map / cluster)
+        or
+   Detached-session store in S3  <-- collected later via starburst_session_attach()
+```
+
+**What to know from this picture:**
+
+- **Credentials** are used only on your machine (to call AWS) and by the workers'
+  IAM role — you never put keys in your code or in S3.
+- **Uploaded** per task: your function, its inputs, and auto-detected globals — not
+  your whole workspace. Large data should go to S3 yourself and be read on the worker.
+- **Dependencies** come from your `renv.lock`, installed into the worker image once
+  and cached in ECR (this is the first-run build cost).
+- **After a failure or disconnect**, workers keep running against S3 until a
+  timeout; nothing is silently lost. `session$cleanup()` (or normal completion of
+  `starburst_map()`) tears down workers and removes the job's S3 objects.
+- **Detached sessions** differ only in step 3's return path: results persist in S3
+  so you can close R and collect later, instead of blocking the local session.
+
 ## Installation
 
 ```{r}
