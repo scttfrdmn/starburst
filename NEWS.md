@@ -35,6 +35,11 @@
   nonexistent `detached = TRUE` argument; S3-read examples used base `read.csv()`/
   `readRDS(url())` which cannot read `s3://`; and the API rate-limit example
   aggregated to 10× its stated global limit across workers.
+* **Public base images are now built multi-arch (amd64 + arm64).** They were
+  published amd64-only, so `use_public_base = TRUE` failed the multi-arch
+  environment build with "no match for platform in manifest" for arm64. The
+  `build-base-images` workflow now builds both architectures (matching the env
+  build), so the public base path works. (#39)
 
 ## Documentation
 
