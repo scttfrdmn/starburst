@@ -110,6 +110,15 @@ reference:
   contents:
   - StarburstBackend
   - StarburstFuture
+  - future.starburst
+  - launchFuture.StarburstBackend
+  - listFutures.StarburstBackend
+  - nbrOfWorkers.StarburstBackend
+  - resolved.StarburstFuture
+  - result.StarburstFuture
+  - run.StarburstFuture
+  - print.StarburstSessionStatus
+  - session-api
 
 articles:
 - title: "Getting Started"
