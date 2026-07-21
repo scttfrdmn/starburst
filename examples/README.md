@@ -92,14 +92,23 @@ Use these for benchmarking and validation.
 
 ## Performance Expectations
 
-Typical speedups with 50-100 workers:
-- Monte Carlo: 30-50x speedup
-- Bootstrap: 20-40x speedup
-- Data Processing: 15-30x speedup
-- Grid Search: 25-40x speedup
+> **Read the runtimes above honestly.** The "with N workers" figures are
+> **compute-only on a warm worker pool** — they exclude the one-time cluster
+> startup (~2 minutes) and image pull. For the small, seconds-scale demos here,
+> that startup dominates and **running locally is faster overall**. These examples
+> are sized to run quickly for illustration, not to show a net win.
+>
+> Cloud bursting pays off when each task runs for **minutes** and there are many of
+> them, so the fixed startup is amortized away. See `vignette("performance")` for
+> the sizing heuristics (roughly: tasks under ~30 min of total local work often
+> aren't worth bursting).
+
+Speedup potential at scale (compute-only, once workers are warm — not net of
+startup) with 50–100 workers:
+- Monte Carlo, Bootstrap, Data Processing, Grid Search all parallelize near-linearly
 
 Actual performance depends on:
-- Task granularity
-- Data transfer overhead
-- Network conditions
+- Task granularity (bigger per-task work amortizes startup better)
+- Whether the pool is cold or warm, and whether provisioning is counted
+- Data transfer overhead and network conditions
 - AWS region and availability
