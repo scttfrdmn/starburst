@@ -1,3 +1,45 @@
+# starburst 0.3.8 (2026-03-06)
+
+## Reliability & CRAN readiness
+
+### Bug fixes
+
+* **Worker script**: Removed an invalid `timeout` parameter from the paws client
+  configuration that could cause workers to fail on startup.
+* **Environment sync**: `ensure_environment()` now walks up the directory tree to
+  find the package-root `renv.lock` when invoked from a subdirectory (e.g. during
+  tests), and the environment image hash is computed consistently between build
+  and lookup, so cached worker images are reused correctly.
+* Hardened `safe_system()` usage and resolved `qs2` serialization edge cases
+  surfaced by integration tests.
+
+### Documentation & packaging
+
+* All `\donttest{}` examples are guarded with `starburst_is_configured()` so they
+  are safe to run without AWS credentials.
+* Pre-built vignettes shipped in `inst/doc/` and assorted R CMD check / CRAN
+  incoming-feasibility fixes. Package accepted on CRAN.
+
+# starburst 0.3.7 (2026-02-17)
+
+## Default backend is now EC2
+
+* **BREAKING CHANGE:** the default `launch_type` changed from `FARGATE` to **`EC2`**,
+  with spot instances enabled by default (`use_spot = TRUE`, `instance_type =
+  "c7g.xlarge"`). EC2 avoids Fargate cold starts, is 50–90% cheaper with spot, and
+  supports warm pools and a wider range of instance types. Fargate remains fully
+  supported — pass `launch_type = "FARGATE"` to `plan(starburst, ...)`,
+  `starburst_map()`, `starburst_cluster()`, or `starburst_session()` to keep the
+  previous behavior.
+* Completed the EC2 backend implementation with working end-to-end execution
+  (warm pools, capacity providers, spot support).
+
+### Migration
+
+* If you relied on the Fargate default, add `launch_type = "FARGATE"` to your
+  `plan()`/`starburst_*()` call. No other changes are required; the task API is
+  unchanged across backends.
+
 # starburst 0.3.6 (2026-02-16)
 
 ## AWS Integration Testing & Documentation

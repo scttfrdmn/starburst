@@ -19,6 +19,23 @@ knitr::opts_chunk$set(
 
 staRburst makes it trivial to scale your parallel R code from your laptop to 100+ AWS workers. This vignette walks through setup and common usage patterns.
 
+## Which API should I use?
+
+staRburst offers a few entry points. They share the same engine — pick the one that
+fits how your code is written:
+
+| Need | Use |
+|------|-----|
+| Map a function over inputs (simplest) | `starburst_map()` |
+| Existing `future` / `furrr` code | `plan(starburst)` then `future_map()` |
+| Long-running job that survives disconnects | `starburst_session()` |
+| Explicit, reusable worker cluster | `starburst_cluster()` |
+| Configure account/backend defaults | `starburst_config()` |
+
+If you're new, start with `starburst_map()`. This guide uses the `future`/`furrr`
+integration (`plan(starburst)`) for most examples because it drops into existing
+future-based code unchanged; every example works with `starburst_map()` too.
+
 ## Installation
 
 ```{r}
@@ -33,7 +50,7 @@ Before using staRburst, you need to configure AWS resources. This only needs to 
 ```{r}
 library(starburst)
 
-# Interactive setup wizard (takes ~2 minutes)
+# Interactive setup wizard
 starburst_setup()
 ```
 
@@ -43,6 +60,12 @@ This will:
 - Create an ECR repository for Docker images
 - Set up ECS cluster and VPC resources
 - Check Fargate quotas and offer to request increases
+- Build the initial worker image
+
+Provisioning the AWS resources takes about **2 minutes**. On the **first run**,
+staRburst also builds the worker Docker image, which adds **5–10 minutes** (it is
+cached and reused afterwards, and you can skip it with
+`starburst_setup(build_image = FALSE)` and build lazily on first job launch).
 
 ## Basic Usage
 
@@ -306,8 +329,8 @@ starburst_request_quota_increase(vcpus = 500)
 #>   Current: 100 vCPUs
 #>   Requested: 500 vCPUs
 #>
-#> ✓ Quota increase requested (Case ID: 12345678)
-#> ✓ AWS typically approves within 1-24 hours
+#> [OK] Quota increase requested (Case ID: 12345678)
+#> [OK] AWS typically approves within 1-24 hours
 ```
 
 ### Wave-Based Execution
@@ -318,23 +341,23 @@ If you request more workers than your quota allows, staRburst automatically uses
 # Quota allows 25 workers, but you request 100
 plan(starburst, workers = 100, cpu = 4)
 
-#> ⚠ Requested: 100 workers (400 vCPUs)
-#> ⚠ Current quota: 100 vCPUs (allows 25 workers max)
+#> [!] Requested: 100 workers (400 vCPUs)
+#> [!] Current quota: 100 vCPUs (allows 25 workers max)
 #>
-#> 📋 Execution plan:
-#>   • Running in 4 waves of 25 workers each
+#> [Plan] Execution plan:
+#>   - Running in 4 waves of 25 workers each
 #>
-#> 💡 Request quota increase to 500 vCPUs? [y/n]: y
+#> [TIP] Request quota increase to 500 vCPUs? [y/n]: y
 #>
-#> ✓ Quota increase requested
-#> ⚡ Starting wave 1 (25 workers)...
+#> [OK] Quota increase requested
+#> [Starting] Starting wave 1 (25 workers)...
 
 results <- future_map(1:1000, expensive_function)
 
-#> ⚡ Wave 1: 100% complete (250 tasks)
-#> ⚡ Wave 2: 100% complete (500 tasks)
-#> ⚡ Wave 3: 100% complete (750 tasks)
-#> ⚡ Wave 4: 100% complete (1000 tasks)
+#> [Wave] Wave 1: 100% complete (250 tasks)
+#> [Wave] Wave 2: 100% complete (500 tasks)
+#> [Wave] Wave 3: 100% complete (750 tasks)
+#> [Wave] Wave 4: 100% complete (1000 tasks)
 ```
 
 ## Troubleshooting
