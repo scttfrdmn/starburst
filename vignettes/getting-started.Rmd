@@ -137,7 +137,7 @@ results <- starburst_map(1:100, expensive_simulation, workers = 50)
 That is the whole workflow: `starburst_setup()` once, then `starburst_map()` per
 job. Everything below builds on this.
 
-## Migrating existing `future` / `furrr` code
+## Migrating existing `future` / `furrr` code {#migrating-existing-future-furrr-code}
 
 If you already use `future` or `furrr`, you don't need `starburst_map()` — set the
 plan to `starburst` and your existing `future_map()` / `future_lapply()` calls run
