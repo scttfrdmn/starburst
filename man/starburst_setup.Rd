@@ -9,7 +9,8 @@ starburst_setup(
   force = FALSE,
   use_public_base = TRUE,
   ecr_image_ttl_days = NULL,
-  build_image = TRUE
+  build_image = TRUE,
+  setup_ec2 = TRUE
 )
 }
 \arguments{
@@ -31,6 +32,15 @@ Set to FALSE to provision AWS resources (S3/ECR/ECS/VPC), write config, and
 check quotas without triggering the multi-minute Docker image build. The
 image is then built lazily on first worker launch via
 \code{ensure_environment()}. Useful for CI / connectivity checks.}
+
+\item{setup_ec2}{Provision the EC2 capacity provider and Auto Scaling Group for
+the default instance type during setup (default: TRUE). This is what makes the
+default EC2 backend work out of the box — without it, the first
+\code{starburst_map()}/\code{plan(starburst)} run on EC2 would fail because no
+capacity provider exists. It creates infrastructure at \code{DesiredCapacity = 0}
+(no billable instances are launched during setup). Set to FALSE if you only use
+the Fargate backend, which needs no capacity provider. Provision additional
+instance types later with \code{\link{starburst_setup_ec2}}.}
 }
 \value{
 Invisibly returns the configuration list.

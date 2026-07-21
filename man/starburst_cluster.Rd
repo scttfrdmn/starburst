@@ -8,7 +8,6 @@ starburst_cluster(
   workers = 10,
   cpu = 4,
   memory = "8GB",
-  platform = "X86_64",
   region = NULL,
   timeout = 3600,
   launch_type = "EC2",
@@ -23,8 +22,6 @@ starburst_cluster(
 
 \item{memory}{Memory per worker}
 
-\item{platform}{CPU architecture (X86_64 or ARM64)}
-
 \item{region}{AWS region}
 
 \item{timeout}{Maximum runtime in seconds}
@@ -32,7 +29,9 @@ starburst_cluster(
 \item{launch_type}{Compute backend: "EC2" (default) or "FARGATE"}
 
 \item{instance_type}{EC2 instance type when \code{launch_type = "EC2"}
-(default: "c7g.xlarge")}
+(default: "c7g.xlarge"). Worker CPU architecture follows the instance type
+(Graviton \code{*g.*} = ARM64, Intel/AMD = x86_64); there is no separate
+platform argument.}
 
 \item{use_spot}{Use EC2 Spot instances for cost savings (default: TRUE)}
 }

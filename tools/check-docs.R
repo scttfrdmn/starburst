@@ -36,7 +36,11 @@ man_files <- list.files(file.path(pkg_root, "man"), pattern = "\\.Rd$", full.nam
 # ---- 1. Dead / banned symbols -------------------------------------------------
 # Symbols that no longer exist and must never reappear in code or docs.
 banned <- c("future_starburst", "starburst_upload", "yourname/starburst",
-            "yourusername/starburst", "starburst_setup(bucket")
+            "yourusername/starburst", "starburst_setup(bucket",
+            # removed/renamed args that must not reappear in docs or code:
+            "detached = TRUE",   # starburst_session has no `detached` arg
+            "max_cost_per_job",  # renamed to max_hourly_cost
+            "readRDS(url(")      # base url() can't read s3:// — use an S3 client
 scan_targets <- c(vignettes, readme, r_files)
 for (f in scan_targets) {
   lines <- read_lines_safe(f)
@@ -128,6 +132,25 @@ for (f in man_files) {
     if (nchar(pd) && !identical(tolower(sig), tolower(pd))) {
       note(sprintf("[usage-vs-prose] %s: arg '%s' usage default '%s' != prose '(default: %s)'",
                    basename(f), nm, sig, pd))
+    }
+  }
+}
+
+# ---- 5. Naive big-count anti-pattern in examples -----------------------------
+# starburst_map(1:N, ...) with a large N is the "thousands of tiny tasks" trap the
+# guides warn against. Flag it in user-facing docs so examples model batching.
+anti_marker <- "DON'T|Bad:|❌|anti-pattern|don't do this"
+for (f in c(vignettes, readme)) {
+  lines <- read_lines_safe(f)
+  hits <- grep("starburst_map\\(\\s*1:([0-9]{4,})", lines)
+  for (h in hits) {
+    n <- as.integer(sub(".*starburst_map\\(\\s*1:([0-9]+).*", "\\1", lines[h]))
+    # Allow deliberately-labeled anti-pattern demos (a DON'T/Bad marker on this or
+    # the preceding two lines).
+    ctx <- paste(lines[max(1, h - 2):h], collapse = " ")
+    if (!is.na(n) && n >= 1000 && !grepl(anti_marker, ctx, ignore.case = TRUE)) {
+      note(sprintf("[naive-big-count] %s:%d starburst_map(1:%d, ...) — model batching or mark it as an anti-pattern (# DON'T / # Bad:)",
+                   basename(f), h, n))
     }
   }
 }

@@ -8,12 +8,13 @@
 #' @param workers Number of parallel workers (default: 10)
 #' @param cpu CPU units per worker (1, 2, 4, 8, or 16)
 #' @param memory Memory per worker (e.g., 8GB)
-#' @param platform CPU architecture (X86_64 or ARM64)
 #' @param region AWS region
 #' @param timeout Maximum runtime in seconds per task
 #' @param launch_type Compute backend: "EC2" (default) or "FARGATE"
 #' @param instance_type EC2 instance type when \code{launch_type = "EC2"}
-#'   (default: "c7g.xlarge")
+#'   (default: "c7g.xlarge"). The worker CPU architecture follows the instance
+#'   type — Graviton types (e.g. \code{c7g.*}) run ARM64, Intel/AMD types
+#'   (e.g. \code{c7i.*}) run x86_64 — so there is no separate platform argument.
 #' @param use_spot Use EC2 Spot instances for cost savings (default: TRUE)
 #' @param .progress Show progress bar (default: TRUE)
 #' @param ... Additional arguments passed to .f
@@ -42,7 +43,7 @@
 #' }
 #' }
 starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
-                          platform = "X86_64", region = NULL, timeout = 3600,
+                          region = NULL, timeout = 3600,
                           launch_type = "EC2", instance_type = "c7g.xlarge",
                           use_spot = TRUE, .progress = TRUE, ...) {
 
@@ -50,7 +51,6 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
   validate_workers(workers)
   validate_cpu(cpu)
   validate_memory(memory)
-  validate_platform(platform)
 
   # Get configuration
   config <- get_starburst_config()
@@ -75,7 +75,6 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
     workers = workers,
     cpu = cpu,
     memory = memory,
-    platform = platform,
     region = region,
     timeout = timeout,
     launch_type = launch_type,
@@ -185,12 +184,13 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 #' @param workers Number of parallel workers
 #' @param cpu CPU units per worker
 #' @param memory Memory per worker
-#' @param platform CPU architecture (X86_64 or ARM64)
 #' @param region AWS region
 #' @param timeout Maximum runtime in seconds
 #' @param launch_type Compute backend: "EC2" (default) or "FARGATE"
 #' @param instance_type EC2 instance type when \code{launch_type = "EC2"}
-#'   (default: "c7g.xlarge")
+#'   (default: "c7g.xlarge"). Worker CPU architecture follows the instance type
+#'   (Graviton \code{*g.*} = ARM64, Intel/AMD = x86_64); there is no separate
+#'   platform argument.
 #' @param use_spot Use EC2 Spot instances for cost savings (default: TRUE)
 #'
 #' @return A starburst_cluster object
@@ -207,7 +207,7 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 #' }
 #' }
 starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
-                              platform = "X86_64", region = NULL, timeout = 3600,
+                              region = NULL, timeout = 3600,
                               launch_type = "EC2", instance_type = "c7g.xlarge",
                               use_spot = TRUE) {
 
@@ -221,7 +221,6 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
     workers = workers,
     cpu = cpu,
     memory = memory,
-    platform = platform,
     region = region,
     timeout = timeout,
     launch_type = launch_type,
