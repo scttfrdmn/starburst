@@ -1,5 +1,26 @@
 # starburst 0.3.9 (development)
 
+## New features
+
+* **`starburst_setup()` now provisions the default EC2 capacity provider** (for
+  `c7g.xlarge`) so the default EC2 backend works out of the box — previously the
+  first `starburst_map()`/`plan(starburst)` run failed because no capacity provider
+  existed. It is created at `DesiredCapacity = 0` (no billable instances launch
+  during setup). Pass `setup_ec2 = FALSE` to skip (Fargate-only users). (#37)
+
+## Breaking changes
+
+* **Removed the `platform` argument from `starburst_map()` and
+  `starburst_cluster()`.** It was ignored (architecture is inferred from
+  `instance_type`: Graviton `*g.*` → ARM64, else x86_64), and its `"X86_64"`
+  default even contradicted the ARM64 `c7g.xlarge` default. Drop it from calls; the
+  backend picks the architecture from `instance_type`. (`platform` remains on
+  `starburst_estimate()`, where it is functional.)
+* **Renamed `starburst_config(max_cost_per_job=)` to `max_hourly_cost`.** The limit
+  was always enforced as an hourly *rate* (USD/hour), not a total-job cap; the new
+  name matches the behavior. Update any `starburst_config(max_cost_per_job = ...)`
+  calls to `max_hourly_cost = ...`.
+
 ## Bug fixes
 
 * **`starburst_map()` and `starburst_cluster()` now accept `launch_type`,
@@ -10,6 +31,10 @@
   switching the backend — contradicting the 0.3.7 migration note. Backend
   selection now works uniformly across `plan(starburst)`, `starburst_map()`,
   `starburst_cluster()`, and `starburst_session()`.
+* Fixed broken/misleading examples: the README detached-session example used a
+  nonexistent `detached = TRUE` argument; S3-read examples used base `read.csv()`/
+  `readRDS(url())` which cannot read `s3://`; and the API rate-limit example
+  aggregated to 10× its stated global limit across workers.
 
 ## Documentation
 
