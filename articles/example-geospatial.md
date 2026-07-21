@@ -414,14 +414,15 @@ terrain tasks on live AWS:
 
 | Phase | Time | Notes |
 |----|----|----|
-| Local (sequential) | 0.1 s | 20 tasks on an M4 Pro — this workload is tiny |
+| Local (sequential) | 0.1 s | 20 tasks on an Apple M4 Pro (12-core) — this workload is tiny |
 | Cloud: startup | 74.7 s | one-time: worker provision + image pull |
 | Cloud: compute + collect | 27.9 s | submit → run on 20 workers → collect |
 | **Cloud total (cold)** | **102.6 s** | startup + compute+collect |
 | Est. cost | \$0.03 | 20× c7i.xlarge Spot |
 
 *(staRburst 0.3.9, us-east-1, EC2 c7i.xlarge Spot, 20 workers, cold
-start, 2026-07-21.)*
+start; sequential baseline on an Apple M4 Pro (Mac16,11, 12-core, 48 GB,
+R 4.6.1), 2026-07-21.)*
 
 > **This is the honest result, and it’s a “don’t burst this” case.** The
 > cloud total (102.6 s) is far *slower* than local (0.1 s): the workload

@@ -54,6 +54,7 @@
     <li><a class="dropdown-item" href="../articles/example-reports.html">Report Generation</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><a class="dropdown-item" href="../articles/workload-shapes.html">Workload Shapes: When &amp; How to Use It</a></li>
     <li><a class="dropdown-item" href="../articles/performance.html">Performance &amp; When to Use Cloud</a></li>
   </ul>
 </li>
@@ -493,7 +494,7 @@ AWS:</p>
 <tr class="odd">
 <td>Local (sequential)</td>
 <td>0.1 s</td>
-<td>20 tasks on an M4 Pro — this workload is tiny</td>
+<td>20 tasks on an Apple M4 Pro (12-core) — this workload is tiny</td>
 </tr>
 <tr class="even">
 <td>Cloud: startup</td>
@@ -518,7 +519,8 @@ AWS:</p>
 </tbody>
 </table>
 <p><em>(staRburst 0.3.9, us-east-1, EC2 c7i.xlarge Spot, 20 workers,
-cold start, 2026-07-21.)</em></p>
+cold start; sequential baseline on an Apple M4 Pro (Mac16,11, 12-core,
+48 GB, R 4.6.1), 2026-07-21.)</em></p>
 <blockquote>
 <p><strong>This is the honest result, and it’s a “don’t burst this”
 case.</strong> The cloud total (102.6 s) is far <em>slower</em> than

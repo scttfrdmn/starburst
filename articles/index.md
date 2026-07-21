@@ -37,6 +37,8 @@ Real-world business applications
 
 Performance, security, and operations
 
+- [Workload Shapes: When (and How) to Use
+  staRburst](https://starburst.ing/articles/workload-shapes.md):
 - [Performance Guide: When to Use Cloud vs
   Local](https://starburst.ing/articles/performance.md):
 - [Security Best Practices for

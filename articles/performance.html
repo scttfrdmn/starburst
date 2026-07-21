@@ -54,6 +54,7 @@
     <li><a class="dropdown-item" href="../articles/example-reports.html">Report Generation</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><a class="dropdown-item" href="../articles/workload-shapes.html">Workload Shapes: When &amp; How to Use It</a></li>
     <li><a class="dropdown-item" href="../articles/performance.html">Performance &amp; When to Use Cloud</a></li>
   </ul>
 </li>
@@ -120,8 +121,9 @@ recurring jobs)</li>
 live AWS — full cold starts, nothing excluded. They’re chosen to show
 <em>both</em> sides, so you can calibrate when bursting is worth it.
 Same setup for both: staRburst 0.3.9, us-east-1, EC2
-<code>c7i.xlarge</code> Spot, cold start, baseline on an 8-core Apple M4
-Pro (2026-07-21).</p>
+<code>c7i.xlarge</code> Spot, cold start, sequential baseline on an
+Apple M4 Pro (Mac16,11; 12 cores = 8 performance + 4 efficiency, 48 GB,
+macOS 26.5.2, R 4.6.1), 2026-07-21.</p>
 <div class="section level3">
 <h3 id="when-it-pays-off-heavy-per-task-work">✅ When it pays off — heavy per-task work<a class="anchor" aria-label="anchor" href="#when-it-pays-off-heavy-per-task-work"></a>
 </h3>

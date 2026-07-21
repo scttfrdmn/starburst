@@ -1,0 +1,227 @@
+# Workload Shapes: When (and How) to Use staRburst
+
+Whether staRburst helps or hurts is not about your *field* — it’s about
+the **shape** of your work. This guide walks through the levers that
+decide it, each with a runnable pattern and, where it matters, **real
+measured numbers** from `bench/benchmark.R` (see `bench/README.md`).
+
+> **Measurement setup (all tables below).** staRburst 0.3.9; AWS
+> us-east-1; EC2 `c7i.xlarge` Spot workers; cold start unless noted.
+> **Local baseline machine:** Apple M4 Pro (Mac16,11) — 12 cores (8
+> performance + 4 efficiency), 48 GB RAM, macOS 26.5.2, R 4.6.1. Local
+> baselines are run **sequentially** (single core), so they are a
+> *conservative* reference: your laptop’s multi-core `future`/`parallel`
+> time would be lower, and the cloud’s advantage correspondingly
+> narrower. Tested 2026-07-21.
+
+There are four levers. Learn to read them and you can predict the
+outcome for any workload:
+
+1.  **Task length** — how much work each task does.
+2.  **Task count** — how many tasks you create (and whether to batch).
+3.  **Fan-out width** — how many workers you spread across.
+4.  **Cost vs. time** — what you’re actually optimizing.
+
+Plus one pro tip on **where each task writes its output**.
+
+------------------------------------------------------------------------
+
+## Lever 1 — Task length: is each task worth shipping?
+
+Every task pays a fixed tax: it’s serialized, uploaded to S3, pulled by
+a worker, and its result uploaded back. Plus the pool pays a one-time
+~75–90 s cold start. If the task’s actual compute is smaller than that
+tax, the cloud only makes things slower.
+
+Two measured runs, same 20–30 workers, **opposite verdicts** — the only
+thing that changed is per-task work:
+
+| Shape | Tasks | Local (seq) | Cloud total (cold) | Verdict |
+|----|----|----|----|----|
+| **Heavy** — ~10 s of SVD each | 30 | 319.3 s (5.3 min) | **125.8 s** (87.5 s startup + 38.4 s compute) | ✅ ~2.5× faster, \$0.06 |
+| **Light** — sub-second each | 20 | 0.1 s | 102.6 s | ❌ ~1000× slower, \$0.03 |
+
+``` r
+
+# Heavy tasks (minutes each) — the cloud wins
+results <- starburst_map(scenarios, run_expensive_model, workers = 30)
+
+# Trivially cheap tasks — just do it locally
+results <- lapply(inputs, quick_function)
+```
+
+**Rule:** if each task is sub-second, stay local. Seconds-to-minutes per
+task, with many of them, is the sweet spot.
+
+------------------------------------------------------------------------
+
+## Lever 2 — Task count: batch, or fall off a cliff
+
+This is the one that surprises people. staRburst creates **one task per
+element of `.x`**, and each task is a separate client-side S3 submit
+*and* collect — in a serial loop. It does **not** batch for you. So a
+“big parameter walk” submitted naively as one task per point doesn’t
+just get slow — it hits a wall on the *client*, before any compute
+happens.
+
+Same 10,000-point sweep, two ways — **both measured on live AWS,
+identical work**:
+
+| Approach | Tasks | Items | Startup | Compute + collect | Cloud total | Est. cost |
+|----|----|----|----|----|----|----|
+| ✅ **Batched** (100 tasks × 100) | 100 | 10,000 | 105.0 s | **70.4 s** | **175.4 s** (2.9 min) | **\$0.13** |
+| ❌ **Naive** (1 task per point) | 10,000 | 10,000 | 77.0 s | **4,571.9 s** | **4,648.9 s** (77.5 min) | **\$3.46** |
+
+Read that again: the **same 10,000 evaluations** took **2.9 minutes for
+\$0.13** batched, versus **77 minutes for \$3.46** naive — a **~65×
+slowdown and ~27× cost blowup**, purely from task count. The naive run
+spent over an hour with the client submitting 10,000 individual tasks to
+S3 one at a time (~1.5/sec) while 50 workers sat mostly idle — you pay
+for the workers the whole time. Nothing about the computation changed;
+only how it was packaged.
+
+This is the trap behind “just fan out my 10M-point sweep”: at 1M or 10M
+tasks the naive path doesn’t take minutes longer, it takes
+**hours-to-days** and never gets cheaper. Batching isn’t an optimization
+here — it’s the difference between working and not.
+
+``` r
+
+# ❌ DON'T: 10,000 tasks — ~10,000 serial S3 submits from your laptop
+results <- starburst_map(1:10000, evaluate_point, workers = 50)
+
+# ✅ DO: batch into ~100 chunks — 100 tasks, same 10,000 evaluations
+batches <- split(1:10000, ceiling(seq_along(1:10000) / 100))
+results <- starburst_map(batches, function(ids) lapply(ids, evaluate_point),
+                         workers = 50)
+results <- unlist(results, recursive = FALSE)  # flatten
+```
+
+Pick a batch size so each task runs for a couple of minutes:
+
+``` r
+
+per_item_seconds <- 0.5              # measure this on a small local sample
+target_task_seconds <- 120           # aim for ~2 min per task
+batch_size <- ceiling(target_task_seconds / per_item_seconds)  # ~240 here
+```
+
+**Rule:** thousands of tiny tasks is an anti-pattern. Batch fine-grained
+work so you have ~dozens-to-hundreds of tasks, each doing real work. A
+1M- or 10M-point sweep *must* be batched — never submitted one point at
+a time.
+
+------------------------------------------------------------------------
+
+## Lever 3 — Fan-out width: more workers is not always better
+
+Once you’ve sized your tasks, how many workers should you request? More
+workers cut wall-clock **only up to the number of tasks**, and with
+diminishing returns:
+
+- **Workers \> tasks:** the extra workers sit idle — you pay for them,
+  they do nothing. 30 tasks on 100 workers still only uses 30.
+- **Stragglers:** the batch isn’t done until the *slowest* task is. Past
+  a point, adding workers doesn’t help because you’re waiting on one
+  long task, not queue depth.
+- **Quota & startup:** more workers = more instances to launch (longer,
+  more likely to hit limits) and, on Fargate, more vCPU quota consumed.
+- **Cost scales with workers, speed doesn’t (past \#tasks).** Doubling
+  workers beyond your task count doubles cost for zero speedup.
+
+``` r
+
+# 200 tasks: ~50 workers is a reasonable ratio (each worker handles ~4 tasks)
+results <- starburst_map(param_sets, fit_model, workers = 50)
+
+# 200 tasks on 500 workers: 300 workers idle, you pay for all 500 — don't
+```
+
+**Rule of thumb:** workers ≈ number of tasks (capped at what your quota
+and budget allow), so each worker gets roughly one to a few tasks.
+Beyond `workers == tasks` there is no speedup left to buy.
+
+------------------------------------------------------------------------
+
+## Lever 4 — Cost vs. time: what are you optimizing?
+
+staRburst reports an estimated cost per run. The key intuition:
+**wall-clock and cost trade off differently.**
+
+- Adding workers (up to \#tasks) **buys wall-clock at ~constant total
+  cost** — the same compute-seconds are just spread over more machines
+  for less time. That’s the good trade: finish sooner for roughly the
+  same dollars.
+- Adding workers **beyond \#tasks** buys nothing and **raises cost**
+  (idle instances).
+- **Spot instances** (staRburst’s default, `use_spot = TRUE`) are ~70%
+  cheaper than on-demand for interruption-tolerant batch work — almost
+  always the right default here.
+- **Warm pools** amortize the ~90 s startup across many runs, so
+  repeated jobs (parameter sweeps, daily pipelines) get dramatically
+  better cost/time than a single cold run implies.
+
+``` r
+
+# Cheapest for a one-off: enough workers to cover the tasks, spot on (default)
+starburst_map(tasks, fn, workers = length(tasks), use_spot = TRUE)
+
+# Repeated runs: a warm pool pays startup once — see the detached-sessions guide
+```
+
+**Rule:** optimize wall-clock by matching workers to tasks; optimize
+cost by using spot (default) and warm pools for anything you run more
+than once.
+
+------------------------------------------------------------------------
+
+## Pro tip — shard your S3 writes across prefixes
+
+If your tasks write their *own* output to S3 (large results you don’t
+want to serialize back through the result channel), have **each task
+write to a distinct prefix**, not all to the same one. S3 scales
+throughput per prefix, so hundreds of tasks hammering a single prefix
+serialize against each other, while spreading them across prefixes lets
+S3 parallelize:
+
+``` r
+
+# ❌ Hundreds of tasks writing under ONE prefix — throughput bottleneck
+key <- sprintf("s3://bucket/results/%d.parquet", i)
+
+# ✅ Shard across prefixes so S3 parallelizes the writes
+shard <- i %% 100
+key <- sprintf("s3://bucket/results/shard=%02d/%d.parquet", shard, i)
+```
+
+A cheap, high-leverage change for write-heavy fan-outs: same data, far
+more aggregate write throughput, because you’re no longer funneling
+every worker through one hot prefix.
+
+------------------------------------------------------------------------
+
+## Putting it together: a diagnosis checklist
+
+Before you burst a workload, ask:
+
+1.  **Is each task more than a second of work?** If no → stay local
+    (Lever 1).
+2.  **Do you have thousands of tiny tasks?** If yes → batch to
+    ~dozens–hundreds (Lever 2).
+3.  **Are you requesting more workers than tasks?** If yes → cap at
+    \#tasks (Lever 3).
+4.  **Will you run it more than once?** If yes → warm pool + spot (Lever
+    4).
+5.  **Do tasks write big outputs to S3?** If yes → shard across prefixes
+    (pro tip).
+
+Get these right and staRburst turns a multi-hour local grind into
+minutes for pennies. Get them wrong and you’ll pay more to go slower —
+the mechanics don’t care which field you’re in, only about the shape of
+the work.
+
+See also:
+[`vignette("performance")`](https://starburst.ing/articles/performance.md)
+for the underlying overhead model, and
+[`vignette("detached-sessions")`](https://starburst.ing/articles/detached-sessions.md)
+for warm pools and long-running jobs.
