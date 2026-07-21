@@ -155,11 +155,11 @@ plan.starburst <- function(strategy,
                     if (use_spot) " spot" else ""))
   }
 
-  # Check cost limits
-  if (!is.null(config$max_cost_per_job) && cost_est$per_hour > config$max_cost_per_job) {
+  # Check cost limits (max_hourly_cost is an hourly-RATE cap, USD/hour)
+  if (!is.null(config$max_hourly_cost) && cost_est$per_hour > config$max_hourly_cost) {
     stop(sprintf(
-      "Estimated cost ($%.2f/hr) exceeds limit ($%.2f/hr). Adjust with starburst_config(max_cost_per_job = ...)",
-      cost_est$per_hour, config$max_cost_per_job
+      "Estimated cost ($%.2f/hr) exceeds limit ($%.2f/hr). Adjust with starburst_config(max_hourly_cost = ...)",
+      cost_est$per_hour, config$max_hourly_cost
     ))
   }
 

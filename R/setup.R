@@ -286,10 +286,11 @@ config_path <- function() {
 #' to leave settings unchanged (it still returns the current config invisibly); pass
 #' one or more of the arguments below to update them.
 #'
-#' @param max_cost_per_job Maximum estimated cost (USD) for a single job. Jobs whose
-#'   estimate exceeds this error before launching. \code{NULL} leaves it unchanged.
-#' @param cost_alert_threshold Estimated cost (USD) at which a warning is emitted.
-#'   \code{NULL} leaves it unchanged.
+#' @param max_hourly_cost Maximum estimated **hourly** cost (USD/hour) for a job.
+#'   Jobs whose estimated hourly rate exceeds this error before launching. This is a
+#'   rate limit, not a total-job-cost cap. \code{NULL} leaves it unchanged.
+#' @param cost_alert_threshold Estimated **hourly** cost (USD/hour) at which a
+#'   warning is emitted. \code{NULL} leaves it unchanged.
 #' @param auto_cleanup_s3 Logical; automatically delete a job's S3 task/result
 #'   objects after completion. \code{NULL} leaves it unchanged.
 #' @param ... Additional user-settable keys merged into the config. Recognized keys:
@@ -316,9 +317,9 @@ config_path <- function() {
 #' @examples
 #' \donttest{
 #' if (starburst_is_configured()) {
-#'   # Update cost guardrails
+#'   # Update cost guardrails (both are hourly rates, USD/hour)
 #'   starburst_config(
-#'     max_cost_per_job = 10,
+#'     max_hourly_cost = 10,
 #'     cost_alert_threshold = 5
 #'   )
 #'
@@ -326,7 +327,7 @@ config_path <- function() {
 #'   cfg <- starburst_config()
 #' }
 #' }
-starburst_config <- function(max_cost_per_job = NULL,
+starburst_config <- function(max_hourly_cost = NULL,
                              cost_alert_threshold = NULL,
                              auto_cleanup_s3 = NULL,
                              ...) {
@@ -334,8 +335,8 @@ starburst_config <- function(max_cost_per_job = NULL,
   config <- get_starburst_config()
 
   # Update config
-  if (!is.null(max_cost_per_job)) {
-    config$max_cost_per_job <- max_cost_per_job
+  if (!is.null(max_hourly_cost)) {
+    config$max_hourly_cost <- max_hourly_cost
   }
 
   if (!is.null(cost_alert_threshold)) {

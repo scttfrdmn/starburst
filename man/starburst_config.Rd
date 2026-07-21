@@ -5,18 +5,19 @@
 \title{Configure staRburst options}
 \usage{
 starburst_config(
-  max_cost_per_job = NULL,
+  max_hourly_cost = NULL,
   cost_alert_threshold = NULL,
   auto_cleanup_s3 = NULL,
   ...
 )
 }
 \arguments{
-\item{max_cost_per_job}{Maximum estimated cost (USD) for a single job. Jobs whose
-estimate exceeds this error before launching. \code{NULL} leaves it unchanged.}
+\item{max_hourly_cost}{Maximum estimated **hourly** cost (USD/hour) for a job.
+Jobs whose estimated hourly rate exceeds this error before launching. This is a
+rate limit, not a total-job-cost cap. \code{NULL} leaves it unchanged.}
 
-\item{cost_alert_threshold}{Estimated cost (USD) at which a warning is emitted.
-\code{NULL} leaves it unchanged.}
+\item{cost_alert_threshold}{Estimated **hourly** cost (USD/hour) at which a
+warning is emitted. \code{NULL} leaves it unchanged.}
 
 \item{auto_cleanup_s3}{Logical; automatically delete a job's S3 task/result
 objects after completion. \code{NULL} leaves it unchanged.}
@@ -48,9 +49,9 @@ to be set by hand: \code{region}, \code{bucket}, \code{cluster},
 \examples{
 \donttest{
 if (starburst_is_configured()) {
-  # Update cost guardrails
+  # Update cost guardrails (both are hourly rates, USD/hour)
   starburst_config(
-    max_cost_per_job = 10,
+    max_hourly_cost = 10,
     cost_alert_threshold = 5
   )
 

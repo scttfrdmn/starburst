@@ -353,10 +353,10 @@ plan(starburst, workers = 100, cpu = 4, memory = "8GB")
 ### Set Cost Limits
 
 ```{r}
-# Set maximum cost per job
+# Set an hourly cost ceiling (USD/hour) — jobs above this rate won't start
 starburst_config(
-  max_cost_per_job = 10,      # Don't start jobs that would cost >$10
-  cost_alert_threshold = 5     # Warn when approaching $5
+  max_hourly_cost = 10,       # Don't start jobs estimated over $10/hour
+  cost_alert_threshold = 5     # Warn at $5/hour
 )
 
 # Now jobs exceeding limit will error before starting
@@ -549,7 +549,7 @@ results <- future_map(1:1000, function(i) {
 
 ```{r}
 starburst_config(
-  max_cost_per_job = 50,           # Prevent accidents
+  max_hourly_cost = 50,            # Cap the hourly rate (USD/hour)
   cost_alert_threshold = 25        # Get warned early
 )
 ```

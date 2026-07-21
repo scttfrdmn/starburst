@@ -10,7 +10,6 @@ starburst_map(
   workers = 10,
   cpu = 4,
   memory = "8GB",
-  platform = "X86_64",
   region = NULL,
   timeout = 3600,
   launch_type = "EC2",
@@ -31,8 +30,6 @@ starburst_map(
 
 \item{memory}{Memory per worker (e.g., 8GB)}
 
-\item{platform}{CPU architecture (X86_64 or ARM64)}
-
 \item{region}{AWS region}
 
 \item{timeout}{Maximum runtime in seconds per task}
@@ -40,7 +37,9 @@ starburst_map(
 \item{launch_type}{Compute backend: "EC2" (default) or "FARGATE"}
 
 \item{instance_type}{EC2 instance type when \code{launch_type = "EC2"}
-(default: "c7g.xlarge")}
+(default: "c7g.xlarge"). The worker CPU architecture follows the instance
+type — Graviton types (e.g. \code{c7g.*}) run ARM64, Intel/AMD types
+(e.g. \code{c7i.*}) run x86_64 — so there is no separate platform argument.}
 
 \item{use_spot}{Use EC2 Spot instances for cost savings (default: TRUE)}
 
