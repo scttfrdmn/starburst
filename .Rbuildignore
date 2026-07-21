@@ -20,6 +20,7 @@
 ^pkgdown$
 ^archive$
 ^examples$
+^bench$
 ^ARCHITECTURE\.md$
 ^ROADMAP\.md$
 ^CHANGELOG\.md$
