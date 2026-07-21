@@ -59,15 +59,57 @@ navbar:
       text: News
       href: news/index.html
 
-# Let pkgdown auto-generate the reference index
-# Manually organizing 29+ exported functions is error-prone
-# reference:
-# - title: "Main Functions"
-#   desc: "Core functions for cloud bursting"
-#   contents:
-#   - starburst_map
-#   - starburst_cluster
-#   - starburst_setup
+# Grouped reference index. Only the user-facing exports are listed here, in the
+# order a reader should discover them; the trailing internal/developer group keeps
+# the future-backend S3 methods out of the way. Anything exported but not listed
+# still appears under an auto-generated "undocumented"/other section, so this is
+# additive, not a coverage risk.
+reference:
+- title: "Start here"
+  desc: "Set up once, then run your first job."
+  contents:
+  - starburst-package
+  - starburst_setup
+  - starburst_is_configured
+- title: "Core execution"
+  desc: "Run work across AWS workers."
+  contents:
+  - starburst_map
+  - starburst_cluster
+- title: "future / furrr integration"
+  desc: "Use staRburst as a future backend for existing future/furrr code."
+  contents:
+  - plan.starburst
+  - starburst
+- title: "Detached sessions"
+  desc: "Long-running jobs that survive your R session closing."
+  contents:
+  - starburst_session
+  - starburst_session_attach
+  - starburst_list_sessions
+- title: "Configuration"
+  desc: "Account and backend defaults."
+  contents:
+  - starburst_config
+  - starburst_status
+- title: "Monitoring, logs & cost"
+  contents:
+  - starburst_logs
+  - starburst_estimate
+  - starburst_quota_status
+  - starburst_check_quota_request
+  - starburst_request_quota_increase
+- title: "Infrastructure setup"
+  desc: "One-time provisioning and maintenance."
+  contents:
+  - starburst_setup_ec2
+  - starburst_rebuild_environment
+  - starburst_cleanup_ecr
+- title: "Developer & internal"
+  desc: "Extension points and future-backend internals; not needed for normal use."
+  contents:
+  - StarburstBackend
+  - StarburstFuture
 
 articles:
 - title: "Getting Started"

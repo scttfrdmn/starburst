@@ -12,27 +12,54 @@ starburst_config(
 )
 }
 \arguments{
-\item{max_cost_per_job}{Maximum cost per job in dollars}
+\item{max_cost_per_job}{Maximum estimated cost (USD) for a single job. Jobs whose
+estimate exceeds this error before launching. \code{NULL} leaves it unchanged.}
 
-\item{cost_alert_threshold}{Cost threshold for alerts}
+\item{cost_alert_threshold}{Estimated cost (USD) at which a warning is emitted.
+\code{NULL} leaves it unchanged.}
 
-\item{auto_cleanup_s3}{Automatically clean up S3 files after completion}
+\item{auto_cleanup_s3}{Logical; automatically delete a job's S3 task/result
+objects after completion. \code{NULL} leaves it unchanged.}
 
-\item{...}{Additional configuration options}
+\item{...}{Additional user-settable keys merged into the config. Recognized keys:
+\describe{
+  \item{\code{use_public_base}}{Logical; pull the public base image instead of
+    building a private one (see \code{\link{starburst_setup}}).}
+  \item{\code{ecr_image_ttl_days}}{Integer; lifecycle age at which cached ECR
+    images are expired.}
+}}
 }
 \value{
 Invisibly returns the updated configuration list.
 }
 \description{
-Configure staRburst options
+Reads and updates the persisted staRburst configuration. Call with no arguments
+to leave settings unchanged (it still returns the current config invisibly); pass
+one or more of the arguments below to update them.
+}
+\details{
+Other keys in the stored config are **infrastructure-managed** — written by
+\code{\link{starburst_setup}}/\code{\link{starburst_setup_ec2}} and not intended
+to be set by hand: \code{region}, \code{bucket}, \code{cluster},
+\code{ecr_repository}, \code{aws_account_id}, \code{execution_role_arn},
+\code{task_role_arn}, \code{subnets}, and \code{security_groups}. Use
+\code{\link{starburst_status}} to inspect the effective configuration read-only.
 }
 \examples{
 \donttest{
 if (starburst_is_configured()) {
+  # Update cost guardrails
   starburst_config(
     max_cost_per_job = 10,
     cost_alert_threshold = 5
   )
+
+  # Read the current config without changing anything
+  cfg <- starburst_config()
 }
 }
+}
+\seealso{
+\code{\link{starburst_status}} to view config without changing it;
+  \code{\link{starburst_setup}} for initial provisioning.
 }
