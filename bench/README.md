@@ -54,6 +54,36 @@ to `bench/results/<workload>-<date>.md`. The table columns are:
 Plus a metadata block: staRburst version, date, region, backend, Spot, cold/warm,
 and local machine.
 
+## Status / findings from the first live runs (2026-07)
+
+The harness was exercised end-to-end on real AWS. It **works**: it builds the worker
+image, launches workers, and the workers execute and write real results to S3
+(verified — 20 distinct per-region geospatial outputs). Getting there surfaced four
+real staRburst behaviors worth knowing (and coding around here):
+
+1. **Session path needs a pre-provisioned ASG.** `starburst_session(launch_type="EC2")`
+   calls `set_desired_capacity` on `starburst-asg-<instance-type>` but does not create
+   it — you must run `starburst_setup_ec2(instance_types="<type>")` once first, or you
+   get `AutoScalingGroup name not found`. The harness defaults to `c7i.xlarge` for this
+   reason; override with `--instance-type` only for a type you've provisioned.
+2. **The public base image must be multi-arch.** staRburst's env build is hardcoded
+   `--platform linux/amd64,linux/arm64`; if `use_public_base=TRUE` points at an
+   amd64-only public base, the build fails "no match for platform". Use a multi-arch
+   private base (`starburst_config` `use_public_base=FALSE`).
+3. **The worker renv.lock must exactly match the base image.** An empty lock makes
+   worker.R fail to load `paws.storage`; a lock with *more* packages than the base
+   triggers real installs under arm64 emulation and the build fails. `bench/worker-renv.lock`
+   is generated from the base image's own `installed.packages()` for this reason.
+4. **`collect(wait=TRUE)` can hang even after all results land in S3.** In the live
+   run all 20 results were present in `s3://.../results/` but the client's blocking
+   collect did not return. Until that is fixed upstream, the harness cannot reliably
+   auto-emit the compute-phase timing; the vignette tables therefore remain labelled
+   **illustrative** rather than replaced with measured numbers.
+
+These are staRburst integration gaps, not harness bugs — see the project's follow-up
+issues. The `--warm` path and cost estimate are wired and correct; the blocker to
+fully-measured tables is (4).
+
 ## Regenerating vignette tables
 
 The example vignettes (`vignettes/example-*.Rmd`) currently carry **illustrative**

@@ -27,6 +27,7 @@
 
 suppressWarnings(suppressMessages({
   library(starburst)
+  library(jsonlite)
 }))
 
 `%||%` <- function(a, b) if (is.null(a) || length(a) == 0) b else a
@@ -36,6 +37,45 @@ if (!identical(Sys.getenv("STARBURST_BENCH"), "TRUE")) {
   stop("bench/benchmark.R launches real, billable AWS workers.\n",
        "Set STARBURST_BENCH=TRUE to run it. It is intentionally never run in CI/CRAN.")
 }
+
+# ---- Isolate the worker environment ------------------------------------------
+# staRburst builds the worker image by restoring the renv.lock nearest an R/ dir.
+# If we run from the staRburst repo, that is the ~250KB DEV lockfile (hundreds of
+# packages) — a slow, fragile multi-arch build for a benchmark whose workloads
+# only use base R. Run from an isolated temp dir with a COMPLETE-but-minimal lock.
+#
+# CRITICAL: the lock must list ALL worker-runtime packages, not be empty. staRburst
+# builds the env image with `renv::init(bare=TRUE); renv::restore()`, which isolates
+# .libPaths() to the project library — so any package NOT in the lock (even ones
+# baked into the base image, e.g. paws.storage/qs2) becomes invisible at runtime
+# and worker.R fails to bootstrap. We generate the lock FROM the base image's own
+# installed packages so restore is a no-op and every worker dep is present.
+.orig_wd <- normalizePath(getwd())
+.bench_wd <- file.path(tempdir(), "starburst-bench-env")
+dir.create(.bench_wd, showWarnings = FALSE, recursive = TRUE)
+.lock_path <- file.path(.bench_wd, "renv.lock")
+
+# Use the committed worker lock: the EXACT package set of the base image (generated
+# once via `installed.packages()` inside the base container). It must match the base
+# so `renv::restore()` on the worker is a no-op — a lock with MORE packages triggers
+# real installs/compiles under arm64 emulation (build failure), and an EMPTY lock
+# makes worker.R fail to load paws.storage. Regenerate with:
+#   docker run --rm --platform linux/amd64 -v $PWD:/out <base-image> Rscript -e \
+#     'ip<-installed.packages();b<-rownames(installed.packages(priority="base"));
+#      P<-list();for(p in setdiff(rownames(ip),c(b,"starburst")))
+#      P[[p]]<-list(Package=p,Version=unname(ip[p,"Version"]),Source="Repository",Repository="CRAN");
+#      jsonlite::write_json(list(R=list(Version=paste(R.version$major,R.version$minor,sep="."),
+#      Repositories=list(list(Name="CRAN",URL="https://cloud.r-project.org"))),Packages=P),
+#      "/out/worker-renv.lock",auto_unbox=TRUE,pretty=TRUE)'
+.committed_lock <- file.path(.orig_wd, "bench", "worker-renv.lock")
+if (!file.exists(.committed_lock)) {
+  stop("[bench] missing bench/worker-renv.lock — regenerate it from the base image ",
+       "(see the comment in benchmark.R).")
+}
+file.copy(.committed_lock, .lock_path, overwrite = TRUE)
+message("[bench] worker env isolated in ", .bench_wd,
+        " (using committed bench/worker-renv.lock)")
+setwd(.bench_wd)
 
 # ---- Workload registry -------------------------------------------------------
 # Each workload is sized to be a MEANINGFUL benchmark (per-task work in the
@@ -93,6 +133,11 @@ flag <- function(name, default = NULL) {
 has_flag <- function(name) any(args == name)
 warm        <- has_flag("--warm")
 launch_type <- flag("--launch-type", "EC2")
+# Default to c7i.xlarge (x86_64) — a type whose capacity provider is commonly
+# pre-provisioned. staRburst's session path requires the instance type's ASG to
+# already exist (run starburst_setup_ec2(instance_types=...) once); it does not
+# create it on demand.
+instance_type <- flag("--instance-type", "c7i.xlarge")
 out_path    <- flag("--out", NULL)
 workers_ovr <- flag("--workers", NULL)
 
@@ -131,16 +176,25 @@ run_workload <- function(name) {
   local_res <- lapply(x, wl$f)
   local_secs <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
 
-  # --- Cloud: phase 1 = cluster startup (provision or warm reuse) ---
-  message("   [cloud] creating cluster (startup phase)...")
+  # --- Cloud: phase 1 = session startup (provision workers or warm reuse) ---
+  # We use starburst_session() (detached backend) because it cleanly separates
+  # worker startup from submit/collect — exactly the phase split we want — and is
+  # the most-exercised execution path.
+  fn <- wl$f
+  message("   [cloud] creating session (startup phase)...")
   t_startup0 <- Sys.time()
-  cluster <- starburst_cluster(workers = workers, launch_type = launch_type)
+  session <- starburst_session(workers = workers, launch_type = launch_type,
+                               instance_type = instance_type)
   startup_secs <- as.numeric(difftime(Sys.time(), t_startup0, units = "secs"))
-  on.exit(try(cluster$shutdown(), silent = TRUE), add = TRUE)
+  on.exit(try(session$cleanup(), silent = TRUE), add = TRUE)
 
   run_once <- function() {
     t0 <- Sys.time()
-    res <- cluster$map(x, wl$f, .progress = FALSE)
+    for (item in x) {
+      session$submit(quote(fn(item)),
+                     globals = list(fn = fn, item = item))
+    }
+    res <- session$collect(wait = TRUE)
     list(res = res, secs = as.numeric(difftime(Sys.time(), t0, units = "secs")))
   }
 
@@ -159,11 +213,19 @@ run_workload <- function(name) {
   compute_collect_secs <- r$secs
   total_secs <- startup_measured + compute_collect_secs
 
-  cost <- tryCatch(cluster$estimate_cost(total_secs), error = function(e) NA_real_)
+  # Cost estimate from the measured wall-clock (estimate_cost is internal -> :::).
+  cost <- tryCatch(
+    starburst:::estimate_cost(
+      workers, cpu = 4, memory = "8GB",
+      estimated_runtime_hours = total_secs / 3600,
+      launch_type = launch_type,
+      instance_type = if (launch_type == "EC2") instance_type else NULL,
+      use_spot = (launch_type == "EC2"))$total_estimated,
+    error = function(e) NA_real_)
 
   list(
     name = name, label = wl$label, n = n, workers = workers,
-    launch_type = launch_type, warm = warm,
+    launch_type = launch_type, instance_type = instance_type, warm = warm,
     local_secs = local_secs,
     startup_secs = startup_measured,
     compute_collect_secs = compute_collect_secs,
@@ -189,6 +251,7 @@ emit_markdown <- function(runs) {
     sprintf("- **Date tested:** %s", run_date),
     sprintf("- **AWS region:** %s", region),
     sprintf("- **Backend:** %s", runs[[1]]$launch_type),
+    sprintf("- **Instance type:** %s", runs[[1]]$instance_type %||% "n/a"),
     sprintf("- **Spot:** %s (staRburst default use_spot=TRUE)", "yes"),
     sprintf("- **Cold or warm:** %s", if (runs[[1]]$warm) "warm (startup excluded)" else "cold (startup included)"),
     sprintf("- **Local machine:** %s", local_desc),
@@ -220,9 +283,11 @@ targets <- if (identical(which_wl, "all")) names(WORKLOADS) else which_wl
 runs <- lapply(targets, run_workload)
 
 md <- emit_markdown(runs)
+# Resolve output against the ORIGINAL working dir (we setwd()'d into a temp env dir).
 out_path <- out_path %||% file.path(
   "bench", "results",
   sprintf("%s-%s.md", if (identical(which_wl, "all")) "all" else which_wl, run_date))
+if (!startsWith(out_path, "/")) out_path <- file.path(.orig_wd, out_path)
 dir.create(dirname(out_path), recursive = TRUE, showWarnings = FALSE)
 writeLines(md, out_path)
 saveRDS(list(runs = runs, version = sb_version, region = region,
