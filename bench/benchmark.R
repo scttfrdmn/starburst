@@ -135,6 +135,30 @@ WORKLOADS <- list(
       v <- cumprod(1 + r)
       list(final = v[252], sharpe = mean(r) / sd(r) * sqrt(252))
     }
+  ),
+  # ---- Task-COUNT lever: a big parameter sweep, naive vs batched -------------
+  # Same 10,000 evaluations both ways. `sweep_naive` submits one task PER point
+  # (10,000 tasks -> 10,000 serial S3 submits from the client); `sweep_batched`
+  # groups them into `batch` chunks of work per task (100 tasks). This isolates
+  # the number-of-tasks dimension the length-focused workloads never touch, and
+  # measures the client-side submit/collect cliff that batching avoids.
+  sweep_naive = list(
+    label = "Parameter sweep, 1 task per point (10k tasks) — DON'T do this",
+    n = 10000L, workers = 50L,
+    f = function(i) {
+      # deliberately light per-point work; the cost here is the 10k S3 round-trips
+      set.seed(i); x <- rnorm(200); c(i = i, m = mean(x), s = sd(x))
+    }
+  ),
+  sweep_batched = list(
+    label = "Parameter sweep, batched (100 tasks x 100 points) — DO this",
+    n = 100L, workers = 50L, batch = 100L,
+    f = function(batch_ids) {
+      # each task does 100 points' worth of work in one shot
+      do.call(rbind, lapply(batch_ids, function(i) {
+        set.seed(i); x <- rnorm(200); c(i = i, m = mean(x), s = sd(x))
+      }))
+    }
   )
 )
 
@@ -183,11 +207,19 @@ run_workload <- function(name) {
                         paste(names(WORKLOADS), collapse = ", "))
   n <- wl$n
   workers <- as.integer(workers_ovr %||% wl$workers)
-  x <- seq_len(n)
+  # For a batched workload, each of the n tasks carries `batch` items, so the
+  # inputs are lists of item-ids (total work = n * batch), not bare indices.
+  if (!is.null(wl$batch)) {
+    x <- lapply(seq_len(n), function(b) ((b - 1L) * wl$batch + 1L):(b * wl$batch))
+    total_items <- n * wl$batch
+  } else {
+    x <- as.list(seq_len(n))
+    total_items <- n
+  }
 
   message(sprintf("== %s ==", wl$label))
-  message(sprintf("   n=%d, workers=%d, launch_type=%s, mode=%s",
-                  n, workers, launch_type, if (warm) "warm" else "cold"))
+  message(sprintf("   tasks=%d, items=%d, workers=%d, launch_type=%s, mode=%s",
+                  n, total_items, workers, launch_type, if (warm) "warm" else "cold"))
 
   # --- Local sequential baseline (compute-only) ---
   message("   [local] running sequential baseline...")
@@ -243,7 +275,8 @@ run_workload <- function(name) {
     error = function(e) NA_real_)
 
   list(
-    name = name, label = wl$label, n = n, workers = workers,
+    name = name, label = wl$label, n = n, total_items = total_items,
+    workers = workers,
     launch_type = launch_type, instance_type = instance_type, warm = warm,
     local_secs = local_secs,
     startup_secs = startup_measured,
@@ -277,14 +310,15 @@ emit_markdown <- function(runs) {
     "",
     "## Results",
     "",
-    paste0("| Workload | Input (n) | Workers | Local (seq) | Startup | ",
+    paste0("| Workload | Tasks | Items | Workers | Local (seq) | Startup | ",
            "Compute+collect | Cloud total | Est. cost |"),
-    "|---|---|---|---|---|---|---|---|"
+    "|---|---|---|---|---|---|---|---|---|"
   )
   for (r in runs) {
     lines <- c(lines, sprintf(
-      "| %s | %d | %d | %s | %s | %s | %s | %s |",
-      r$label, r$n, r$workers, fmt(r$local_secs), fmt(r$startup_secs),
+      "| %s | %d | %d | %d | %s | %s | %s | %s | %s |",
+      r$label, r$n, r$total_items %||% r$n, r$workers,
+      fmt(r$local_secs), fmt(r$startup_secs),
       fmt(r$compute_collect_secs), fmt(r$total_secs),
       if (is.na(r$cost)) "n/a" else sprintf("$%.2f", r$cost)
     ))

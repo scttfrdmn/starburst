@@ -50,6 +50,8 @@ navbar:
         href: articles/example-reports.html
       - text: "---"
       - text: "Guides"
+      - text: "Workload Shapes: When & How to Use It"
+        href: articles/workload-shapes.html
       - text: "Performance & When to Use Cloud"
         href: articles/performance.html
     examples:
@@ -146,6 +148,7 @@ articles:
 - title: "Guides"
   desc: "Performance, security, and operations"
   contents:
+  - workload-shapes
   - performance
   - security
   - troubleshooting

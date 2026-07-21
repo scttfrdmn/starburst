@@ -38,8 +38,9 @@ Cloud is not magic. It has overhead, costs money, and AWS CPUs are slower per-co
 These are **real measured runs** from `bench/benchmark.R` (see `bench/README.md`) on
 live AWS — full cold starts, nothing excluded. They're chosen to show *both* sides, so
 you can calibrate when bursting is worth it. Same setup for both: staRburst 0.3.9,
-us-east-1, EC2 `c7i.xlarge` Spot, cold start, baseline on an 8-core Apple M4 Pro
-(2026-07-21).
+us-east-1, EC2 `c7i.xlarge` Spot, cold start, sequential baseline on an Apple M4 Pro
+(Mac16,11; 12 cores = 8 performance + 4 efficiency, 48 GB, macOS 26.5.2, R 4.6.1),
+2026-07-21.
 
 ### ✅ When it pays off — heavy per-task work
 
