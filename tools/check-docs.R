@@ -36,7 +36,7 @@ man_files <- list.files(file.path(pkg_root, "man"), pattern = "\\.Rd$", full.nam
 # ---- 1. Dead / banned symbols -------------------------------------------------
 # Symbols that no longer exist and must never reappear in code or docs.
 banned <- c("future_starburst", "starburst_upload", "yourname/starburst",
-            "yourusername/starburst")
+            "yourusername/starburst", "starburst_setup(bucket")
 scan_targets <- c(vignettes, readme, r_files)
 for (f in scan_targets) {
   lines <- read_lines_safe(f)
