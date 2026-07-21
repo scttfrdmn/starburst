@@ -474,47 +474,61 @@ Challenged stores (high competition, low potential): 8
 <div class="section level2">
 <h2 id="performance-comparison">Performance Comparison<a class="anchor" aria-label="anchor" href="#performance-comparison"></a>
 </h2>
-<table class="table">
+<p>These are <strong>real measured numbers</strong> from
+<code>bench/benchmark.R</code> (see <code>bench/README.md</code>), not
+illustrations — a cold run of 20 per-region terrain tasks on live
+AWS:</p>
+<table style="width:100%;" class="table">
+<colgroup>
+<col width="35%">
+<col width="30%">
+<col width="35%">
+</colgroup>
 <thead><tr class="header">
-<th>Method</th>
-<th>Regions</th>
-<th>Compute time</th>
-<th>Cost</th>
-<th>Speedup</th>
+<th>Phase</th>
+<th>Time</th>
+<th>Notes</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>Local</td>
-<td>3</td>
-<td>4.5 sec</td>
-<td>$0</td>
-<td>-</td>
+<td>Local (sequential)</td>
+<td>0.1 s</td>
+<td>20 tasks on an M4 Pro — this workload is tiny</td>
 </tr>
 <tr class="even">
-<td>Local (est.)</td>
-<td>20</td>
-<td>30 sec</td>
-<td>$0</td>
-<td>1x</td>
+<td>Cloud: startup</td>
+<td>74.7 s</td>
+<td>one-time: worker provision + image pull</td>
 </tr>
 <tr class="odd">
-<td>staRburst</td>
-<td>20</td>
-<td>4.8 sec</td>
-<td>$0.002</td>
-<td>6.3x</td>
+<td>Cloud: compute + collect</td>
+<td>27.9 s</td>
+<td>submit → run on 20 workers → collect</td>
+</tr>
+<tr class="even">
+<td><strong>Cloud total (cold)</strong></td>
+<td><strong>102.6 s</strong></td>
+<td>startup + compute+collect</td>
+</tr>
+<tr class="odd">
+<td>Est. cost</td>
+<td>$0.03</td>
+<td>20× c7i.xlarge Spot</td>
 </tr>
 </tbody>
 </table>
+<p><em>(staRburst 0.3.9, us-east-1, EC2 c7i.xlarge Spot, 20 workers,
+cold start, 2026-07-21.)</em></p>
 <blockquote>
-<p><strong>Reading these numbers honestly:</strong> the staRburst row is
-<em>compute time only</em> on a warm worker pool — it excludes the
-one-time cluster startup (~2 minutes) and image pull. For a job this
-small (seconds of work), that startup dominates and running locally is
-faster overall. This example is sized for illustration; bursting pays
-off when each task runs for minutes and there are many of them. See
-<code><a href="../articles/performance.html">vignette("performance")</a></code> for when cloud is actually worth
-it.</p>
+<p><strong>This is the honest result, and it’s a “don’t burst this”
+case.</strong> The cloud total (102.6 s) is far <em>slower</em> than
+local (0.1 s): the workload is seconds of compute, so the ~75 s of fixed
+startup dominates and there is nothing to amortize it against. Cloud
+bursting wins only when per-task work is <strong>minutes</strong> and
+there are many tasks — then compute+collect dwarfs startup. This example
+exists to show the mechanics; see <code><a href="../articles/performance.html">vignette("performance")</a></code>
+for when the cloud actually pays off. Regenerate this table for your own
+workload/region with <code>bench/benchmark.R</code>.</p>
 </blockquote>
 <p><strong>Key Insights</strong>: - Excellent parallelization for
 spatial operations once workers are warm - Near-linear scaling across

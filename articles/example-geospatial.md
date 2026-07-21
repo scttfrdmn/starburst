@@ -408,20 +408,31 @@ for (i in 1:min(5, nrow(region_summary))) {
 
 ## Performance Comparison
 
-| Method       | Regions | Compute time | Cost    | Speedup |
-|--------------|---------|--------------|---------|---------|
-| Local        | 3       | 4.5 sec      | \$0     | \-      |
-| Local (est.) | 20      | 30 sec       | \$0     | 1x      |
-| staRburst    | 20      | 4.8 sec      | \$0.002 | 6.3x    |
+These are **real measured numbers** from `bench/benchmark.R` (see
+`bench/README.md`), not illustrations — a cold run of 20 per-region
+terrain tasks on live AWS:
 
-> **Reading these numbers honestly:** the staRburst row is *compute time
-> only* on a warm worker pool — it excludes the one-time cluster startup
-> (~2 minutes) and image pull. For a job this small (seconds of work),
-> that startup dominates and running locally is faster overall. This
-> example is sized for illustration; bursting pays off when each task
-> runs for minutes and there are many of them. See
+| Phase | Time | Notes |
+|----|----|----|
+| Local (sequential) | 0.1 s | 20 tasks on an M4 Pro — this workload is tiny |
+| Cloud: startup | 74.7 s | one-time: worker provision + image pull |
+| Cloud: compute + collect | 27.9 s | submit → run on 20 workers → collect |
+| **Cloud total (cold)** | **102.6 s** | startup + compute+collect |
+| Est. cost | \$0.03 | 20× c7i.xlarge Spot |
+
+*(staRburst 0.3.9, us-east-1, EC2 c7i.xlarge Spot, 20 workers, cold
+start, 2026-07-21.)*
+
+> **This is the honest result, and it’s a “don’t burst this” case.** The
+> cloud total (102.6 s) is far *slower* than local (0.1 s): the workload
+> is seconds of compute, so the ~75 s of fixed startup dominates and
+> there is nothing to amortize it against. Cloud bursting wins only when
+> per-task work is **minutes** and there are many tasks — then
+> compute+collect dwarfs startup. This example exists to show the
+> mechanics; see
 > [`vignette("performance")`](https://starburst.ing/articles/performance.md)
-> for when cloud is actually worth it.
+> for when the cloud actually pays off. Regenerate this table for your
+> own workload/region with `bench/benchmark.R`.
 
 **Key Insights**: - Excellent parallelization for spatial operations
 once workers are warm - Near-linear scaling across regions - Minimal
