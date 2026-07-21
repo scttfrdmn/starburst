@@ -82,6 +82,25 @@ setwd(.bench_wd)
 # seconds+, many tasks), matching the example vignettes it backs. `local()` gives
 # the sequential baseline; `f`/`x` are the mapped function and inputs.
 WORKLOADS <- list(
+  # The "shape that pays off": each task is genuinely heavy (tens of seconds of
+  # CPU), and there are as many tasks as workers. Sequential local time = N * heavy,
+  # while cloud time is ~one heavy task + the fixed startup — so even counting a full
+  # cold start, the fan-out wins. This is the workload that demonstrates staRburst's
+  # value (contrast with `geospatial`, which is deliberately too light to win).
+  heavy = list(
+    label = "Heavy per-task compute (repeated SVD) — the shape that pays off",
+    n = 30L, workers = 30L,
+    f = function(i) {
+      set.seed(i)
+      acc <- 0
+      # ~tens of seconds of dense linear algebra per task
+      for (k in 1:30) {
+        m <- matrix(rnorm(1000 * 1000), 1000, 1000)
+        acc <- acc + sum(svd(m)$d)
+      }
+      list(task = i, checksum = acc)
+    }
+  ),
   geospatial = list(
     label = "Geospatial analysis (per-region terrain stats)",
     n = 20L, workers = 20L,

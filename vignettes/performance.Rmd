@@ -35,22 +35,49 @@ Cloud is not magic. It has overhead, costs money, and AWS CPUs are slower per-co
 
 ## Real Performance Data
 
-**Workload**: 500M Monte Carlo iterations (9.7 hours sequential)
+These are **real measured runs** from `bench/benchmark.R` (see `bench/README.md`) on
+live AWS — full cold starts, nothing excluded. They're chosen to show *both* sides, so
+you can calibrate when bursting is worth it. Same setup for both: staRburst 0.3.9,
+us-east-1, EC2 `c7i.xlarge` Spot, cold start, baseline on an 8-core Apple M4 Pro
+(2026-07-21).
 
-```
-Sequential (1 core):        9.7 hours
-M4 Pro (10 perf cores):     67.5 minutes
-AWS EC2 c8a (50 workers):   ~30 minutes    ← winner
+### ✅ When it pays off — heavy per-task work
 
-Cloud speedup: 2.2x vs M4 Pro parallel, 19x vs sequential
-Cost: ~$1.10 (spot instances)
-```
+30 tasks, each ~10 s of dense linear algebra (repeated SVD):
 
-**Why 2.2x and not 5x?**
+| Phase | Time |
+|-------|------|
+| Local (sequential, 1 pass over 30 tasks) | 319.3 s (5.3 min) |
+| Cloud: startup (provision + image pull) | 87.5 s |
+| Cloud: compute + collect (30 workers) | 38.4 s |
+| **Cloud total (cold)** | **125.8 s (2.1 min)** |
+| Est. cost | $0.06 |
 
-1. **Per-core gap**: c8a AMD is ~65–70% of M4 Pro speed (3.0 GHz AMD EPYC vs 3.5–4.0 GHz Apple Silicon)
-2. **Startup overhead**: ~2 minutes for first result (pool warmup + S3 transfer) — amortized across subsequent runs
-3. **Straggler effect**: some variation in task completion time across workers
+**~2.5× faster even counting the full ~90 s cold startup** — because the 30 tasks
+finish in parallel in ~38 s instead of ~5 min sequentially. Run this as a warm pool or
+a parameter sweep and the startup amortizes away, pushing the speedup higher.
+
+### ❌ When it doesn't — light per-task work
+
+20 tasks, each a fraction of a second (small terrain-stat grids):
+
+| Phase | Time |
+|-------|------|
+| Local (sequential) | 0.1 s |
+| Cloud: startup | 74.7 s |
+| Cloud: compute + collect | 27.9 s |
+| **Cloud total (cold)** | **102.6 s** |
+| Est. cost | $0.03 |
+
+**~1000× *slower* than local.** The work is trivial, so the fixed startup is pure
+overhead with nothing to amortize it against. Running this locally is the right call.
+
+### The lesson
+
+Same tool, same 20–30 workers, opposite verdicts. The only thing that changed is
+**how much work each task does**. If your tasks are seconds-to-minutes each and you
+have many of them, staRburst wins; if they're sub-second, stay local. The rest of this
+guide makes that boundary precise.
 
 ---
 
@@ -127,33 +154,33 @@ c8a spot:       $2.16/hr   ← 70% savings, low interruption risk
 
 ## The Startup Cost Problem
 
-Workers need ~2 minutes to start cold (pool warmup + environment sync). This cost is **fixed** — it doesn't scale with job size. The key is to amortize it.
+Workers need ~75–90 s to start cold (pool warmup + image pull + environment sync).
+This cost is **fixed** — it doesn't scale with job size. The key is to amortize it.
+The numbers below extrapolate from the measured "heavy" run above (5.3 min local vs
+~90 s startup + ~38 s compute on 30 workers).
 
-### Run once — marginal value
+### Run once (cold) — modest win
 
 ```
-Local parallel (M4 Pro):  67.5 min, $0
-Cloud 50 workers (cold):  46.5 min, $3.82
-  → Saved 21 min for $3.82 = $10.91/hr saved
-  → Marginal
+Local (sequential):        5.3 min, $0
+Cloud 30 workers (cold):   2.1 min ($0.06)   [87s startup + 38s compute]
+  → ~2.5x faster, laptop freed — worth it, but startup is most of the cloud time
 ```
 
 ### Run 10 times (parameter sweep) — much better
 
 ```
-Local parallel:            675 min (10 × 67.5), laptop tied up
-Cloud (workers stay warm): 375 min (10 min startup once + 10 × 36.5)
-  → Saved 5 hours for $38 = $7.64/hr saved
-  → Good value, laptop stays usable
+Local (sequential):        53 min (10 × 5.3), laptop tied up
+Cloud (pool stays warm):   ~8 min (90s startup ONCE + 10 × ~38s compute)
+  → Startup paid once, then each run is ~38s. Big win, laptop stays usable.
 ```
 
 ### Daily recurring job — excellent
 
 ```
-100 runs/month
-Local:   6,750 min, laptop tied up 4.7 hrs/day
-Cloud:   3,660 min, 0.1% startup overhead
-  → ~$380/month, 51 hours saved
+Warm pool started once in the morning; every run pays ~0 startup.
+  → Per-run cost is just compute+collect (~38s here); startup overhead ≈ 0%.
+  → Best case for staRburst — see the "keep warm pool" pattern below.
 ```
 
 ---
