@@ -13,6 +13,9 @@ starburst_map(
   platform = "X86_64",
   region = NULL,
   timeout = 3600,
+  launch_type = "EC2",
+  instance_type = "c7g.xlarge",
+  use_spot = TRUE,
   .progress = TRUE,
   ...
 )
@@ -33,6 +36,13 @@ starburst_map(
 \item{region}{AWS region}
 
 \item{timeout}{Maximum runtime in seconds per task}
+
+\item{launch_type}{Compute backend: "EC2" (default) or "FARGATE"}
+
+\item{instance_type}{EC2 instance type when \code{launch_type = "EC2"}
+(default: "c7g.xlarge")}
+
+\item{use_spot}{Use EC2 Spot instances for cost savings (default: TRUE)}
 
 \item{.progress}{Show progress bar (default: TRUE)}
 
@@ -59,6 +69,10 @@ if (starburst_is_configured()) {
     cpu = 4,
     memory = "8GB"
   )
+
+  # Use the Fargate backend instead of the EC2 default
+  results <- starburst_map(1:100, function(x) x^2,
+                           workers = 10, launch_type = "FARGATE")
 }
 }
 }

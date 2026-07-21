@@ -10,7 +10,10 @@ starburst_cluster(
   memory = "8GB",
   platform = "X86_64",
   region = NULL,
-  timeout = 3600
+  timeout = 3600,
+  launch_type = "EC2",
+  instance_type = "c7g.xlarge",
+  use_spot = TRUE
 )
 }
 \arguments{
@@ -25,6 +28,13 @@ starburst_cluster(
 \item{region}{AWS region}
 
 \item{timeout}{Maximum runtime in seconds}
+
+\item{launch_type}{Compute backend: "EC2" (default) or "FARGATE"}
+
+\item{instance_type}{EC2 instance type when \code{launch_type = "EC2"}
+(default: "c7g.xlarge")}
+
+\item{use_spot}{Use EC2 Spot instances for cost savings (default: TRUE)}
 }
 \value{
 A starburst_cluster object
@@ -38,6 +48,9 @@ using the staRburst Future backend.
 if (starburst_is_configured()) {
   cluster <- starburst_cluster(workers = 20)
   results <- cluster$map(data, function(x) x * 2)
+
+  # Fargate backend instead of the EC2 default
+  fg <- starburst_cluster(workers = 20, launch_type = "FARGATE")
 }
 }
 }
