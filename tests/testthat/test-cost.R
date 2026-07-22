@@ -216,3 +216,29 @@ test_that("max_hourly_cost guard fires on the EC2 default path (regression)", {
     "exceeds limit"
   )
 })
+
+test_that("get_ec2_instance_price falls back to static rate when live lookup fails", {
+  skip_if_not_installed("mockery")
+
+  # Clear any cached value for this key, then force the live lookup to error.
+  mockery::stub(get_ec2_instance_price, "get_ec2_ondemand_price",
+                function(...) stop("no network"))
+  mockery::stub(get_ec2_instance_price, "get_starburst_config",
+                function() list(region = "us-east-1"))
+
+  price <- get_ec2_instance_price("c7g.xlarge", use_spot = FALSE, region = "us-east-1")
+  # Falls back to the static snapshot value for c7g.xlarge.
+  expect_equal(price, .static_ec2_prices()[["c7g.xlarge"]])
+})
+
+test_that("get_ec2_instance_price uses the live rate when available", {
+  skip_if_not_installed("mockery")
+
+  mockery::stub(get_ec2_instance_price, "get_ec2_ondemand_price", function(...) 0.999)
+  mockery::stub(get_ec2_instance_price, "get_starburst_config",
+                function() list(region = "us-east-1"))
+
+  # Unique region key avoids the session cache from the previous test.
+  price <- get_ec2_instance_price("c7g.xlarge", use_spot = FALSE, region = "eu-west-1")
+  expect_equal(price, 0.999)
+})
