@@ -146,20 +146,29 @@ plan.starburst <- function(strategy,
                            use_spot = use_spot)
 
   if (launch_type == "FARGATE") {
-    cat_info(sprintf("\n[Cost] Estimated cost: ~$%.2f/hour\n", cost_est$per_hour))
+    cat_info(sprintf("\n[Cost] Estimated cost: ~$%.2f/hour\n", cost_est$hourly_rate))
   } else {
     cat_info(sprintf("\n[Cost] Estimated cost: ~$%.2f/hour (%d x %s%s)\n",
-                    cost_est$total_per_hour,
+                    cost_est$hourly_rate,
                     cost_est$instances_needed,
                     instance_type,
                     if (use_spot) " spot" else ""))
   }
 
-  # Check cost limits (max_hourly_cost is an hourly-RATE cap, USD/hour)
-  if (!is.null(config$max_hourly_cost) && cost_est$per_hour > config$max_hourly_cost) {
+  # Cost alert (warn, does not stop) — the normalized hourly_rate works for every
+  # backend, so this fires on EC2 (the default) too.
+  if (!is.null(config$cost_alert_threshold) &&
+      cost_est$hourly_rate > config$cost_alert_threshold) {
+    cat_warn(sprintf(
+      "[Cost] Estimated $%.2f/hr is above your alert threshold ($%.2f/hr).\n",
+      cost_est$hourly_rate, config$cost_alert_threshold))
+  }
+
+  # Cost limit (hard stop). max_hourly_cost is an hourly-RATE cap, USD/hour.
+  if (!is.null(config$max_hourly_cost) && cost_est$hourly_rate > config$max_hourly_cost) {
     stop(sprintf(
       "Estimated cost ($%.2f/hr) exceeds limit ($%.2f/hr). Adjust with starburst_config(max_hourly_cost = ...)",
-      cost_est$per_hour, config$max_hourly_cost
+      cost_est$hourly_rate, config$max_hourly_cost
     ))
   }
 

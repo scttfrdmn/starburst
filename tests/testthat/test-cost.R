@@ -180,3 +180,39 @@ test_that("calculate_total_cost falls back to plan cost on error", {
 
   expect_equal(result, 1.5)
 })
+
+test_that("estimate_cost returns a normalized hourly_rate for every backend", {
+  fg <- estimate_cost(10, 4, "8GB", launch_type = "FARGATE")
+  expect_true(!is.null(fg$hourly_rate) && fg$hourly_rate > 0)
+  expect_equal(fg$hourly_rate, fg$per_hour)  # back-compat field agrees
+
+  # EC2 On-Demand and Spot both expose hourly_rate (== total_per_hour)
+  ec2_od <- estimate_cost(10, 4, "8GB", launch_type = "EC2",
+                          instance_type = "c7g.xlarge", use_spot = FALSE)
+  expect_true(!is.null(ec2_od$hourly_rate) && ec2_od$hourly_rate > 0)
+  expect_equal(ec2_od$hourly_rate, ec2_od$total_per_hour)
+
+  ec2_spot <- estimate_cost(10, 4, "8GB", launch_type = "EC2",
+                            instance_type = "c7g.xlarge", use_spot = TRUE)
+  expect_true(!is.null(ec2_spot$hourly_rate) && ec2_spot$hourly_rate > 0)
+  # spot should be cheaper than on-demand for the same shape
+  expect_lt(ec2_spot$hourly_rate, ec2_od$hourly_rate)
+})
+
+test_that("max_hourly_cost guard fires on the EC2 default path (regression)", {
+  skip_if_not_installed("mockery")
+
+  # Regression: the guard read cost_est$per_hour, which is NULL on EC2, so the
+  # limit was silently unenforced on the default backend. It must STOP now.
+  mockery::stub(plan.starburst, "get_starburst_config",
+                function() list(region = "us-east-1", max_hourly_cost = 0.01))
+  mockery::stub(plan.starburst, "check_aws_credentials", function() TRUE)
+  mockery::stub(plan.starburst, "check_ecr_image_exists", function(...) TRUE)
+
+  expect_error(
+    plan.starburst(strategy = starburst, workers = 50, cpu = 4,
+                   launch_type = "EC2", instance_type = "c7g.xlarge",
+                   use_spot = FALSE),
+    "exceeds limit"
+  )
+})

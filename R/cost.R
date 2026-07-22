@@ -21,10 +21,18 @@ estimate_cost <- function(workers, cpu, memory, estimated_runtime_hours = 1,
       (cpu * vcpu_price_per_hour) +
       (memory_gb * gb_price_per_hour)
 
+    per_hour <- cost_per_worker_per_hour * workers
     list(
+      # hourly_rate is the NORMALIZED field every consumer should use — the total
+      # $/hour for the whole job, regardless of backend. (per_hour/per_worker kept
+      # for back-compat.)
+      hourly_rate = per_hour,
       per_worker = cost_per_worker_per_hour,
-      per_hour = cost_per_worker_per_hour * workers,
-      total_estimated = cost_per_worker_per_hour * workers * estimated_runtime_hours
+      per_hour = per_hour,
+      total_estimated = per_hour * estimated_runtime_hours,
+      backend = "FARGATE",
+      instance_type = NULL,
+      use_spot = FALSE
     )
   } else {
     # EC2 pricing
@@ -38,11 +46,15 @@ estimate_cost <- function(workers, cpu, memory, estimated_runtime_hours = 1,
     total_cost_per_hour <- instances_needed * instance_price
 
     list(
+      hourly_rate = total_cost_per_hour,   # normalized total $/hour (see above)
       per_instance = instance_price,
       instances_needed = instances_needed,
       total_per_hour = total_cost_per_hour,
       total_estimated = total_cost_per_hour * estimated_runtime_hours,
       spot_discount = if (use_spot) "~70%" else "N/A",
+      backend = "EC2",
+      instance_type = instance_type,
+      use_spot = use_spot,
       launch_type = "EC2"
     )
   }
