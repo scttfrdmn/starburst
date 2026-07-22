@@ -7,6 +7,22 @@
   first `starburst_map()`/`plan(starburst)` run failed because no capacity provider
   existed. It is created at `DesiredCapacity = 0` (no billable instances launch
   during setup). Pass `setup_ec2 = FALSE` to skip (Fargate-only users). (#37)
+* **Custom EC2 instance types are now provisioned automatically on first use.**
+  Selecting a non-default `instance_type` (e.g. `c8a.xlarge`) previously failed with
+  an opaque "AutoScalingGroup not found" because only the default was provisioned.
+  Now the capacity provider/ASG is created on demand at first launch (a one-time
+  ~1–2 min step; no instances launched by provisioning), or on failure you get the
+  exact `starburst_setup_ec2(instance_types = "…")` command to run.
+
+## Behavior changes
+
+* **Detached `session$collect()` now returns an entry for every terminal task**,
+  including failures. A failed task comes back as a structured failure
+  (`list(error = TRUE, message = …, task_id = …)`) alongside successful results,
+  instead of being silently omitted — matching the documented contract.
+* Clarified `session$cleanup()`: by default it stops workers and marks the session
+  terminated but **preserves S3 objects**; pass `force = TRUE` to also delete them.
+  (Behavior unchanged; the docs were wrong and are now correct.)
 
 ## Breaking changes
 
