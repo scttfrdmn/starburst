@@ -29,27 +29,18 @@ and Fargate (serverless) backends.
 
 ## Installation
 
-> **Note on versions.** This documentation describes the **development
-> version, 0.3.9**. The current CRAN release is **0.3.8**, which does
-> **not** include some APIs documented here (notably backend arguments —
-> `launch_type`/`instance_type`/ `use_spot` — on
-> [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
-> and
-> [`starburst_cluster()`](https://starburst.ing/reference/starburst_cluster.md)).
-> To use the APIs as documented, install from GitHub.
-
-Development version (0.3.9 — matches this documentation):
-
-``` r
-
-remotes::install_github("scttfrdmn/starburst")
-```
-
-Latest CRAN release (0.3.8):
+From CRAN:
 
 ``` r
 
 install.packages("starburst")
+```
+
+Development version (from GitHub):
+
+``` r
+
+remotes::install_github("scttfrdmn/starburst")
 ```
 
 ## Quick Start
@@ -301,16 +292,18 @@ Started](https://starburst.ing/articles/getting-started.html) guide.
 
 ## Roadmap
 
-### v0.3.9 (development — this documentation)
+### v0.3.9 (current CRAN release)
 
 - ✅ Backend arguments (`launch_type`/`instance_type`/`use_spot`) on
   [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)/[`starburst_cluster()`](https://starburst.ing/reference/starburst_cluster.md)
 - ✅ One-step EC2 setup
   ([`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md)
   provisions the default capacity provider)
+- ✅ Live AWS pricing for cost estimates (Pricing API + spot history,
+  cached)
 - ✅ Measured performance/workload-shape guides
 
-### v0.3.8 (current CRAN release)
+### v0.3.8
 
 - ✅ Direct API (`starburst_map`, `starburst_cluster`)
 - ✅ EC2 backend (default, with spot instances) + Fargate (serverless

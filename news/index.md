@@ -1,6 +1,6 @@
 # Changelog
 
-## starburst 0.3.9 (development)
+## starburst 0.3.9 (2026-07-22)
 
 ### Cost & cleanup fixes (important)
 

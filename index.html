@@ -114,15 +114,12 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<blockquote>
-<p><strong>Note on versions.</strong> This documentation describes the <strong>development version, 0.3.9</strong>. The current CRAN release is <strong>0.3.8</strong>, which does <strong>not</strong> include some APIs documented here (notably backend arguments — <code>launch_type</code>/<code>instance_type</code>/ <code>use_spot</code> — on <code><a href="reference/starburst_map.html">starburst_map()</a></code> and <code><a href="reference/starburst_cluster.html">starburst_cluster()</a></code>). To use the APIs as documented, install from GitHub.</p>
-</blockquote>
-<p>Development version (0.3.9 — matches this documentation):</p>
+<p>From CRAN:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"scttfrdmn/starburst"</span><span class="op">)</span></span></code></pre></div>
-<p>Latest CRAN release (0.3.8):</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"starburst"</span><span class="op">)</span></span></code></pre></div>
+<p>Development version (from GitHub):</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"scttfrdmn/starburst"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
@@ -424,17 +421,18 @@
 <h2 id="roadmap">Roadmap<a class="anchor" aria-label="anchor" href="#roadmap"></a>
 </h2>
 <div class="section level3">
-<h3 id="v039-development--this-documentation">v0.3.9 (development — this documentation)<a class="anchor" aria-label="anchor" href="#v039-development--this-documentation"></a>
+<h3 id="v039-current-cran-release">v0.3.9 (current CRAN release)<a class="anchor" aria-label="anchor" href="#v039-current-cran-release"></a>
 </h3>
 <ul>
 <li>✅ Backend arguments (<code>launch_type</code>/<code>instance_type</code>/<code>use_spot</code>) on <code><a href="reference/starburst_map.html">starburst_map()</a></code>/<code><a href="reference/starburst_cluster.html">starburst_cluster()</a></code>
 </li>
 <li>✅ One-step EC2 setup (<code><a href="reference/starburst_setup.html">starburst_setup()</a></code> provisions the default capacity provider)</li>
+<li>✅ Live AWS pricing for cost estimates (Pricing API + spot history, cached)</li>
 <li>✅ Measured performance/workload-shape guides</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="v038-current-cran-release">v0.3.8 (current CRAN release)<a class="anchor" aria-label="anchor" href="#v038-current-cran-release"></a>
+<h3 id="v038">v0.3.8<a class="anchor" aria-label="anchor" href="#v038"></a>
 </h3>
 <ul>
 <li>✅ Direct API (<code>starburst_map</code>, <code>starburst_cluster</code>)</li>
