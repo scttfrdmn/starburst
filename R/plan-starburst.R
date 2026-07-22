@@ -450,7 +450,7 @@ parse_memory <- function(memory) {
 
 #' staRburst Future Strategy
 #'
-#' Future strategy for running parallel R workloads on AWS Fargate
+#' Future strategy for running parallel R workloads on AWS (EC2 by default, or Fargate)
 #'
 #' @param workers Number of parallel workers
 #' @param cpu vCPUs per worker (1, 2, 4, 8, or 16)

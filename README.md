@@ -32,7 +32,9 @@ and Fargate (serverless) backends.
   automatically available on workers
 - **Smart Quota Management**: Automatically handles AWS quota limits
   with wave execution
-- **Cost Transparent**: See estimated and actual costs for every run
+- **Cost Transparent**: Every run shows an estimated cost (measured
+  runtime × current AWS On-Demand/Spot pricing) so there are no billing
+  surprises
 - **Auto Cleanup**: Workers shut down automatically when done
 
 ## Installation

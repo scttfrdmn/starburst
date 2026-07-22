@@ -401,15 +401,20 @@ plan(starburst, workers = 1000)  # Would cost ~$35/hour
 #> Error: Estimated cost ($35/hr) exceeds limit ($10/hr)
 ```
 
-### Track Actual Costs
+### Cost estimates
+
+After a run, staRburst reports an **estimated** cost — the measured worker runtime
+multiplied by the current AWS price for your instance type (On-Demand or Spot),
+looked up live from the AWS Pricing API (and cached; it falls back to built-in rates
+offline). It is a close estimate, not a figure from AWS billing / Cost Explorer.
 
 ```{r}
 plan(starburst, workers = 50)
 
 results <- future_map(data, process)
 
-#> Cluster runtime: 23 minutes
-#> Total cost: $1.34
+#> Cluster runtime: ~23 minutes
+#> Estimated cost: ~$1.34
 ```
 
 ## Quota Management (Fargate backend)

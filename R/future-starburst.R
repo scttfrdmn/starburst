@@ -39,7 +39,7 @@ future.starburst <- function(expr, envir = parent.frame(), substitute = TRUE,
 
 #' StarburstFuture Constructor
 #'
-#' Creates a Future object for evaluation on AWS Fargate
+#' Creates a Future object for evaluation on AWS workers (EC2 by default, or Fargate)
 #'
 #' @param expr Expression to evaluate
 #' @param envir Environment for evaluation
@@ -124,7 +124,7 @@ StarburstFuture <- function(expr, envir = parent.frame(), substitute = TRUE,
 
 #' Run a StarburstFuture
 #'
-#' Submits the future task to AWS Fargate for execution
+#' Submits the future task to AWS for execution (EC2 by default, or Fargate)
 #'
 #' @param future A StarburstFuture object
 #' @param ... Additional arguments

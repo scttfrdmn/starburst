@@ -206,9 +206,11 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
   # Final message
   cat_success("\n[OK] staRburst setup complete!\n")
   cat_info("\nQuick start:\n")
+  cat_info("  results <- starburst_map(inputs, expensive_function, workers = 50)\n")
+  cat_info("\nAlready using future/furrr? Set the plan instead:\n")
   cat_info("  library(furrr)\n")
   cat_info("  plan(starburst, workers = 50)\n")
-  cat_info("  results <- future_map(data, expensive_function)\n")
+  cat_info("  results <- future_map(inputs, expensive_function)\n")
 
   invisible(TRUE)
 }
