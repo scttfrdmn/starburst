@@ -122,6 +122,17 @@
   a grouped reference index and an architecture diagram were added; and
   [`starburst_config()`](https://starburst.ing/reference/starburst_config.md)
   keys are now catalogued.
+- Trimmed the Getting Started tutorial: the inline Monte Carlo /
+  bootstrap / genomics snippets (which showed unbatched
+  `future_map(1:10000, …)` and hand-written speedup claims) now link to
+  the canonical, measured example articles and the Workload Shapes /
+  Performance guides. The doc-consistency guard (`tools/check-docs.R`)
+  now also flags naive `future_map()`/`future_lapply()` big-count calls,
+  not just
+  [`starburst_map()`](https://starburst.ing/reference/starburst_map.md).
+- Removed the historical `ROADMAP.md` (a pre-1.0, Fargate-first
+  implementation plan that also carried a stale “MIT” license note); the
+  README Roadmap section is the single source of truth.
 
 ## starburst 0.3.8 (2026-03-06)
 
