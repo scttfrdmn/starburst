@@ -30,3 +30,4 @@
 ^run-aws-tests\.sh$
 ^setup-iam-roles\.sh$
 ^SWAT-FEASIBILITY-BRIEF\.md$
+^CRAN-SUBMISSION$
