@@ -264,7 +264,7 @@ cat(sprintf("  Estimated time for 10,000 scenarios: %.1f minutes\n",
             local_time * 10000 / length(test_scenarios) / 60))
 ```
 
-**Typical output**:
+**Illustrative output**:
 ```
 Running local benchmark (120 scenarios)...
 [OK] Completed in 8.4 seconds
@@ -302,21 +302,29 @@ cat(sprintf("Running risk analysis (%s scenarios) on %d workers...\n",
 
 cloud_start <- Sys.time()
 
-results <- starburst_map(
+# Each scenario is tiny (~1 ms), so submitting 10,145 one-scenario tasks would be
+# dominated by per-task S3 overhead (see the Workload Shapes guide). Batch into
+# ~100 tasks, each valuing a chunk of scenarios.
+batches <- split(
   all_scenarios,
-  value_portfolio_scenario,
-  portfolio_data = portfolio,
+  ceiling(seq_along(all_scenarios) / ceiling(length(all_scenarios) / 100))
+)
+results <- starburst_map(
+  batches,
+  function(batch) lapply(batch, value_portfolio_scenario, portfolio_data = portfolio),
   workers = n_workers,
   cpu = 2,
   memory = "4GB"
 )
+results <- unlist(results, recursive = FALSE)  # flatten to one result per scenario
 
 cloud_time <- as.numeric(difftime(Sys.time(), cloud_start, units = "mins"))
 
 cat(sprintf("\n[OK] Completed in %.2f minutes\n", cloud_time))
 ```
 
-**Typical output**:
+**Illustrative output** (times/cost vary — see the Workload Shapes and Performance
+guides for measured numbers):
 ```
 Generating scenario sets...
   Stress test scenarios: 100
@@ -325,11 +333,11 @@ Generating scenario sets...
   Total scenarios: 10,145
 
 [Starting] Starting starburst cluster with 50 workers
-[Status] Processing 10145 items with 50 workers
-[Starting] Submitting 10145 tasks...
-[Wait] Progress: 10145/10145 (108.0s)
-[OK] Completed in 108.0 seconds
-[Cost] Estimated cost: $0.12
+[Status] Processing 100 items with 50 workers
+[Starting] Submitting 100 tasks...
+[Wait] Progress: 100/100
+[OK] Completed
+[Cost] Estimated cost: (printed per run)
 ```
 
 ## Risk Metrics Analysis
@@ -419,7 +427,7 @@ cat(sprintf("Capital as %% of Portfolio: %.2f%%\n",
             market_risk_capital / total_portfolio_value * 100))
 ```
 
-**Typical output**:
+**Illustrative output**:
 ```
 === Comprehensive Risk Analysis Results ===
 
@@ -460,19 +468,10 @@ Market Risk Capital Requirement: $29,629,629
 Capital as % of Portfolio: 47.44%
 ```
 
-## Performance Comparison
+## Performance
 
-| Method | Scenarios | Time | Cost | Speedup |
-|--------|-----------|------|------|---------|
-| Local | 120 | 8.4 sec | $0 | - |
-| Local (est.) | 10,145 | 11.9 min | $0 | 1x |
-| staRburst | 10,145 | 1.8 min | $0.12 | 6.6x |
-
-**Key Insights**:
-- Excellent speedup (6.6x) for risk calculations
-- Enables daily comprehensive risk reporting
-- Cost-effective even for large portfolios
-- Can scale to 100,000+ scenarios for more precision
+For measured performance and when bursting is worth it, see
+`vignette("performance")` and `vignette("workload-shapes")`.
 
 ## Advanced: Incremental Risk Analysis
 

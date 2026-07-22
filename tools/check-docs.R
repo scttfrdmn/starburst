@@ -40,10 +40,21 @@ banned <- c("future_starburst", "starburst_upload", "yourname/starburst",
             # removed/renamed args that must not reappear in docs or code:
             "detached = TRUE",   # starburst_session has no `detached` arg
             "max_cost_per_job",  # renamed to max_hourly_cost
-            "readRDS(url(")      # base url() can't read s3:// — use an S3 client
+            "readRDS(url(",      # base url() can't read s3:// — use an S3 client
+            # obsolete engine/backend terminology (no auto-chunking; EC2 default):
+            "Fargate workers")   # workers are EC2 by default; Fargate is opt-in
 scan_targets <- c(vignettes, readme, r_files)
+# Obsolete chunking language (regex): the engine creates one task per element and
+# does NOT auto-chunk, so any "Created N chunks" output is fabricated.
+banned_re <- c("Created\\s+[0-9]+\\s+chunks")
 for (f in scan_targets) {
   lines <- read_lines_safe(f)
+  for (re in banned_re) {
+    for (h in grep(re, lines)) {
+      note(sprintf("[obsolete-term] %s:%d matches /%s/ — the engine does not auto-chunk",
+                   sub(paste0("^", pkg_root, "/?"), "", f), h, re))
+    }
+  }
   for (b in banned) {
     hits <- grep(b, lines, fixed = TRUE)
     for (h in hits) {
@@ -152,6 +163,26 @@ for (f in c(vignettes, readme)) {
       note(sprintf("[naive-big-count] %s:%d starburst_map(1:%d, ...) — model batching or mark it as an anti-pattern (# DON'T / # Bad:)",
                    basename(f), h, n))
     }
+  }
+}
+
+# ---- 6. Fabricated performance claims in example vignettes -------------------
+# The measured performance/workload-shapes guides are the single source of truth.
+# Example vignettes must NOT present hand-written performance as if measured. Two
+# tells, both flagged (only in example-*.Rmd; the measured guides are exempt):
+#   (a) a "Typical output" label (implies measured) on a console block — use
+#       "Illustrative output" instead;
+#   (b) a fabricated speedup table row like `| staRburst | ... | 24.3x |`.
+example_vigs <- Filter(function(p) grepl("/example-", p), vignettes)
+for (f in example_vigs) {
+  lines <- read_lines_safe(f)
+  for (h in grep("Typical output", lines, ignore.case = TRUE)) {
+    note(sprintf("[unmeasured-output] %s:%d 'Typical output' implies measured — label example console output 'Illustrative output'",
+                 basename(f), h))
+  }
+  for (h in grep("\\|\\s*[0-9]+(\\.[0-9]+)?x\\s*\\|", lines)) {
+    note(sprintf("[fabricated-speedup] %s:%d speedup table row — remove; point to vignette(\"performance\")/vignette(\"workload-shapes\") for measured numbers",
+                 basename(f), h))
   }
 }
 

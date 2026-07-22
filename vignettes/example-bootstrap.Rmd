@@ -127,7 +127,7 @@ local_time <- as.numeric(difftime(Sys.time(), local_start, units = "secs"))
 cat(sprintf("[OK] Completed in %.2f seconds\n\n", local_time))
 ```
 
-**Typical output**:
+**Illustrative output**:
 ```
 Running 1000 bootstrap iterations locally...
 [OK] Completed in 2.1 seconds
@@ -153,7 +153,7 @@ results <- starburst_map(
 )
 ```
 
-**Typical output**:
+**Illustrative output**:
 ```
 [Starting] Starting starburst cluster with 25 workers
 [Status] Processing 10000 items with 25 workers
@@ -206,7 +206,7 @@ cat(sprintf("95%% CI for relative lift: [%.1f%%, %.1f%%]\n",
             quantile(relative_lifts, 0.975) * 100))
 ```
 
-**Typical output**:
+**Illustrative output**:
 ```
 === Bootstrap Results (10,000 iterations) ===
 
