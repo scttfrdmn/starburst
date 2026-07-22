@@ -50,14 +50,20 @@ A \code{StarburstSession} object (also carrying \code{$session_id}, the
     \item{\code{status()}}{Return a progress summary (counts of pending / running
       / completed / failed tasks). Safe to call from a fresh R session after
       reattaching.}
-    \item{\code{collect(wait = FALSE)}}{Retrieve results. With \code{wait = FALSE}
-      returns whatever has completed so far; with \code{wait = TRUE} blocks until
-      all submitted tasks finish. Results come back in submission order.}
+    \item{\code{collect(wait = FALSE)}}{Retrieve results, keyed by task id, in
+      submission order. With \code{wait = FALSE} returns whatever has finished so
+      far; \code{wait = TRUE} blocks until every submitted task is terminal.
+      Every terminal task appears: a success carries its return value; a
+      \strong{failed} task carries a structured failure
+      \code{list(error = TRUE, message = ..., value = NULL, task_id = ...)} so
+      failures are visible rather than silently dropped.}
     \item{\code{extend(seconds = 3600)}}{Extend the active/absolute timeout of a
       still-running session.}
-    \item{\code{cleanup()}}{Stop all tasks/workers for the session and delete its
-      S3 objects. Call when done; otherwise the session self-terminates at
-      \code{absolute_timeout}.}
+    \item{\code{cleanup(stop_workers = TRUE, force = FALSE)}}{Stop the session's
+      workers and mark it terminated. By default \strong{S3 objects are
+      preserved} (so you can still inspect/collect); pass \code{force = TRUE} to
+      also delete the session's S3 task/result objects. Otherwise the session
+      self-terminates at \code{absolute_timeout}.}
   }
 }
 \description{
@@ -77,7 +83,9 @@ elapses with no activity, or at \code{absolute_timeout} — whichever comes firs
 \section{Failure behavior}{
 
 A failed task is recorded (surfaced via \code{status()}) and does not abort the
-others; its error is raised when you \code{collect()} that result. If the client
+others; \code{collect()} returns it as a structured failure entry
+(\code{error = TRUE} with a \code{message}) alongside the successful results,
+rather than dropping it or raising. If the client
 dies, workers keep running against S3 until a timeout, which is what makes
 reattaching possible. \code{cleanup()} is the only thing that frees resources
 early — sessions do not auto-clean on garbage collection.
