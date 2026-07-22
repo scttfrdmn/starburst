@@ -130,13 +130,15 @@ session$cleanup()
 ## Choosing and tuning the backend
 
 Sessions use **EC2 with Spot instances by default** — no extra arguments needed.
-You can tune the instance type, or opt into Fargate:
+You can tune the instance type, or opt into Fargate. A non-default instance type is
+provisioned automatically on first use (a one-time ~1–2 min step), or run
+`starburst_setup_ec2(instance_types = "c8a.xlarge")` once to pre-provision it.
 
 ```{r}
-# Default is already EC2 + Spot; override the instance type if you like
+# Default is already EC2 + Spot (c7g.xlarge); override the instance type if you like
 session <- starburst_session(
   workers = 50,
-  instance_type = "c8a.xlarge",  # AMD 8th gen; default is c7g.xlarge
+  instance_type = "c8a.xlarge",  # AMD 8th gen; auto-provisioned on first use
   use_spot = TRUE                 # default TRUE — ~70% cheaper
 )
 

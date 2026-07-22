@@ -333,6 +333,32 @@ start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
   autoscaling <- get_autoscaling_client(region)
   ecs <- get_ecs_client(region)
 
+  # Lazily provision the capacity provider + ASG for this instance type if it
+  # doesn't exist yet. starburst_setup() only provisions the default (c7g.xlarge),
+  # so a custom instance_type (e.g. c8a.xlarge) would otherwise fail here with an
+  # opaque "AutoScalingGroup not found". setup_ec2_capacity_provider() is idempotent.
+  asg_exists <- tryCatch({
+    resp <- autoscaling$describe_auto_scaling_groups(
+      AutoScalingGroupNames = list(asg_name)
+    )
+    length(resp$AutoScalingGroups) > 0
+  }, error = function(e) FALSE)
+
+  if (!asg_exists) {
+    cat_info(sprintf(
+      "[EC2] Capacity provider for %s not found; provisioning it now (once)...\n",
+      backend$instance_type))
+    tryCatch(
+      setup_ec2_capacity_provider(backend),
+      error = function(e) {
+        stop(sprintf(
+          paste0("Could not provision EC2 capacity for instance type '%s': %s\n",
+                 "Provision it once with:\n",
+                 "  starburst_setup_ec2(instance_types = \"%s\")"),
+          backend$instance_type, conditionMessage(e), backend$instance_type))
+      })
+  }
+
   # Scale ASG to desired capacity
   autoscaling$set_desired_capacity(
     AutoScalingGroupName = asg_name,
