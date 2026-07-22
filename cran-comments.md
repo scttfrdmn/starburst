@@ -1,51 +1,39 @@
-## Resubmission (5th)
+## Submission
 
-This resubmission fixes the invalid file URI flagged by CRAN's pretest in v0.3.8.
+This is a minor update from the current CRAN release (0.3.8) to 0.3.9.
 
-### Changes made in this resubmission:
+### Notable changes in 0.3.9
 
-1. **Fixed invalid LICENSE URI in README.md**: Replaced relative file URI
-   `[LICENSE](LICENSE)` with full GitHub URL
-   `[LICENSE](https://github.com/scttfrdmn/starburst/blob/main/LICENSE)`.
-   CRAN's pretest flagged: "Found the following (possibly) invalid file URI:
-   URI: LICENSE From: README.md"
+* `starburst_map()` and `starburst_cluster()` now accept and forward the
+  `launch_type` / `instance_type` / `use_spot` backend arguments (previously
+  these functions had no backend selection).
+* `starburst_setup()` provisions the default EC2 capacity provider so the
+  default backend works out of the box (created at zero instances; no cost).
+* Cost estimates now use live AWS pricing (Pricing API for On-Demand, EC2
+  spot-price history for Spot), cached per session with a built-in static-rate
+  fallback when offline; the `max_hourly_cost` guard and `cost_alert_threshold`
+  are now enforced on every backend.
+* Documentation consistency pass and several corrected examples.
 
-No other changes were made. Version remains 0.3.8.
+See NEWS.md for the full list.
 
 ## Test environments
 
-* local: macOS 26.3 (Tahoe), R 4.5.2
+* local: macOS 26.5 (Tahoe), R 4.6.1
 * GitHub Actions:
   - Ubuntu 22.04, R oldrel-1, release, devel
   - Windows latest, R release
   - macOS latest, R release
-* win-builder: R-devel (r89498)
+* win-builder: R-devel
 
 ## R CMD check results
 
-0 errors ✓ | 0 warnings ✓ | 1 NOTE
+0 errors | 0 warnings | 0 notes
 
-```
-* checking CRAN incoming feasibility ... NOTE
-Maintainer: 'Scott Friedman <help@starburst.ing>'
-
-New submission
-```
-
-This NOTE is expected and unavoidable for any new CRAN submission.
+All tests requiring AWS credentials are gated (skipped on CRAN); `\donttest`
+examples guard on `starburst_is_configured()` and make no network calls when
+credentials are absent.
 
 ## Downstream dependencies
 
 There are currently no downstream dependencies for this package.
-
-## CRAN submission notes
-
-The package provides seamless 'Amazon Web Services' ('AWS') cloud bursting
-for parallel R workloads on 'EC2' and 'Fargate'.
-
-Key points for reviewers:
-- All tests requiring AWS credentials are gated with `skip_if_offline()`
-  and will not run on CRAN's test servers
-- Package includes 12 vignettes with real-world examples in `inst/doc/`
-- Default backend is 'EC2' with spot instances for cost optimization
-- Fully documented with 29+ exported functions
