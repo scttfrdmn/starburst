@@ -191,120 +191,27 @@ plan(starburst, workers = 50)
 results <- future_map(1:100, expensive_simulation)
 ```
 
-## Example 1: Monte Carlo Simulation
+## Real-world examples
 
-```{r}
-library(starburst)
-library(furrr)
+Rather than repeat toy snippets here, the article gallery carries complete,
+**measured** end-to-end examples — each with real runtimes, costs, and the batching
+choices that make (or break) a workload:
 
-# Simulate portfolio returns
-simulate_portfolio <- function(seed) {
-  set.seed(seed)
-  
-  # Random walk for 252 trading days
-  returns <- rnorm(252, mean = 0.0003, sd = 0.02)
-  prices <- cumprod(1 + returns)
-  
-  list(
-    final_value = prices[252],
-    max_drawdown = max(cummax(prices) - prices) / max(prices),
-    sharpe_ratio = mean(returns) / sd(returns) * sqrt(252)
-  )
-}
+- [Monte Carlo simulation](https://starburst.ing/articles/example-monte-carlo.html)
+  — many small simulations batched into a handful of tasks.
+- [Bootstrap resampling](https://starburst.ing/articles/example-bootstrap.html)
+  — resampling a shared dataset across workers.
+- [Grid search](https://starburst.ing/articles/example-grid-search.html),
+  [risk modeling](https://starburst.ing/articles/example-risk-modeling.html),
+  [geospatial](https://starburst.ing/articles/example-geospatial.html), and
+  [more](https://starburst.ing/articles/).
 
-# Run 10,000 simulations on 100 workers
-plan(starburst, workers = 100)
-
-results <- future_map(1:10000, simulate_portfolio, .options = furrr_options(seed = TRUE))
-
-# Analyze results
-final_values <- sapply(results, `[[`, "final_value")
-hist(final_values, breaks = 50, main = "Distribution of Portfolio Final Values")
-
-# 95% confidence interval
-quantile(final_values, c(0.025, 0.975))
-```
-
-**Performance**:
-- Local (single core): ~4 hours
-- Cloud (100 workers): ~3 minutes
-- Cost: ~$1.80
-
-## Example 2: Bootstrap Resampling
-
-```{r}
-library(starburst)
-library(furrr)
-
-# Your data
-data <- read.csv("my_data.csv")
-
-# Bootstrap function
-bootstrap_regression <- function(i, data) {
-  # Resample with replacement
-  boot_indices <- sample(nrow(data), replace = TRUE)
-  boot_data <- data[boot_indices, ]
-  
-  # Fit model
-  model <- lm(y ~ x1 + x2 + x3, data = boot_data)
-  
-  # Return coefficients
-  coef(model)
-}
-
-# Run 10,000 bootstrap samples
-plan(starburst, workers = 50)
-
-boot_results <- future_map(1:10000, bootstrap_regression, data = data)
-
-# Convert to matrix
-boot_coefs <- do.call(rbind, boot_results)
-
-# 95% confidence intervals for each coefficient
-apply(boot_coefs, 2, quantile, probs = c(0.025, 0.975))
-```
-
-## Example 3: Genomics Pipeline
-
-```{r}
-library(starburst)
-library(furrr)
-
-# Process one sample
-process_sample <- function(sample_id) {
-  # Read from S3 (data already in cloud)
-  fastq_path <- sprintf("s3://my-genomics-data/samples/%s.fastq", sample_id)
-  data <- read_fastq(fastq_path)
-  
-  # Align reads
-  aligned <- align_reads(data, reference = "hg38")
-  
-  # Call variants
-  variants <- call_variants(aligned)
-  
-  # Return summary
-  list(
-    sample_id = sample_id,
-    num_variants = nrow(variants),
-    variants = variants
-  )
-}
-
-# Process 1000 samples on 100 workers
-sample_ids <- list.files("s3://my-genomics-data/samples/", pattern = ".fastq$")
-
-plan(starburst, workers = 100)
-
-results <- future_map(sample_ids, process_sample, .progress = TRUE)
-
-# Combine results
-all_variants <- do.call(rbind, lapply(results, `[[`, "variants"))
-```
-
-**Performance**:
-- Local (sequential): ~208 hours (8.7 days)
-- Cloud (100 workers): ~2 hours
-- Cost: ~$47
+Before you size a job, read the two guides that report real numbers on when the cloud
+wins, when it loses, and how to pick task/worker counts:
+[Workload Shapes](https://starburst.ing/articles/workload-shapes.html) and
+[Performance](https://starburst.ing/articles/performance.html). The short version:
+each task should be real work (seconds or more), and thousands of tiny tasks should be
+**batched** into dozens–hundreds — see [Batch Small Tasks](#batch-small-tasks) below.
 
 ## Working with Data
 
@@ -349,7 +256,8 @@ data <- read.csv("local_file.csv")
 # staRburst automatically uploads to S3 and distributes
 plan(starburst, workers = 50)
 
-results <- future_map(1:1000, function(i) {
+# `replicates` is your vector of inputs (e.g. bootstrap replicate ids)
+results <- future_map(replicates, function(i) {
   # Each worker gets a copy of 'data'
   bootstrap_analysis(data, i)
 })
@@ -371,7 +279,8 @@ s3_path <- "s3://my-bucket/large_data.rds"
 # Workers read from S3 inside the task (read_s3 helper defined above)
 plan(starburst, workers = 100)
 
-results <- future_map(1:1000, function(i) {
+# `tasks` is your vector of work items
+results <- future_map(tasks, function(i) {
   data <- read_s3(s3_path)   # readRDS by default
   process(data, i)
 })
@@ -464,7 +373,7 @@ plan(starburst, workers = 100, cpu = 4)
 #> [OK] Quota increase requested
 #> [Starting] Starting wave 1 (25 workers)...
 
-results <- future_map(1:1000, expensive_function)
+results <- future_map(inputs, expensive_function)
 
 #> [Wave] Wave 1: 100% complete (250 tasks)
 #> [Wave] Wave 2: 100% complete (500 tasks)
@@ -581,7 +490,7 @@ tmp <- tempfile(fileext = ".csv"); write.csv(big_data, tmp, row.names = FALSE)
 paws.storage::s3()$put_object(Bucket = "bucket", Key = "big_data.csv", Body = tmp)
 
 # Workers read from S3 (read_s3 helper from "Working with Data" above)
-results <- future_map(1:1000, function(i) {
+results <- future_map(tasks, function(i) {
   data <- read_s3("s3://bucket/big_data.csv", reader = read.csv)
   process(data, i)
 })
