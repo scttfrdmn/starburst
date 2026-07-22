@@ -217,6 +217,34 @@ test_that("max_hourly_cost guard fires on the EC2 default path (regression)", {
   )
 })
 
+test_that("cost_alert_threshold warns but does NOT stop the plan", {
+  skip_if_not_installed("mockery")
+
+  # Alert threshold below the estimate, and NO max_hourly_cost, so the only thing
+  # that could halt on cost is the alert — which must warn, not stop. We let the
+  # plan proceed past the cost checks and throw a sentinel at ensure_environment()
+  # to prove execution continued past the alert.
+  mockery::stub(plan.starburst, "get_starburst_config",
+                function() list(region = "us-east-1", cost_alert_threshold = 0.01))
+  mockery::stub(plan.starburst, "check_aws_credentials", function() TRUE)
+  mockery::stub(plan.starburst, "ensure_environment",
+                function(...) stop("SENTINEL: reached environment setup"))
+
+  out <- capture.output(
+    err <- tryCatch(
+      plan.starburst(strategy = starburst, workers = 50, cpu = 4,
+                     launch_type = "EC2", instance_type = "c7g.xlarge",
+                     use_spot = FALSE),
+      error = function(e) conditionMessage(e)
+    )
+  )
+
+  # It stopped at the sentinel (i.e. it got PAST the alert), not on the alert.
+  expect_match(err, "SENTINEL")
+  # And the alert warning was emitted.
+  expect_match(paste(out, collapse = "\n"), "alert threshold", fixed = TRUE)
+})
+
 test_that("get_ec2_instance_price falls back to static rate when live lookup fails", {
   skip_if_not_installed("mockery")
 
