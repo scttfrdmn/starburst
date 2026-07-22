@@ -22,6 +22,7 @@ Imports:
     paws.compute,
     paws.storage,
     paws.management,
+    paws.cost.management,
     paws.security.identity,
     qs2,
     uuid,

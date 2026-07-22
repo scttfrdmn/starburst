@@ -21,10 +21,18 @@ estimate_cost <- function(workers, cpu, memory, estimated_runtime_hours = 1,
       (cpu * vcpu_price_per_hour) +
       (memory_gb * gb_price_per_hour)
 
+    per_hour <- cost_per_worker_per_hour * workers
     list(
+      # hourly_rate is the NORMALIZED field every consumer should use — the total
+      # $/hour for the whole job, regardless of backend. (per_hour/per_worker kept
+      # for back-compat.)
+      hourly_rate = per_hour,
       per_worker = cost_per_worker_per_hour,
-      per_hour = cost_per_worker_per_hour * workers,
-      total_estimated = cost_per_worker_per_hour * workers * estimated_runtime_hours
+      per_hour = per_hour,
+      total_estimated = per_hour * estimated_runtime_hours,
+      backend = "FARGATE",
+      instance_type = NULL,
+      use_spot = FALSE
     )
   } else {
     # EC2 pricing
@@ -38,26 +46,30 @@ estimate_cost <- function(workers, cpu, memory, estimated_runtime_hours = 1,
     total_cost_per_hour <- instances_needed * instance_price
 
     list(
+      hourly_rate = total_cost_per_hour,   # normalized total $/hour (see above)
       per_instance = instance_price,
       instances_needed = instances_needed,
       total_per_hour = total_cost_per_hour,
       total_estimated = total_cost_per_hour * estimated_runtime_hours,
       spot_discount = if (use_spot) "~70%" else "N/A",
+      backend = "EC2",
+      instance_type = instance_type,
+      use_spot = use_spot,
       launch_type = "EC2"
     )
   }
 }
 
-#' Get EC2 instance pricing
+# Session cache for live price lookups, keyed by "instance_type|region|spot".
+.price_cache <- new.env(parent = emptyenv())
+
+#' Built-in fallback EC2 On-Demand prices (us-east-1, Linux, per hour).
 #'
-#' @param instance_type EC2 instance type (e.g., "c7g.xlarge")
-#' @param use_spot Whether to use spot pricing
-#' @return Price per hour in USD
+#' Used when the live AWS Pricing API can't be reached (offline, missing perms,
+#' or an unknown type). Kept as a static snapshot so cost estimates always work.
 #' @keywords internal
-get_ec2_instance_price <- function(instance_type, use_spot = FALSE) {
-  # Simplified pricing table for common instance types (us-east-1, 2026)
-  # In production, this could query AWS Pricing API
-  pricing <- list(
+.static_ec2_prices <- function() {
+  list(
     # Graviton3 (ARM64) - 7th gen
     "c7g.large" = 0.0725,
     "c7g.xlarge" = 0.145,
@@ -168,21 +180,92 @@ get_ec2_instance_price <- function(instance_type, use_spot = FALSE) {
     "m6a.xlarge" = 0.1728,
     "m6a.2xlarge" = 0.3456
   )
+}
 
-  on_demand_price <- pricing[[instance_type]]
-
-  if (is.null(on_demand_price)) {
-    # Default estimate if instance type not in table
-    cat_warn(sprintf("Warning: No pricing data for %s, using estimate\n", instance_type))
-    on_demand_price <- 0.15  # Conservative estimate
+#' Get EC2 instance pricing (live, cached, with static fallback)
+#'
+#' Looks up the current AWS price for an instance type. On-Demand rates come from
+#' the AWS Pricing API and Spot rates from EC2 spot-price history; both are cached
+#' per session. Any failure (offline, missing perms, unknown type) falls back to a
+#' built-in static rate, so cost estimates always return a number.
+#'
+#' @param instance_type EC2 instance type (e.g., "c7g.xlarge")
+#' @param use_spot Whether to use spot pricing
+#' @param region AWS region (default: from config or "us-east-1")
+#' @return Price per hour in USD
+#' @keywords internal
+get_ec2_instance_price <- function(instance_type, use_spot = FALSE, region = NULL) {
+  region <- region %||% tryCatch(get_starburst_config()$region, error = function(e) NULL) %||%
+    "us-east-1"
+  cache_key <- sprintf("%s|%s|%s", instance_type, region, isTRUE(use_spot))
+  if (!is.null(.price_cache[[cache_key]])) {
+    return(.price_cache[[cache_key]])
   }
 
-  if (use_spot) {
-    # Spot instances typically 70% cheaper
-    return(on_demand_price * 0.3)
-  } else {
-    return(on_demand_price)
+  static_price <- .static_ec2_prices()[[instance_type]]
+
+  price <- tryCatch({
+    if (use_spot) {
+      get_ec2_spot_price(instance_type, region)
+    } else {
+      get_ec2_ondemand_price(instance_type, region)
+    }
+  }, error = function(e) NULL)
+
+  if (is.null(price) || !is.finite(price) || price <= 0) {
+    # Fall back to the static snapshot.
+    if (is.null(static_price)) {
+      cat_warn(sprintf("No live or static price for %s; using conservative estimate\n",
+                       instance_type))
+      static_price <- 0.15
+    }
+    price <- if (use_spot) static_price * 0.3 else static_price
   }
+
+  .price_cache[[cache_key]] <- price
+  price
+}
+
+#' Look up current On-Demand price via the AWS Pricing API.
+#' @keywords internal
+get_ec2_ondemand_price <- function(instance_type, region) {
+  pricing <- paws.cost.management::pricing(config = list(region = "us-east-1"))
+  resp <- pricing$get_products(
+    ServiceCode = "AmazonEC2",
+    Filters = list(
+      list(Type = "TERM_MATCH", Field = "instanceType", Value = instance_type),
+      list(Type = "TERM_MATCH", Field = "regionCode", Value = region),
+      list(Type = "TERM_MATCH", Field = "operatingSystem", Value = "Linux"),
+      list(Type = "TERM_MATCH", Field = "tenancy", Value = "Shared"),
+      list(Type = "TERM_MATCH", Field = "capacitystatus", Value = "Used"),
+      list(Type = "TERM_MATCH", Field = "preInstalledSw", Value = "NA")
+    ),
+    MaxResults = 1
+  )
+  if (length(resp$PriceList) == 0) return(NULL)
+  # PriceList[[1]] is a JSON string; dig out the On-Demand USD price dimension.
+  product <- jsonlite::fromJSON(resp$PriceList[[1]], simplifyVector = FALSE)
+  on_demand <- product$terms$OnDemand
+  price_dim <- on_demand[[1]]$priceDimensions
+  usd <- price_dim[[1]]$pricePerUnit$USD
+  as.numeric(usd)
+}
+
+#' Look up recent Spot price via EC2 spot-price history (avg across AZs).
+#' @keywords internal
+get_ec2_spot_price <- function(instance_type, region) {
+  ec2 <- paws.compute::ec2(config = list(region = region))
+  resp <- ec2$describe_spot_price_history(
+    InstanceTypes = list(instance_type),
+    ProductDescriptions = list("Linux/UNIX"),
+    MaxResults = 10
+  )
+  if (length(resp$SpotPriceHistory) == 0) return(NULL)
+  prices <- vapply(resp$SpotPriceHistory,
+                   function(x) as.numeric(x$SpotPrice), numeric(1))
+  prices <- prices[is.finite(prices) & prices > 0]
+  if (length(prices) == 0) return(NULL)
+  mean(prices)
 }
 
 #' Get vCPU count for instance type
@@ -249,10 +332,16 @@ calculate_task_cost <- function(future) {
 calculate_total_cost <- function(plan) {
   ecs <- get_ecs_client(plan$region)
 
-  # Fargate pricing (us-east-1, adjust for other regions)
-  # Reference: https://aws.amazon.com/fargate/pricing/
-  vcpu_hour_cost <- 0.04048
-  gb_hour_cost <- 0.004445
+  # Per-task hourly rate for THIS plan's backend (EC2 instance type / spot, or
+  # Fargate cpu+memory), via the normalized estimator — not a Fargate-only guess.
+  per_task_hourly <- estimate_cost(
+    workers = 1,
+    cpu = plan$worker_cpu %||% plan$cpu %||% 4,
+    memory = plan$worker_memory %||% plan$memory %||% "8GB",
+    launch_type = plan$launch_type %||% "FARGATE",
+    instance_type = plan$instance_type,
+    use_spot = plan$use_spot %||% FALSE
+  )$hourly_rate
 
   total_cost <- 0
 
@@ -294,11 +383,8 @@ calculate_total_cost <- function(plan) {
 
           runtime_hours <- as.numeric(difftime(stopped, started, units = "hours"))
 
-          # Calculate cost based on CPU and memory
-          vcpu_cost <- runtime_hours * plan$worker_cpu * vcpu_hour_cost
-          memory_cost <- runtime_hours * plan$worker_memory * gb_hour_cost
-
-          total_cost <- total_cost + vcpu_cost + memory_cost
+          # Cost = this task's runtime x the per-task hourly rate for the backend.
+          total_cost <- total_cost + runtime_hours * per_task_hourly
         }
       }
     }

@@ -1,5 +1,26 @@
 # starburst 0.3.9 (development)
 
+## Cost & cleanup fixes (important)
+
+* **The `max_hourly_cost` guard now works on the EC2 backend (the default).**
+  Previously `estimate_cost()` returned `per_hour` for Fargate but `total_per_hour`
+  for EC2, and the guard read `per_hour` — which is `NULL` on EC2 — so the cost
+  ceiling was silently never enforced on the default backend. `estimate_cost()` now
+  returns a normalized `hourly_rate` for every backend, and the guard, cost display,
+  and `starburst_map()`/`starburst_cluster()` all use it.
+* **`cost_alert_threshold` is now enforced** — it warns when a plan's estimated
+  hourly rate exceeds it (previously it was stored but never read).
+* **`starburst_config(auto_cleanup_s3 = …)` now actually controls S3 cleanup.** The
+  runtime read a different key (`getOption("starburst.cleanup_s3")`) and ignored the
+  stored setting; cleanup now resolves option → `auto_cleanup_s3` config → default TRUE.
+* **`starburst_map()`/`starburst_cluster()` cost estimates match the backend used** —
+  they forward `launch_type`/`instance_type`/`use_spot`, so an EC2 job no longer
+  reports a Fargate price.
+* **Cost estimates now use live AWS pricing** (Pricing API for On-Demand, EC2
+  spot-price history for Spot), cached per session with a built-in static-rate
+  fallback when offline. Reported costs are **estimates** (measured runtime × current
+  rate), not AWS billing figures; docs reworded accordingly.
+
 ## New features
 
 * **`starburst_setup()` now provisions the default EC2 capacity provider** (for

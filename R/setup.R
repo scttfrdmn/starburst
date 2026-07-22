@@ -206,9 +206,11 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
   # Final message
   cat_success("\n[OK] staRburst setup complete!\n")
   cat_info("\nQuick start:\n")
+  cat_info("  results <- starburst_map(inputs, expensive_function, workers = 50)\n")
+  cat_info("\nAlready using future/furrr? Set the plan instead:\n")
   cat_info("  library(furrr)\n")
   cat_info("  plan(starburst, workers = 50)\n")
-  cat_info("  results <- future_map(data, expensive_function)\n")
+  cat_info("  results <- future_map(inputs, expensive_function)\n")
 
   invisible(TRUE)
 }
@@ -263,6 +265,20 @@ is_setup_complete <- function() {
 starburst_is_configured <- function() {
   if (!is_setup_complete()) return(FALSE)
   check_aws_credentials()
+}
+
+#' Resolve whether to auto-clean S3 files after a job
+#'
+#' Order: the \code{starburst.cleanup_s3} option (explicit runtime override), then
+#' the persisted \code{auto_cleanup_s3} config (set via \code{\link{starburst_config}}),
+#' then default \code{TRUE}.
+#' @keywords internal
+should_cleanup_s3 <- function() {
+  opt <- getOption("starburst.cleanup_s3", NULL)
+  if (!is.null(opt)) return(isTRUE(opt))
+  cfg <- tryCatch(get_starburst_config()$auto_cleanup_s3, error = function(e) NULL)
+  if (!is.null(cfg)) return(isTRUE(cfg))
+  TRUE
 }
 
 #' Get configuration directory

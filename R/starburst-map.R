@@ -166,11 +166,15 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
     elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
     cat_success(sprintf("\n[OK] Completed in %.1f seconds\n", elapsed))
 
-    # Cost estimate
-    cost_est <- estimate_cost(workers, cpu, memory)
+    # Cost estimate — forward the actual backend/instance/spot so the estimate
+    # matches where the job ran (previously always used Fargate defaults).
+    cost_est <- estimate_cost(workers, cpu, memory,
+                              launch_type = launch_type,
+                              instance_type = instance_type,
+                              use_spot = use_spot)
     hours <- elapsed / 3600
-    actual_cost <- cost_est$per_hour * hours
-    cat_info(sprintf("[Cost] Estimated cost: $%.2f\n", actual_cost))
+    est_cost <- cost_est$hourly_rate * hours
+    cat_info(sprintf("[Cost] Estimated cost: $%.2f\n", est_cost))
   }
 
   results
@@ -242,6 +246,9 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
     cpu = backend$cpu,
     memory = backend$memory,
     region = backend$region,
+    launch_type = launch_type,
+    instance_type = instance_type,
+    use_spot = use_spot,
     created_at = backend$created_at
   )
 
@@ -251,9 +258,12 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
   }
 
   cluster$estimate_cost <- function(elapsed_seconds) {
-    cost_est <- estimate_cost(cluster$workers, cluster$cpu, cluster$memory)
+    cost_est <- estimate_cost(cluster$workers, cluster$cpu, cluster$memory,
+                              launch_type = cluster$launch_type,
+                              instance_type = cluster$instance_type,
+                              use_spot = cluster$use_spot)
     hours <- elapsed_seconds / 3600
-    cost_est$per_hour * hours
+    cost_est$hourly_rate * hours
   }
 
   cluster$shutdown <- function() {

@@ -32,6 +32,10 @@ vignettes <- list.files(file.path(pkg_root, "vignettes"), pattern = "\\.Rmd$", f
 readme    <- Filter(file.exists, file.path(pkg_root, c("README.md", "README.Rmd")))
 r_files   <- list.files(file.path(pkg_root, "R"), pattern = "\\.R$", full.names = TRUE)
 man_files <- list.files(file.path(pkg_root, "man"), pattern = "\\.Rd$", full.names = TRUE)
+# Top-level developer docs that get the dead-symbol/terminology scan.
+# NOTE: NEWS.md is intentionally excluded — a changelog must be able to mention
+# renamed/removed names (e.g. "renamed max_cost_per_job -> max_hourly_cost").
+top_docs  <- Filter(file.exists, file.path(pkg_root, c("ARCHITECTURE.md")))
 
 # ---- 1. Dead / banned symbols -------------------------------------------------
 # Symbols that no longer exist and must never reappear in code or docs.
@@ -42,8 +46,9 @@ banned <- c("future_starburst", "starburst_upload", "yourname/starburst",
             "max_cost_per_job",  # renamed to max_hourly_cost
             "readRDS(url(",      # base url() can't read s3:// — use an S3 client
             # obsolete engine/backend terminology (no auto-chunking; EC2 default):
-            "Fargate workers")   # workers are EC2 by default; Fargate is opt-in
-scan_targets <- c(vignettes, readme, r_files)
+            "Fargate workers",   # workers are EC2 by default; Fargate is opt-in
+            "Fargate over EC2")  # stale design principle; EC2 is the default
+scan_targets <- c(vignettes, readme, r_files, top_docs)
 # Obsolete chunking language (regex): the engine creates one task per element and
 # does NOT auto-chunk, so any "Created N chunks" output is fabricated.
 banned_re <- c("Created\\s+[0-9]+\\s+chunks")

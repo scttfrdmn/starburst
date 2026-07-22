@@ -146,20 +146,29 @@ plan.starburst <- function(strategy,
                            use_spot = use_spot)
 
   if (launch_type == "FARGATE") {
-    cat_info(sprintf("\n[Cost] Estimated cost: ~$%.2f/hour\n", cost_est$per_hour))
+    cat_info(sprintf("\n[Cost] Estimated cost: ~$%.2f/hour\n", cost_est$hourly_rate))
   } else {
     cat_info(sprintf("\n[Cost] Estimated cost: ~$%.2f/hour (%d x %s%s)\n",
-                    cost_est$total_per_hour,
+                    cost_est$hourly_rate,
                     cost_est$instances_needed,
                     instance_type,
                     if (use_spot) " spot" else ""))
   }
 
-  # Check cost limits (max_hourly_cost is an hourly-RATE cap, USD/hour)
-  if (!is.null(config$max_hourly_cost) && cost_est$per_hour > config$max_hourly_cost) {
+  # Cost alert (warn, does not stop) — the normalized hourly_rate works for every
+  # backend, so this fires on EC2 (the default) too.
+  if (!is.null(config$cost_alert_threshold) &&
+      cost_est$hourly_rate > config$cost_alert_threshold) {
+    cat_warn(sprintf(
+      "[Cost] Estimated $%.2f/hr is above your alert threshold ($%.2f/hr).\n",
+      cost_est$hourly_rate, config$cost_alert_threshold))
+  }
+
+  # Cost limit (hard stop). max_hourly_cost is an hourly-RATE cap, USD/hour.
+  if (!is.null(config$max_hourly_cost) && cost_est$hourly_rate > config$max_hourly_cost) {
     stop(sprintf(
       "Estimated cost ($%.2f/hr) exceeds limit ($%.2f/hr). Adjust with starburst_config(max_hourly_cost = ...)",
-      cost_est$per_hour, config$max_hourly_cost
+      cost_est$hourly_rate, config$max_hourly_cost
     ))
   }
 
@@ -314,8 +323,11 @@ cleanup_cluster <- function(backend) {
     runtime, backend$completed_tasks, backend$failed_tasks, final_cost
   ))
 
-  # Optionally clean up S3 files
-  if (getOption("starburst.cleanup_s3", TRUE)) {
+  # Optionally clean up S3 files. Resolution order: the runtime option
+  # (starburst.cleanup_s3) overrides, else the persisted config's auto_cleanup_s3
+  # (settable via starburst_config()), else default TRUE. Previously this read only
+  # the option, so starburst_config(auto_cleanup_s3 = FALSE) had no effect.
+  if (should_cleanup_s3()) {
     cleanup_s3_files(backend)
   }
 
@@ -438,7 +450,7 @@ parse_memory <- function(memory) {
 
 #' staRburst Future Strategy
 #'
-#' Future strategy for running parallel R workloads on AWS Fargate
+#' Future strategy for running parallel R workloads on AWS (EC2 by default, or Fargate)
 #'
 #' @param workers Number of parallel workers
 #' @param cpu vCPUs per worker (1, 2, 4, 8, or 16)
