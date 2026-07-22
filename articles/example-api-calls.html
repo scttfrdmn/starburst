@@ -243,7 +243,7 @@ that simulates API behavior:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"[OK] Completed 50 calls in %.1f seconds\n"</span>, <span class="va">local_time</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"  Estimated time for %d: %.1f minutes\n"</span>,</span>
 <span>            <span class="va">n_companies</span>, <span class="va">local_time</span> <span class="op">*</span> <span class="va">n_companies</span> <span class="op">/</span> <span class="fl">50</span> <span class="op">/</span> <span class="fl">60</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong>:</p>
 <pre><code>Fetching data for 1000 companies locally...
 [OK] Completed 50 calls in 24.3 seconds
   Estimated time for 1000: 8.1 minutes</code></pre>
@@ -252,23 +252,31 @@ that simulates API behavior:</p>
 <h2 id="cloud-execution-with-starburst">Cloud Execution with staRburst<a class="anchor" aria-label="anchor" href="#cloud-execution-with-starburst"></a>
 </h2>
 <p>Run all 1,000 API calls in parallel:</p>
+<p>Each fetch is short, so submitting 1,000 one-call tasks would be
+dominated by per-task S3 overhead (see the <a href="https://starburst.ing/articles/workload-shapes.html">Workload
+Shapes</a> guide). Instead, batch the tickers into ~100 tasks and have
+each task fetch its chunk:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Fetching data for %d companies on AWS...\n"</span>, <span class="va">n_companies</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># ~100 tasks, each fetching a chunk of tickers</span></span>
+<span><span class="va">batches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="va">tickers</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">tickers</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tickers</span><span class="op">)</span> <span class="op">/</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span></span>
-<span>  <span class="va">tickers</span>,</span>
-<span>  <span class="va">fetch_company_data_mock</span>,</span>
+<span>  <span class="va">batches</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">batch</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">batch</span>, <span class="va">fetch_company_data_mock</span><span class="op">)</span>,</span>
 <span>  workers <span class="op">=</span> <span class="fl">25</span>,</span>
 <span>  cpu <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  memory <span class="op">=</span> <span class="st">"2GB"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<span><span class="op">)</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">results</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>  <span class="co"># flatten to 1,000 results</span></span></code></pre></div>
+<p><strong>Illustrative output</strong> (times/cost vary — see the
+Workload Shapes and Performance guides for measured numbers):</p>
 <pre><code>[Starting] Starting starburst cluster with 25 workers
-[Status] Processing 1000 items with 25 workers
-[Starting] Submitting 1000 tasks...
-[Wait] Progress: 1000/1000 (48.0s)
-[OK] Completed in 48.0 seconds
-[Cost] Estimated cost: $0.01</code></pre>
+[Status] Processing 100 items with 25 workers
+[Starting] Submitting 100 tasks...
+[Wait] Progress: 100/100
+[OK] Completed
+[Cost] Estimated cost: (printed per run)</code></pre>
 </div>
 <div class="section level2">
 <h2 id="results-processing">Results Processing<a class="anchor" aria-label="anchor" href="#results-processing"></a>
@@ -333,51 +341,11 @@ that simulates API behavior:</p>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">results_df</span><span class="op">$</span><span class="va">market_cap</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">/</span> <span class="fl">1e9</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="performance-comparison">Performance Comparison<a class="anchor" aria-label="anchor" href="#performance-comparison"></a>
+<h2 id="performance">Performance<a class="anchor" aria-label="anchor" href="#performance"></a>
 </h2>
-<table class="table">
-<thead><tr class="header">
-<th>Method</th>
-<th>Workers</th>
-<th>Time</th>
-<th>Cost</th>
-<th>Speedup</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>Local</td>
-<td>1</td>
-<td>8.1 min</td>
-<td>$0</td>
-<td>1x</td>
-</tr>
-<tr class="even">
-<td>staRburst</td>
-<td>10</td>
-<td>2.1 min</td>
-<td>$0.004</td>
-<td>3.9x</td>
-</tr>
-<tr class="odd">
-<td>staRburst</td>
-<td>25</td>
-<td>0.8 min</td>
-<td>$0.01</td>
-<td>10.1x</td>
-</tr>
-<tr class="even">
-<td>staRburst</td>
-<td>50</td>
-<td>0.5 min</td>
-<td>$0.02</td>
-<td>16.2x</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Key Insights</strong>: - Excellent scaling for I/O-bound
-workloads - Cost remains minimal even with 50 workers - Network latency
-dominates computation time - Automatic retries handle transient
-failures</p>
+<p>For measured performance and when bursting is worth it, see
+<code><a href="../articles/performance.html">vignette("performance")</a></code> and
+<code><a href="../articles/workload-shapes.html">vignette("workload-shapes")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="rate-limiting-considerations">Rate Limiting Considerations<a class="anchor" aria-label="anchor" href="#rate-limiting-considerations"></a>

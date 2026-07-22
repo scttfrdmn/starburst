@@ -281,7 +281,7 @@ combination:</p>
 <span>            <span class="va">local_time</span> <span class="op">*</span> <span class="fl">60</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sample_params</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"  Estimated time for full grid (%d combinations): %.1f minutes\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">param_grid</span><span class="op">)</span>, <span class="va">local_time</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">param_grid</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sample_params</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong>:</p>
 <pre><code>Running local benchmark (10 parameter combinations)...
 [OK] Completed in 4.2 minutes
   Average time per combination: 25.2 seconds
@@ -292,32 +292,46 @@ combination:</p>
 <h2 id="cloud-execution-with-starburst">Cloud Execution with staRburst<a class="anchor" aria-label="anchor" href="#cloud-execution-with-starburst"></a>
 </h2>
 <p>Run the complete grid search in parallel on AWS:</p>
+<p>Each <code>cv_evaluate</code> is short, so submitting 81
+one-combination tasks would be dominated by per-task S3 overhead (see
+the <a href="https://starburst.ing/articles/workload-shapes.html">Workload
+Shapes</a> guide). Instead, batch the combinations into at most ~100
+tasks and have each task evaluate its chunk (this small 81-cell grid
+stays near one combination per task, but the same pattern keeps larger
+grids from over-submitting):</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">n_workers</span> <span class="op">&lt;-</span> <span class="fl">27</span>  <span class="co"># Process ~3 parameter combinations per worker</span></span>
+<code class="sourceCode R"><span><span class="va">n_workers</span> <span class="op">&lt;-</span> <span class="fl">27</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Running grid search (%d combinations) on %d workers...\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">param_grid</span><span class="op">)</span>, <span class="va">n_workers</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">cloud_start</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Batch the parameter rows into ~100 tasks, each evaluating a chunk</span></span>
+<span><span class="va">idx</span> <span class="op">&lt;-</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">param_grid</span><span class="op">)</span></span>
+<span><span class="va">batches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="va">idx</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">idx</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">idx</span><span class="op">)</span> <span class="op">/</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span></span>
-<span>  <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">param_grid</span><span class="op">)</span>,</span>
-<span>  <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="fu">cv_evaluate</span><span class="op">(</span><span class="va">param_grid</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span>, <span class="va">X_train</span>, <span class="va">y_train</span>, n_folds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>,</span>
+<span>  <span class="va">batches</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">chunk</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">chunk</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu">cv_evaluate</span><span class="op">(</span><span class="va">param_grid</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span>, <span class="va">X_train</span>, <span class="va">y_train</span>, n_folds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span>,</span>
 <span>  workers <span class="op">=</span> <span class="va">n_workers</span>,</span>
 <span>  cpu <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  memory <span class="op">=</span> <span class="st">"4GB"</span></span>
 <span><span class="op">)</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">results</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>  <span class="co"># flatten to one result per combination</span></span>
 <span></span>
 <span><span class="va">cloud_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/difftime.html" class="external-link">difftime</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">cloud_start</span>, units <span class="op">=</span> <span class="st">"mins"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"\n[OK] Completed in %.2f minutes\n"</span>, <span class="va">cloud_time</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong> (times/cost vary — see the
+Workload Shapes and Performance guides for measured numbers):</p>
 <pre><code>[Starting] Starting starburst cluster with 27 workers
 [Status] Processing 81 items with 27 workers
 [Starting] Submitting 81 tasks...
-[Wait] Progress: 81/81 (84.0s)
-[OK] Completed in 84.0 seconds
-[Cost] Estimated cost: $0.05</code></pre>
+[Wait] Progress: 81/81
+[OK] Completed
+[Cost] Estimated cost: (printed per run)</code></pre>
 </div>
 <div class="section level2">
 <h2 id="results-analysis">Results Analysis<a class="anchor" aria-label="anchor" href="#results-analysis"></a>
@@ -391,7 +405,7 @@ combination:</p>
 <span>          ylab <span class="op">=</span> <span class="st">"CV Score"</span>,</span>
 <span>          col <span class="op">=</span> <span class="st">"lightgreen"</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong>:</p>
 <pre><code>=== Grid Search Results ===
 
 Total combinations evaluated: 81
@@ -443,44 +457,11 @@ min_child_weight:
   5: 0.7576</code></pre>
 </div>
 <div class="section level2">
-<h2 id="performance-comparison">Performance Comparison<a class="anchor" aria-label="anchor" href="#performance-comparison"></a>
+<h2 id="performance">Performance<a class="anchor" aria-label="anchor" href="#performance"></a>
 </h2>
-<table class="table">
-<thead><tr class="header">
-<th>Method</th>
-<th>Combinations</th>
-<th>Time</th>
-<th>Cost</th>
-<th>Speedup</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>Local</td>
-<td>10</td>
-<td>4.2 min</td>
-<td>$0</td>
-<td>-</td>
-</tr>
-<tr class="even">
-<td>Local (est.)</td>
-<td>81</td>
-<td>34 min</td>
-<td>$0</td>
-<td>1x</td>
-</tr>
-<tr class="odd">
-<td>staRburst</td>
-<td>81</td>
-<td>1.4 min</td>
-<td>$0.05</td>
-<td>24.3x</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Key Insights</strong>: - Excellent speedup (24x) for grid
-search - Cost remains minimal ($0.05) despite massive parallelization -
-Can evaluate 81 combinations in the time it takes to run ~3 locally -
-Enables exploration of much larger parameter spaces</p>
+<p>For measured performance and when bursting is worth it, see
+<code><a href="../articles/performance.html">vignette("performance")</a></code> and
+<code><a href="../articles/workload-shapes.html">vignette("workload-shapes")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="advanced-random-search">Advanced: Random Search<a class="anchor" aria-label="anchor" href="#advanced-random-search"></a>

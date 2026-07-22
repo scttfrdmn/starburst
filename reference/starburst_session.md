@@ -87,19 +87,24 @@ with methods:
 
 - `collect(wait = FALSE)`:
 
-  Retrieve results. With `wait = FALSE` returns whatever has completed
-  so far; with `wait = TRUE` blocks until all submitted tasks finish.
-  Results come back in submission order.
+  Retrieve results, keyed by task id, in submission order. With
+  `wait = FALSE` returns whatever has finished so far; `wait = TRUE`
+  blocks until every submitted task is terminal. Every terminal task
+  appears: a success carries its return value; a **failed** task carries
+  a structured failure
+  `list(error = TRUE, message = ..., value = NULL, task_id = ...)` so
+  failures are visible rather than silently dropped.
 
 - `extend(seconds = 3600)`:
 
   Extend the active/absolute timeout of a still-running session.
 
-- `cleanup()`:
+- `cleanup(stop_workers = TRUE, force = FALSE)`:
 
-  Stop all tasks/workers for the session and delete its S3 objects. Call
-  when done; otherwise the session self-terminates at
-  `absolute_timeout`.
+  Stop the session's workers and mark it terminated. By default **S3
+  objects are preserved** (so you can still inspect/collect); pass
+  `force = TRUE` to also delete the session's S3 task/result objects.
+  Otherwise the session self-terminates at `absolute_timeout`.
 
 ## Lifecycle
 
@@ -114,11 +119,12 @@ whichever comes first.
 ## Failure behavior
 
 A failed task is recorded (surfaced via `status()`) and does not abort
-the others; its error is raised when you `collect()` that result. If the
-client dies, workers keep running against S3 until a timeout, which is
-what makes reattaching possible. `cleanup()` is the only thing that
-frees resources early — sessions do not auto-clean on garbage
-collection.
+the others; `collect()` returns it as a structured failure entry
+(`error = TRUE` with a `message`) alongside the successful results,
+rather than dropping it or raising. If the client dies, workers keep
+running against S3 until a timeout, which is what makes reattaching
+possible. `cleanup()` is the only thing that frees resources early —
+sessions do not auto-clean on garbage collection.
 
 ## See also
 

@@ -207,7 +207,7 @@ cat(sprintf("  Estimated time for full grid (%d combinations): %.1f minutes\n",
             nrow(param_grid), local_time * nrow(param_grid) / nrow(sample_params)))
 ```
 
-**Typical output**:
+**Illustrative output**:
 
     Running local benchmark (10 parameter combinations)...
     [OK] Completed in 4.2 minutes
@@ -220,36 +220,51 @@ For full grid search locally: **~34 minutes**
 
 Run the complete grid search in parallel on AWS:
 
+Each `cv_evaluate` is short, so submitting 81 one-combination tasks
+would be dominated by per-task S3 overhead (see the [Workload
+Shapes](https://starburst.ing/articles/workload-shapes.html) guide).
+Instead, batch the combinations into at most ~100 tasks and have each
+task evaluate its chunk (this small 81-cell grid stays near one
+combination per task, but the same pattern keeps larger grids from
+over-submitting):
+
 ``` r
 
-n_workers <- 27  # Process ~3 parameter combinations per worker
+n_workers <- 27
 
 cat(sprintf("Running grid search (%d combinations) on %d workers...\n",
             nrow(param_grid), n_workers))
 
 cloud_start <- Sys.time()
 
+# Batch the parameter rows into ~100 tasks, each evaluating a chunk
+idx <- 1:nrow(param_grid)
+batches <- split(idx, ceiling(seq_along(idx) / ceiling(length(idx) / 100)))
 results <- starburst_map(
-  1:nrow(param_grid),
-  function(i) cv_evaluate(param_grid[i, ], X_train, y_train, n_folds = 5),
+  batches,
+  function(chunk) lapply(chunk, function(i) {
+    cv_evaluate(param_grid[i, ], X_train, y_train, n_folds = 5)
+  }),
   workers = n_workers,
   cpu = 2,
   memory = "4GB"
 )
+results <- unlist(results, recursive = FALSE)  # flatten to one result per combination
 
 cloud_time <- as.numeric(difftime(Sys.time(), cloud_start, units = "mins"))
 
 cat(sprintf("\n[OK] Completed in %.2f minutes\n", cloud_time))
 ```
 
-**Typical output**:
+**Illustrative output** (times/cost vary — see the Workload Shapes and
+Performance guides for measured numbers):
 
     [Starting] Starting starburst cluster with 27 workers
     [Status] Processing 81 items with 27 workers
     [Starting] Submitting 81 tasks...
-    [Wait] Progress: 81/81 (84.0s)
-    [OK] Completed in 84.0 seconds
-    [Cost] Estimated cost: $0.05
+    [Wait] Progress: 81/81
+    [OK] Completed
+    [Cost] Estimated cost: (printed per run)
 
 ## Results Analysis
 
@@ -326,7 +341,7 @@ if (interactive()) {
 }
 ```
 
-**Typical output**:
+**Illustrative output**:
 
     === Grid Search Results ===
 
@@ -378,18 +393,12 @@ if (interactive()) {
       3: 0.7689
       5: 0.7576
 
-## Performance Comparison
+## Performance
 
-| Method       | Combinations | Time    | Cost   | Speedup |
-|--------------|--------------|---------|--------|---------|
-| Local        | 10           | 4.2 min | \$0    | \-      |
-| Local (est.) | 81           | 34 min  | \$0    | 1x      |
-| staRburst    | 81           | 1.4 min | \$0.05 | 24.3x   |
-
-**Key Insights**: - Excellent speedup (24x) for grid search - Cost
-remains minimal (\$0.05) despite massive parallelization - Can evaluate
-81 combinations in the time it takes to run ~3 locally - Enables
-exploration of much larger parameter spaces
+For measured performance and when bursting is worth it, see
+[`vignette("performance")`](https://starburst.ing/articles/performance.md)
+and
+[`vignette("workload-shapes")`](https://starburst.ing/articles/workload-shapes.md).
 
 ## Advanced: Random Search
 

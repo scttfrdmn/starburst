@@ -185,7 +185,7 @@ cat(sprintf("  Estimated time for all %s customers: %.1f minutes\n",
             local_time * (n_customers / 500) / 60))
 ```
 
-**Typical output**:
+**Illustrative output**:
 
     Processing features for 500 customers locally...
     [OK] Completed in 3.8 seconds
@@ -233,7 +233,7 @@ cat(sprintf("\n[OK] Completed in %.1f seconds\n", cloud_time))
 features <- do.call(rbind, results)
 ```
 
-**Typical output**:
+**Illustrative output**:
 
     [Starting] Starting starburst cluster with 20 workers
     [Status] Processing 20 items with 20 workers
@@ -285,7 +285,7 @@ cat(sprintf("Average transactions: %.1f\n", mean(high_value$total_transactions))
 cat(sprintf("Average online rate: %.1f%%\n", mean(high_value$online_pct)))
 ```
 
-**Typical output**:
+**Illustrative output**:
 
     === Feature Engineering Results ===
 

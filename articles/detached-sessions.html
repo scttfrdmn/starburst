@@ -210,8 +210,12 @@ idle</li>
 <h4 id="cleanup">Cleanup<a class="anchor" aria-label="anchor" href="#cleanup"></a>
 </h4>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Terminate workers and mark session complete</span></span>
-<span><span class="va">session</span><span class="op">$</span><span class="fu">cleanup</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Stop workers and mark the session terminated. S3 objects are PRESERVED by</span></span>
+<span><span class="co"># default, so you can still reattach and collect afterwards.</span></span>
+<span><span class="va">session</span><span class="op">$</span><span class="fu">cleanup</span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># To also delete the session's S3 task/result objects, pass force = TRUE:</span></span>
+<span><span class="va">session</span><span class="op">$</span><span class="fu">cleanup</span><span class="op">(</span>force <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">
@@ -219,12 +223,15 @@ idle</li>
 </h3>
 <p>Sessions use <strong>EC2 with Spot instances by default</strong> — no
 extra arguments needed. You can tune the instance type, or opt into
-Fargate:</p>
+Fargate. A non-default instance type is provisioned automatically on
+first use (a one-time ~1–2 min step), or run
+<code>starburst_setup_ec2(instance_types = "c8a.xlarge")</code> once to
+pre-provision it.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Default is already EC2 + Spot; override the instance type if you like</span></span>
+<code class="sourceCode R"><span><span class="co"># Default is already EC2 + Spot (c7g.xlarge); override the instance type if you like</span></span>
 <span><span class="va">session</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/starburst_session.html">starburst_session</a></span><span class="op">(</span></span>
 <span>  workers <span class="op">=</span> <span class="fl">50</span>,</span>
-<span>  instance_type <span class="op">=</span> <span class="st">"c8a.xlarge"</span>,  <span class="co"># AMD 8th gen; default is c7g.xlarge</span></span>
+<span>  instance_type <span class="op">=</span> <span class="st">"c8a.xlarge"</span>,  <span class="co"># AMD 8th gen; auto-provisioned on first use</span></span>
 <span>  use_spot <span class="op">=</span> <span class="cn">TRUE</span>                 <span class="co"># default TRUE — ~70% cheaper</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -241,28 +248,31 @@ Fargate:</p>
 <h4 id="error-handling">Error Handling<a class="anchor" aria-label="anchor" href="#error-handling"></a>
 </h4>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Tasks that fail are tracked</span></span>
+<code class="sourceCode R"><span><span class="co"># Tasks that fail are tracked, not silently dropped</span></span>
 <span><span class="va">session</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/starburst_session.html">starburst_session</a></span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="va">task_ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">session</span><span class="op">$</span><span class="fu">submit</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substitute.html" class="external-link">quote</a></span><span class="op">(</span><span class="op">{</span></span>
 <span>    <span class="kw">if</span> <span class="op">(</span><span class="va">i</span> <span class="op">==</span> <span class="fl">5</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Intentional error"</span><span class="op">)</span></span>
 <span>    <span class="va">i</span> <span class="op">*</span> <span class="fl">2</span></span>
-<span>  <span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span>, globals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>i <span class="op">=</span> <span class="va">i</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Check status</span></span>
 <span><span class="va">status</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="fu">status</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span></span>
-<span><span class="co"># Failed: 1</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span>   <span class="co"># Failed: 1</span></span>
 <span></span>
-<span><span class="co"># Failed tasks are still in results with error info</span></span>
+<span><span class="co"># collect() returns an entry for EVERY task, keyed by task id. A failed task</span></span>
+<span><span class="co"># comes back as a structured failure (error = TRUE) alongside the successes.</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="fu">collect</span><span class="op">(</span>wait <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">failed_task</span> <span class="op">&lt;-</span> <span class="va">results</span><span class="op">[[</span><span class="fl">5</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">failed_task</span><span class="op">$</span><span class="va">error</span><span class="op">)</span></span>
-<span><span class="co"># TRUE</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">failed_task</span><span class="op">$</span><span class="va">message</span><span class="op">)</span></span>
-<span><span class="co"># "Intentional error"</span></span></code></pre></div>
+<span></span>
+<span><span class="co"># Separate successes from failures</span></span>
+<span><span class="va">failures</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Filter</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">r</span><span class="op">$</span><span class="va">error</span><span class="op">)</span>, <span class="va">results</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">failures</span><span class="op">)</span>                 <span class="co"># 1</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">failures</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">message</span><span class="op">)</span>     <span class="co"># "Intentional error"</span></span>
+<span></span>
+<span><span class="co"># Successful values are the non-error entries</span></span>
+<span><span class="va">successes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Filter</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">r</span><span class="op">$</span><span class="va">error</span><span class="op">)</span>, <span class="va">results</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="partial-collection">Partial Collection<a class="anchor" aria-label="anchor" href="#partial-collection"></a>

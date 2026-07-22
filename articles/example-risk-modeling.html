@@ -331,7 +331,7 @@ Allocation by asset class:
 <span>            <span class="va">local_time</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">test_scenarios</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"  Estimated time for 10,000 scenarios: %.1f minutes\n"</span>,</span>
 <span>            <span class="va">local_time</span> <span class="op">*</span> <span class="fl">10000</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">test_scenarios</span><span class="op">)</span> <span class="op">/</span> <span class="fl">60</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong>:</p>
 <pre><code>Running local benchmark (120 scenarios)...
 [OK] Completed in 8.4 seconds
   Average time per scenario: 0.070 seconds
@@ -366,19 +366,27 @@ Allocation by asset class:
 <span></span>
 <span><span class="va">cloud_start</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span></span>
+<span><span class="co"># Each scenario is tiny (~1 ms), so submitting 10,145 one-scenario tasks would be</span></span>
+<span><span class="co"># dominated by per-task S3 overhead (see the Workload Shapes guide). Batch into</span></span>
+<span><span class="co"># ~100 tasks, each valuing a chunk of scenarios.</span></span>
+<span><span class="va">batches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span></span>
 <span>  <span class="va">all_scenarios</span>,</span>
-<span>  <span class="va">value_portfolio_scenario</span>,</span>
-<span>  portfolio_data <span class="op">=</span> <span class="va">portfolio</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">all_scenarios</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">all_scenarios</span><span class="op">)</span> <span class="op">/</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span></span>
+<span>  <span class="va">batches</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">batch</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">batch</span>, <span class="va">value_portfolio_scenario</span>, portfolio_data <span class="op">=</span> <span class="va">portfolio</span><span class="op">)</span>,</span>
 <span>  workers <span class="op">=</span> <span class="va">n_workers</span>,</span>
 <span>  cpu <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  memory <span class="op">=</span> <span class="st">"4GB"</span></span>
 <span><span class="op">)</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">results</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>  <span class="co"># flatten to one result per scenario</span></span>
 <span></span>
 <span><span class="va">cloud_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/difftime.html" class="external-link">difftime</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">cloud_start</span>, units <span class="op">=</span> <span class="st">"mins"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"\n[OK] Completed in %.2f minutes\n"</span>, <span class="va">cloud_time</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong> (times/cost vary — see the
+Workload Shapes and Performance guides for measured numbers):</p>
 <pre><code>Generating scenario sets...
   Stress test scenarios: 100
   Monte Carlo scenarios: 10,000
@@ -386,11 +394,11 @@ Allocation by asset class:
   Total scenarios: 10,145
 
 [Starting] Starting starburst cluster with 50 workers
-[Status] Processing 10145 items with 50 workers
-[Starting] Submitting 10145 tasks...
-[Wait] Progress: 10145/10145 (108.0s)
-[OK] Completed in 108.0 seconds
-[Cost] Estimated cost: $0.12</code></pre>
+[Status] Processing 100 items with 50 workers
+[Starting] Submitting 100 tasks...
+[Wait] Progress: 100/100
+[OK] Completed
+[Cost] Estimated cost: (printed per run)</code></pre>
 </div>
 <div class="section level2">
 <h2 id="risk-metrics-analysis">Risk Metrics Analysis<a class="anchor" aria-label="anchor" href="#risk-metrics-analysis"></a>
@@ -477,7 +485,7 @@ Allocation by asset class:
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Market Risk Capital Requirement: $%.0f\n"</span>, <span class="va">market_risk_capital</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Capital as %% of Portfolio: %.2f%%\n"</span>,</span>
 <span>            <span class="va">market_risk_capital</span> <span class="op">/</span> <span class="va">total_portfolio_value</span> <span class="op">*</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong>:</p>
 <pre><code>=== Comprehensive Risk Analysis Results ===
 
 === Stress Test Results ===
@@ -517,44 +525,11 @@ Market Risk Capital Requirement: $29,629,629
 Capital as % of Portfolio: 47.44%</code></pre>
 </div>
 <div class="section level2">
-<h2 id="performance-comparison">Performance Comparison<a class="anchor" aria-label="anchor" href="#performance-comparison"></a>
+<h2 id="performance">Performance<a class="anchor" aria-label="anchor" href="#performance"></a>
 </h2>
-<table class="table">
-<thead><tr class="header">
-<th>Method</th>
-<th>Scenarios</th>
-<th>Time</th>
-<th>Cost</th>
-<th>Speedup</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>Local</td>
-<td>120</td>
-<td>8.4 sec</td>
-<td>$0</td>
-<td>-</td>
-</tr>
-<tr class="even">
-<td>Local (est.)</td>
-<td>10,145</td>
-<td>11.9 min</td>
-<td>$0</td>
-<td>1x</td>
-</tr>
-<tr class="odd">
-<td>staRburst</td>
-<td>10,145</td>
-<td>1.8 min</td>
-<td>$0.12</td>
-<td>6.6x</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Key Insights</strong>: - Excellent speedup (6.6x) for risk
-calculations - Enables daily comprehensive risk reporting -
-Cost-effective even for large portfolios - Can scale to 100,000+
-scenarios for more precision</p>
+<p>For measured performance and when bursting is worth it, see
+<code><a href="../articles/performance.html">vignette("performance")</a></code> and
+<code><a href="../articles/workload-shapes.html">vignette("workload-shapes")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="advanced-incremental-risk-analysis">Advanced: Incremental Risk Analysis<a class="anchor" aria-label="anchor" href="#advanced-incremental-risk-analysis"></a>

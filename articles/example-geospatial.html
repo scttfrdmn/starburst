@@ -317,7 +317,7 @@ parallel processing.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"  Processed %d stores\n"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">local_metrics</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"  Estimated time for all %d regions: %.1f seconds\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">regions</span><span class="op">)</span>, <span class="va">local_time</span> <span class="op">*</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">regions</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">test_regions</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong>:</p>
 <pre><code>Analyzing 3 regions locally...
 [OK] Completed in 4.5 seconds
   Processed 15 stores
@@ -352,7 +352,7 @@ parallel processing.</p>
 <span></span>
 <span><span class="co"># Combine results</span></span>
 <span><span class="va">spatial_metrics</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="va">results</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong>:</p>
 <pre><code>[Starting] Starting starburst cluster with 20 workers
 [Status] Processing 20 items with 20 workers
 [Starting] Submitting 20 tasks...
@@ -436,7 +436,7 @@ parallel processing.</p>
 <span>              <span class="va">region_summary</span><span class="op">$</span><span class="va">region_name</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>,</span>
 <span>              <span class="va">region_summary</span><span class="op">$</span><span class="va">market_potential</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong>:</p>
 <pre><code>=== Geospatial Analysis Results ===
 
 Total stores analyzed: 100

@@ -59,6 +59,14 @@
 <h3 id="new-features-0-3-9">New features<a class="anchor" aria-label="anchor" href="#new-features-0-3-9"></a></h3>
 <ul><li>
 <strong><code><a href="../reference/starburst_setup.html">starburst_setup()</a></code> now provisions the default EC2 capacity provider</strong> (for <code>c7g.xlarge</code>) so the default EC2 backend works out of the box — previously the first <code><a href="../reference/starburst_map.html">starburst_map()</a></code>/<code>plan(starburst)</code> run failed because no capacity provider existed. It is created at <code>DesiredCapacity = 0</code> (no billable instances launch during setup). Pass <code>setup_ec2 = FALSE</code> to skip (Fargate-only users). (<a href="https://github.com/scttfrdmn/starburst/issues/37" class="external-link">#37</a>)</li>
+<li>
+<strong>Custom EC2 instance types are now provisioned automatically on first use.</strong> Selecting a non-default <code>instance_type</code> (e.g. <code>c8a.xlarge</code>) previously failed with an opaque “AutoScalingGroup not found” because only the default was provisioned. Now the capacity provider/ASG is created on demand at first launch (a one-time ~1–2 min step; no instances launched by provisioning), or on failure you get the exact <code>starburst_setup_ec2(instance_types = "…")</code> command to run.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="behavior-changes-0-3-9">Behavior changes<a class="anchor" aria-label="anchor" href="#behavior-changes-0-3-9"></a></h3>
+<ul><li>
+<strong>Detached <code>session$collect()</code> now returns an entry for every terminal task</strong>, including failures. A failed task comes back as a structured failure (<code>list(error = TRUE, message = …, task_id = …)</code>) alongside successful results, instead of being silently omitted — matching the documented contract.</li>
+<li>Clarified <code>session$cleanup()</code>: by default it stops workers and marks the session terminated but <strong>preserves S3 objects</strong>; pass <code>force = TRUE</code> to also delete them. (Behavior unchanged; the docs were wrong and are now correct.)</li>
 </ul></div>
 <div class="section level3">
 <h3 id="breaking-changes-0-3-9">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-3-9"></a></h3>

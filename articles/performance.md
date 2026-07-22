@@ -131,16 +131,29 @@ batch_size <- ceiling(target_task_duration / per_item_time)
 
 ## Choosing Instance Types
 
-| Instance | Architecture  | Price/Perf | Best For                 |
-|----------|---------------|------------|--------------------------|
-| **c8a**  | AMD 8th gen   | ★★★★★      | Default — best overall   |
-| **c8g**  | Graviton4 ARM | ★★★★       | Best ARM64 option        |
-| **c7a**  | AMD 7th gen   | ★★★★       | Proven, stable           |
-| **c8i**  | Intel 8th gen | ★★★        | High single-thread needs |
+The **default** instance type is `c7g.xlarge` (Graviton, ARM64) —
+provisioned automatically by
+[`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md).
+The types below are strong alternatives:
+
+| Instance | Architecture  | Price/Perf | Best For                              |
+|----------|---------------|------------|---------------------------------------|
+| **c8a**  | AMD 8th gen   | ★★★★★      | Recommended — best overall price/perf |
+| **c8g**  | Graviton4 ARM | ★★★★       | Best ARM64 option                     |
+| **c7a**  | AMD 7th gen   | ★★★★       | Proven, stable                        |
+| **c8i**  | Intel 8th gen | ★★★        | High single-thread needs              |
+
+> **Custom instance types provision on first use.**
+> [`starburst_setup()`](https://starburst.ing/reference/starburst_setup.md)
+> provisions only the default (`c7g.xlarge`). The first time you use a
+> *different* type, staRburst automatically creates its capacity
+> provider (a one-time ~1–2 min step, no instances launched by
+> provisioning). To pre-provision explicitly, run
+> `starburst_setup_ec2(instance_types = "c8a.xlarge")` once.
 
 ``` r
 
-# Recommended: c8a with spot instances
+# Recommended alternative: c8a with spot instances (auto-provisioned on first use)
 plan(starburst,
   workers     = 50,
   instance_type = "c8a.xlarge",  # AMD 8th gen — best price/performance

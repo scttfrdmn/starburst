@@ -107,9 +107,13 @@ starburst_setup()
 ```
 
 This will: - Validate your AWS credentials - Create an S3 bucket for
-data transfer - Create an ECR repository for Docker images - Set up ECS
-cluster and VPC resources - Check Fargate quotas and offer to request
-increases - Build the initial worker image
+data transfer - Create an ECR repository for Docker images - Set up an
+ECS cluster and VPC resources - Provision the **default EC2 capacity**
+(launch template + Auto Scaling Group + capacity provider for
+`c7g.xlarge`) so the default EC2 backend works immediately — created at
+zero instances, so no compute cost until you run a job (skip with
+`setup_ec2 = FALSE` if you only use Fargate) - Check Fargate quotas and
+offer to request increases - Build the initial worker image
 
 Provisioning the AWS resources takes about **2 minutes**. On the **first
 run**, staRburst also builds the worker Docker image, which adds **5–10

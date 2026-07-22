@@ -309,7 +309,7 @@ delivered by end of business day</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"  Average: %.1f seconds per report\n"</span>, <span class="va">local_time</span> <span class="op">/</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"  Estimated time for %d reports: %.1f minutes\n\n"</span>,</span>
 <span>            <span class="va">n_customers</span>, <span class="op">(</span><span class="va">local_time</span> <span class="op">/</span> <span class="fl">5</span> <span class="op">*</span> <span class="va">n_customers</span><span class="op">)</span> <span class="op">/</span> <span class="fl">60</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong>:</p>
 <pre><code>Rendering 5 reports locally...
 [OK] Completed in 23.4 seconds
   Average: 4.7 seconds per report
@@ -332,7 +332,7 @@ delivered by end of business day</p>
 <span>  cpu <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  memory <span class="op">=</span> <span class="st">"4GB"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong>:</p>
 <pre><code>[Starting] Starting starburst cluster with 25 workers
 [Status] Processing 50 items with 25 workers
 [Starting] Submitting 50 tasks...
@@ -369,7 +369,7 @@ delivered by end of business day</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Generated reports:\n"</span><span class="op">)</span></span>
 <span><span class="va">report_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">successful_results</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">$</span><span class="va">output_file</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">report_files</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Typical output</strong>:</p>
+<p><strong>Illustrative output</strong>:</p>
 <pre><code>=== Report Generation Summary ===
 
 Total reports: 50
@@ -389,59 +389,19 @@ Generated reports:
  [9] "report_CUST009.html" "report_CUST010.html"</code></pre>
 </div>
 <div class="section level2">
-<h2 id="performance-comparison">Performance Comparison<a class="anchor" aria-label="anchor" href="#performance-comparison"></a>
+<h2 id="performance">Performance<a class="anchor" aria-label="anchor" href="#performance"></a>
 </h2>
-<table class="table">
-<thead><tr class="header">
-<th>Method</th>
-<th>Reports</th>
-<th>Compute time</th>
-<th>Cost</th>
-<th>Speedup</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>Local</td>
-<td>50</td>
-<td>3.9 min</td>
-<td>$0</td>
-<td>1x</td>
-</tr>
-<tr class="even">
-<td>staRburst</td>
-<td>50 (10 workers)</td>
-<td>1.2 min</td>
-<td>$0.004</td>
-<td>3.3x</td>
-</tr>
-<tr class="odd">
-<td>staRburst</td>
-<td>50 (25 workers)</td>
-<td>0.4 min</td>
-<td>$0.01</td>
-<td>9.8x</td>
-</tr>
-<tr class="even">
-<td>staRburst</td>
-<td>50 (50 workers)</td>
-<td>0.3 min</td>
-<td>$0.02</td>
-<td>13x</td>
-</tr>
-</tbody>
-</table>
-<blockquote>
-<p><strong>Disclosure:</strong> staRburst rows are <em>compute time on a
-warm pool</em> and exclude the one-time startup (~2 minutes) and image
-pull. Unlike the seconds-scale demos, this workload is a genuine fit —
-each report takes 1–2 minutes, so even with startup added the
-25–50-worker runs come out well ahead of the 3.9-minute local baseline,
-and more so at 500+ reports.</p>
-</blockquote>
-<p><strong>Key Insights</strong>: - Near-linear scaling with worker
-count - Sweet spot: 25-50 workers for this workload - Minimal cost
-($0.01) for significant time savings - A good fit for bursting because
-per-report work is minutes, not seconds</p>
+<p>Report generation is a <strong>genuine fit</strong> for bursting:
+each report takes ~1–2 minutes to render, so with dozens-to-hundreds of
+them the per-task work dwarfs the one-time startup — exactly the shape
+that wins (unlike the seconds-scale demos). One report per task is the
+right granularity here (no batching needed).</p>
+<p>We don’t hand-write speedup tables in the examples. For
+<strong>measured</strong> numbers — a workload where the cloud wins, one
+where it loses, and how to size workers — see
+<code><a href="../articles/performance.html">vignette("performance")</a></code> and
+<code><a href="../articles/workload-shapes.html">vignette("workload-shapes")</a></code>, and regenerate figures for
+your own workload with <code>bench/benchmark.R</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="advanced-custom-report-distribution">Advanced: Custom Report Distribution<a class="anchor" aria-label="anchor" href="#advanced-custom-report-distribution"></a>

@@ -232,7 +232,7 @@ cat(sprintf("  Estimated time for %d reports: %.1f minutes\n\n",
             n_customers, (local_time / 5 * n_customers) / 60))
 ```
 
-**Typical output**:
+**Illustrative output**:
 
     Rendering 5 reports locally...
     [OK] Completed in 23.4 seconds
@@ -259,7 +259,7 @@ results <- starburst_map(
 )
 ```
 
-**Typical output**:
+**Illustrative output**:
 
     [Starting] Starting starburst cluster with 25 workers
     [Status] Processing 50 items with 25 workers
@@ -300,7 +300,7 @@ report_files <- sapply(successful_results[1:10], function(x) x$output_file)
 print(report_files)
 ```
 
-**Typical output**:
+**Illustrative output**:
 
     === Report Generation Summary ===
 
@@ -320,26 +320,21 @@ print(report_files)
      [7] "report_CUST007.html" "report_CUST008.html"
      [9] "report_CUST009.html" "report_CUST010.html"
 
-## Performance Comparison
+## Performance
 
-| Method    | Reports         | Compute time | Cost    | Speedup |
-|-----------|-----------------|--------------|---------|---------|
-| Local     | 50              | 3.9 min      | \$0     | 1x      |
-| staRburst | 50 (10 workers) | 1.2 min      | \$0.004 | 3.3x    |
-| staRburst | 50 (25 workers) | 0.4 min      | \$0.01  | 9.8x    |
-| staRburst | 50 (50 workers) | 0.3 min      | \$0.02  | 13x     |
+Report generation is a **genuine fit** for bursting: each report takes
+~1–2 minutes to render, so with dozens-to-hundreds of them the per-task
+work dwarfs the one-time startup — exactly the shape that wins (unlike
+the seconds-scale demos). One report per task is the right granularity
+here (no batching needed).
 
-> **Disclosure:** staRburst rows are *compute time on a warm pool* and
-> exclude the one-time startup (~2 minutes) and image pull. Unlike the
-> seconds-scale demos, this workload is a genuine fit — each report
-> takes 1–2 minutes, so even with startup added the 25–50-worker runs
-> come out well ahead of the 3.9-minute local baseline, and more so at
-> 500+ reports.
-
-**Key Insights**: - Near-linear scaling with worker count - Sweet spot:
-25-50 workers for this workload - Minimal cost (\$0.01) for significant
-time savings - A good fit for bursting because per-report work is
-minutes, not seconds
+We don’t hand-write speedup tables in the examples. For **measured**
+numbers — a workload where the cloud wins, one where it loses, and how
+to size workers — see
+[`vignette("performance")`](https://starburst.ing/articles/performance.md)
+and
+[`vignette("workload-shapes")`](https://starburst.ing/articles/workload-shapes.md),
+and regenerate figures for your own workload with `bench/benchmark.R`.
 
 ## Advanced: Custom Report Distribution
 
