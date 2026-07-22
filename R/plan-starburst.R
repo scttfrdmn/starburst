@@ -323,8 +323,11 @@ cleanup_cluster <- function(backend) {
     runtime, backend$completed_tasks, backend$failed_tasks, final_cost
   ))
 
-  # Optionally clean up S3 files
-  if (getOption("starburst.cleanup_s3", TRUE)) {
+  # Optionally clean up S3 files. Resolution order: the runtime option
+  # (starburst.cleanup_s3) overrides, else the persisted config's auto_cleanup_s3
+  # (settable via starburst_config()), else default TRUE. Previously this read only
+  # the option, so starburst_config(auto_cleanup_s3 = FALSE) had no effect.
+  if (should_cleanup_s3()) {
     cleanup_s3_files(backend)
   }
 

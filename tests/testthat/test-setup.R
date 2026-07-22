@@ -52,3 +52,28 @@ test_that("starburst_setup(setup_ec2 = FALSE) skips EC2 provisioning", {
                   setup_ec2 = FALSE)
   mockery::expect_called(ec2_mock, 0)
 })
+
+test_that("should_cleanup_s3 resolves option > config > default", {
+  skip_if_not_installed("mockery")
+  withr::local_options(starburst.cleanup_s3 = NULL)
+
+  # Config says FALSE, no option -> FALSE (the previously-ignored setting now works)
+  mockery::stub(should_cleanup_s3, "get_starburst_config",
+                function() list(auto_cleanup_s3 = FALSE))
+  expect_false(should_cleanup_s3())
+
+  # Config says TRUE -> TRUE
+  mockery::stub(should_cleanup_s3, "get_starburst_config",
+                function() list(auto_cleanup_s3 = TRUE))
+  expect_true(should_cleanup_s3())
+
+  # Config unset -> default TRUE
+  mockery::stub(should_cleanup_s3, "get_starburst_config", function() list())
+  expect_true(should_cleanup_s3())
+})
+
+test_that("should_cleanup_s3 option overrides config", {
+  withr::local_options(starburst.cleanup_s3 = FALSE)
+  # Even if config said TRUE, the explicit option wins.
+  expect_false(should_cleanup_s3())
+})

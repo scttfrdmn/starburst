@@ -265,6 +265,20 @@ starburst_is_configured <- function() {
   check_aws_credentials()
 }
 
+#' Resolve whether to auto-clean S3 files after a job
+#'
+#' Order: the \code{starburst.cleanup_s3} option (explicit runtime override), then
+#' the persisted \code{auto_cleanup_s3} config (set via \code{\link{starburst_config}}),
+#' then default \code{TRUE}.
+#' @keywords internal
+should_cleanup_s3 <- function() {
+  opt <- getOption("starburst.cleanup_s3", NULL)
+  if (!is.null(opt)) return(isTRUE(opt))
+  cfg <- tryCatch(get_starburst_config()$auto_cleanup_s3, error = function(e) NULL)
+  if (!is.null(cfg)) return(isTRUE(cfg))
+  TRUE
+}
+
 #' Get configuration directory
 #'
 #' @keywords internal
