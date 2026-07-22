@@ -153,20 +153,26 @@ for (f in man_files) {
 }
 
 # ---- 5. Naive big-count anti-pattern in examples -----------------------------
-# starburst_map(1:N, ...) with a large N is the "thousands of tiny tasks" trap the
-# guides warn against. Flag it in user-facing docs so examples model batching.
-anti_marker <- "DON'T|Bad:|❌|anti-pattern|don't do this"
+# `starburst_map(1:N, ...)` / `future_map(1:N, ...)` / `future_lapply(1:N, ...)`
+# with a large N is the "thousands of tiny tasks" trap the guides warn against —
+# and the furrr/future spellings are the same anti-pattern as the direct API (the
+# plan is `starburst`). Flag them all in user-facing docs so examples model batching.
+anti_marker <- "DON'T|Don't|Bad:|❌|anti-pattern|don't do this|Instead of|tiny task"
+naive_re <- "(starburst_map|future_map|future_lapply)\\(\\s*1:([0-9]{4,})"
 for (f in c(vignettes, readme)) {
   lines <- read_lines_safe(f)
-  hits <- grep("starburst_map\\(\\s*1:([0-9]{4,})", lines)
+  hits <- grep(naive_re, lines)
   for (h in hits) {
-    n <- as.integer(sub(".*starburst_map\\(\\s*1:([0-9]+).*", "\\1", lines[h]))
-    # Allow deliberately-labeled anti-pattern demos (a DON'T/Bad marker on this or
-    # the preceding two lines).
-    ctx <- paste(lines[max(1, h - 2):h], collapse = " ")
+    m  <- regmatches(lines[h], regexec(naive_re, lines[h]))[[1]]
+    fn <- m[2]
+    n  <- as.integer(m[3])
+    # Allow deliberately-labeled anti-pattern demos (a DON'T/Bad/"Instead of"
+    # marker on this or the preceding three lines — the marker often sits just
+    # above the ```{r} fence).
+    ctx <- paste(lines[max(1, h - 3):h], collapse = " ")
     if (!is.na(n) && n >= 1000 && !grepl(anti_marker, ctx, ignore.case = TRUE)) {
-      note(sprintf("[naive-big-count] %s:%d starburst_map(1:%d, ...) — model batching or mark it as an anti-pattern (# DON'T / # Bad:)",
-                   basename(f), h, n))
+      note(sprintf("[naive-big-count] %s:%d %s(1:%d, ...) — model batching or mark it as an anti-pattern (# DON'T / # Bad:)",
+                   basename(f), h, fn, n))
     }
   }
 }
