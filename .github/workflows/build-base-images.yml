@@ -27,24 +27,30 @@ env:
   LATEST_R_VERSION: '4.6.1'
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write   # For OIDC role assumption
-      contents: read
+  # Build each architecture NATIVELY on a self-hosted runner (no QEMU emulation):
+  #   amd64 -> janus (Linux x86_64), arm64 -> orion (macOS/colima, arm64).
+  # Each job pushes a single-arch, per-arch tag; the `merge` job then assembles the
+  # final multi-arch manifest. Native builds avoid the ~80-min emulated arm64 build.
+  #
+  # SECURITY: self-hosted runners on a public repo. Safe because this workflow has
+  # NO pull_request trigger (only schedule / workflow_dispatch / push-to-main), and
+  # the repo requires approval for all external contributors' workflow runs — so a
+  # fork PR cannot execute on these runners.
+  build:
     strategy:
+      fail-fast: false
       matrix:
         r_version: ['4.5.3', '4.6.1']
-
+        arch: [amd64, arm64]
+    # Select the native runner by arch: amd64 -> janus, arm64 -> orion.
+    # (Both carry the shared `starburst` label plus their arch label.)
+    runs-on: [self-hosted, starburst, "${{ matrix.arch }}"]
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
-      - name: Set up QEMU (for cross-arch arm64 builds)
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -57,32 +63,63 @@ jobs:
           aws ecr-public get-login-password --region us-east-1 | \
             docker login --username AWS --password-stdin public.ecr.aws
 
-      - name: Build base image
+      - name: Build and push single-arch base image (native)
         run: |
           docker buildx build \
             --file inst/templates/Dockerfile.base \
             --build-arg R_VERSION=${{ matrix.r_version }} \
-            --tag ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:r${{ matrix.r_version }} \
-            --tag ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:r${{ matrix.r_version }}-$(date +%Y%m%d) \
-            --platform linux/amd64,linux/arm64 \
+            --platform linux/${{ matrix.arch }} \
+            --tag ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:r${{ matrix.r_version }}-${{ matrix.arch }} \
             --push \
             .
 
-      - name: Update latest tag for latest R version
-        if: matrix.r_version == env.LATEST_R_VERSION
-        run: |
-          docker buildx imagetools create \
-            --tag ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:latest \
-            ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:r${{ matrix.r_version }}
+  # Combine the per-arch images into one multi-arch manifest per R version, plus
+  # the dated tag and :latest (for the latest R version). imagetools works on the
+  # registry, so this runs fine on a GitHub-hosted runner.
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        r_version: ['4.5.3', '4.6.1']
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
 
-      - name: Generate image manifest
+      - name: Login to Amazon Public ECR
         run: |
-          echo "Image: ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:r${{ matrix.r_version }}" >> $GITHUB_STEP_SUMMARY
-          echo "Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
-          echo "Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          aws ecr-public get-login-password --region us-east-1 | \
+            docker login --username AWS --password-stdin public.ecr.aws
+
+      - name: Merge per-arch images into multi-arch manifests
+        run: |
+          REPO=${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}
+          RV=r${{ matrix.r_version }}
+          DATE_TAG=${RV}-$(date +%Y%m%d)
+
+          # rRV and dated tag -> multi-arch of the two per-arch images
+          for TAG in "$RV" "$DATE_TAG"; do
+            docker buildx imagetools create --tag "${REPO}:${TAG}" \
+              "${REPO}:${RV}-amd64" "${REPO}:${RV}-arm64"
+          done
+
+          # :latest tracks the latest R version
+          if [ "${{ matrix.r_version }}" = "${{ env.LATEST_R_VERSION }}" ]; then
+            docker buildx imagetools create --tag "${REPO}:latest" \
+              "${REPO}:${RV}-amd64" "${REPO}:${RV}-arm64"
+          fi
+
+          echo "Published multi-arch: ${REPO}:${RV} (amd64+arm64)" >> $GITHUB_STEP_SUMMARY
+          echo "Date: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
 
   create-release:
-    needs: build-and-push
+    needs: merge
     runs-on: ubuntu-latest
     permissions:
       contents: write   # For gh release create
