@@ -1,6 +1,7 @@
 # StarburstFuture Constructor
 
-Creates a Future object for evaluation on AWS Fargate
+Creates a Future object for evaluation on AWS workers (EC2 by default,
+or Fargate)
 
 ## Usage
 

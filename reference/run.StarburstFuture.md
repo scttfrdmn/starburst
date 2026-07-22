@@ -1,6 +1,7 @@
 # Run a StarburstFuture
 
-Submits the future task to AWS Fargate for execution
+Submits the future task to AWS for execution (EC2 by default, or
+Fargate)
 
 ## Usage
 

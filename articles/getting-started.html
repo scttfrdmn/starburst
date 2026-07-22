@@ -510,15 +510,20 @@ task:</p>
 <span><span class="co">#&gt; Error: Estimated cost ($35/hr) exceeds limit ($10/hr)</span></span></code></pre></div>
 </div>
 <div class="section level4">
-<h4 id="track-actual-costs">Track Actual Costs<a class="anchor" aria-label="anchor" href="#track-actual-costs"></a>
+<h4 id="cost-estimates">Cost estimates<a class="anchor" aria-label="anchor" href="#cost-estimates"></a>
 </h4>
+<p>After a run, staRburst reports an <strong>estimated</strong> cost —
+the measured worker runtime multiplied by the current AWS price for your
+instance type (On-Demand or Spot), looked up live from the AWS Pricing
+API (and cached; it falls back to built-in rates offline). It is a close
+estimate, not a figure from AWS billing / Cost Explorer.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">future_map</span><span class="op">(</span><span class="va">data</span>, <span class="va">process</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co">#&gt; Cluster runtime: 23 minutes</span></span>
-<span><span class="co">#&gt; Total cost: $1.34</span></span></code></pre></div>
+<span><span class="co">#&gt; Cluster runtime: ~23 minutes</span></span>
+<span><span class="co">#&gt; Estimated cost: ~$1.34</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">

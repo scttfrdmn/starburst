@@ -57,6 +57,7 @@
 <url><loc>https://starburst.ing/reference/create_starburst_bucket.html</loc></url>
 <url><loc>https://starburst.ing/reference/create_task.html</loc></url>
 <url><loc>https://starburst.ing/reference/create_task_status.html</loc></url>
+<url><loc>https://starburst.ing/reference/dot-static_ec2_prices.html</loc></url>
 <url><loc>https://starburst.ing/reference/ec2-pool.html</loc></url>
 <url><loc>https://starburst.ing/reference/ensure_base_image.html</loc></url>
 <url><loc>https://starburst.ing/reference/ensure_buildx_builder.html</loc></url>
@@ -78,6 +79,8 @@
 <url><loc>https://starburst.ing/reference/get_current_vcpu_usage.html</loc></url>
 <url><loc>https://starburst.ing/reference/get_ec2_client.html</loc></url>
 <url><loc>https://starburst.ing/reference/get_ec2_instance_price.html</loc></url>
+<url><loc>https://starburst.ing/reference/get_ec2_ondemand_price.html</loc></url>
+<url><loc>https://starburst.ing/reference/get_ec2_spot_price.html</loc></url>
 <url><loc>https://starburst.ing/reference/get_ecr_client.html</loc></url>
 <url><loc>https://starburst.ing/reference/get_ecs_client.html</loc></url>
 <url><loc>https://starburst.ing/reference/get_ecs_optimized_ami.html</loc></url>
@@ -143,6 +146,7 @@
 <url><loc>https://starburst.ing/reference/session-state.html</loc></url>
 <url><loc>https://starburst.ing/reference/setup_ec2_capacity_provider.html</loc></url>
 <url><loc>https://starburst.ing/reference/setup_vpc_resources.html</loc></url>
+<url><loc>https://starburst.ing/reference/should_cleanup_s3.html</loc></url>
 <url><loc>https://starburst.ing/reference/starburst-package.html</loc></url>
 <url><loc>https://starburst.ing/reference/starburst.html</loc></url>
 <url><loc>https://starburst.ing/reference/starburst_check_quota_request.html</loc></url>

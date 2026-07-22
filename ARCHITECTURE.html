@@ -57,467 +57,249 @@
 
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a></h2>
-<p>staRburst is a future backend that enables seamless execution of parallel R workloads on AWS Fargate. It handles environment synchronization, data transfer, quota management, and worker orchestration automatically.</p>
+<p>staRburst runs parallel R workloads on AWS with no infrastructure to manage. It registers a <code>future</code> backend named <strong><code>starburst</code></strong>, so <code>plan(starburst, workers = N)</code> turns ordinary <code>future</code>/<code>furrr</code> code into cloud execution, and it exposes a direct <code><a href="reference/starburst_map.html">starburst_map()</a></code> API for the common map-over-inputs case.</p>
+<p>Workers run on <strong>Amazon ECS</strong>. The default backend launches <strong>EC2 instances</strong> (<code>c7g.xlarge</code>, Spot enabled) for speed and cost; a serverless <strong>Fargate</strong> backend is available as an alternative. In both cases the compute plane is decoupled from the data plane: tasks, results, and session state all flow through <strong>S3</strong>, and worker R environments are reproduced from your <code>renv.lock</code> as a Docker image cached in <strong>ECR</strong>.</p>
 </div>
 <div class="section level2">
 <h2 id="design-principles">Design Principles<a class="anchor" aria-label="anchor" href="#design-principles"></a></h2>
 <ol style="list-style-type: decimal"><li>
-<strong>Simplicity First</strong>: Fargate over EC2, reasonable defaults over configuration</li>
+<strong>EC2-first for speed and cost.</strong> The default backend is EC2 with Spot (<code>use_spot = TRUE</code>) — no cold start, ~70% cheaper than On-Demand, any instance type, and warm pools that amortize startup across runs. Fargate is offered for workloads that specifically want serverless task execution.</li>
 <li>
-<strong>Leverage Existing Standards</strong>: Built on future framework, uses standard R tools (renv)</li>
+<strong>Sensible defaults over configuration.</strong> <code><a href="reference/starburst_setup.html">starburst_setup()</a></code> provisions everything the default backend needs; a first job is <code>plan(starburst, workers = N)</code> with no further tuning.</li>
 <li>
-<strong>Fail Gracefully</strong>: Wave-based execution when quota-limited, clear error messages</li>
+<strong>S3 is the message bus.</strong> The client and workers never talk directly. S3 is the RPC channel: the client writes tasks, workers write results, and both read state. This is what makes disconnect/reattach and detached sessions possible.</li>
 <li>
-<strong>Cost Transparent</strong>: Always show estimated and actual costs</li>
+<strong>Reproducible environments.</strong> Worker packages come from your <code>renv.lock</code>, baked into a Docker image and cached in ECR — the same versions locally and remotely.</li>
 <li>
-<strong>Zero Babysitting</strong>: Auto-cleanup, auto-shutdown, automatic retries</li>
+<strong>Transparent (estimated) cost.</strong> Every run reports an estimate derived from measured worker runtime and live AWS pricing, with hard and soft ceilings.</li>
 </ol></div>
 <div class="section level2">
 <h2 id="system-architecture">System Architecture<a class="anchor" aria-label="anchor" href="#system-architecture"></a></h2>
-<pre><code>┌─────────────────────────────────────────────────────────────┐
-│                      Local RStudio                           │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │  User Code                                              │ │
-│  │  plan(future_starburst, workers = 100)                 │ │
-│  │  results &lt;- future_map(data, expensive_fn)             │ │
-│  └─────────────────┬──────────────────────────────────────┘ │
-│                    │                                          │
-│  ┌─────────────────▼──────────────────────────────────────┐ │
-│  │  staRburst Client Library                              │ │
-│  │  • Environment snapshot (renv)                         │ │
-│  │  • Quota checking                                       │ │
-│  │  • Task serialization                                   │ │
-│  │  • Result collection                                    │ │
-│  └─────────────────┬──────────────────────────────────────┘ │
-└────────────────────┼──────────────────────────────────────────┘
-                     │
-          ┌──────────▼────────────┐
-          │    AWS Services       │
-          └──────────┬────────────┘
-                     │
-     ┌───────────────┼───────────────┐
-     │               │               │
-┌────▼─────┐  ┌─────▼──────┐  ┌────▼─────┐
-│    S3    │  │    ECR     │  │   ECS    │
-│  Bucket  │  │ Repository │  │ Fargate  │
-│          │  │            │  │          │
-│ • Input  │  │ • Docker   │  │ • Tasks  │
-│ • Output │  │   Images   │  │ • Logs   │
-│ • Deps   │  │ • Caching  │  │          │
-└──────────┘  └────────────┘  └────┬─────┘
-                                    │
-                     ┌──────────────┴──────────────┐
-                     │                             │
-              ┌──────▼───────┐            ┌───────▼──────┐
-              │ Fargate Task │  ...       │ Fargate Task │
-              │  Worker 1    │            │  Worker N    │
-              │              │            │              │
-              │ • Pull image │            │ • Pull image │
-              │ • Get data   │            │ • Get data   │
-              │ • Execute    │            │ • Execute    │
-              │ • Push result│            │ • Push result│
-              └──────────────┘            └──────────────┘</code></pre>
-</div>
+<p>The mental model (from the <em>Getting Started</em> guide):</p>
+<pre><code>        Local R session
+              |
+              |  (1) serialize your function + inputs + detected globals (qs2)
+              |      AWS credentials are read HERE, from your local environment
+              v
+   S3 bucket  +  staRburst control plane (ECS/ECR)
+              |
+              |  (2) launch workers: EC2 (default, Spot) or Fargate
+              |      each worker's R packages come from your renv.lock, baked
+              |      into a Docker image cached in ECR
+              v
+   Remote R workers  (one task per input element)
+              |
+              |  (3) each worker pulls a task from S3, runs it, writes the
+              |      result + logs back to S3
+              v
+   Local R session  &lt;-- results collected in order (starburst_map / cluster)
+        or
+   Detached-session store in S3  &lt;-- collected later via starburst_session_attach()</code></pre>
+<p>Key properties of this picture:</p>
+<ul><li>
+<strong>Credentials</strong> are used only on your machine (to call AWS) and by the workers’ IAM role. No keys go into your code or into S3.</li>
+<li>
+<strong>Uploaded per task</strong>: your function, its inputs, and auto-detected globals — not your whole workspace. Large data should be put in S3 yourself and read on the worker.</li>
+<li>
+<strong>After a disconnect</strong>, workers keep running against S3 until a timeout; nothing is silently lost.</li>
+</ul></div>
 <div class="section level2">
-<h2 id="component-deep-dive">Component Deep Dive<a class="anchor" aria-label="anchor" href="#component-deep-dive"></a></h2>
+<h2 id="components">Components<a class="anchor" aria-label="anchor" href="#components"></a></h2>
 <div class="section level3">
-<h3 id="id_1-client-library-local">1. Client Library (Local)<a class="anchor" aria-label="anchor" href="#id_1-client-library-local"></a></h3>
-<p><strong>Responsibilities</strong>: - Environment management (renv snapshots) - Quota checking and wave orchestration - Task serialization and submission - Result collection and deserialization - Cost tracking and reporting</p>
-<p><strong>Key Modules</strong>:</p>
+<h3 id="client-library-local">Client library (local)<a class="anchor" aria-label="anchor" href="#client-library-local"></a></h3>
+<p>Responsibilities: environment snapshot (renv), task serialization, worker launch, result collection, cost estimation, and (for Fargate) quota-aware wave planning.</p>
+<p>Key modules:</p>
 <pre><code>R/
-├── plan-starburst.R      # future backend implementation
-├── setup.R               # One-time AWS configuration
-├── quota.R               # Quota checking and management
-├── environment.R         # renv snapshot and Docker image building
-├── worker.R              # Fargate task management
-├── serialize.R           # Task and result serialization
-├── cost.R                # Cost estimation and tracking
-└── utils.R               # Helpers and utilities</code></pre>
+├── plan-starburst.R          # plan.starburst(): backend construction, defaults, guards
+├── StarburstBackend-class.R  # `starburst` strategy marker + FutureBackend integration
+├── future-starburst.R        # future.starburst() / StarburstFuture, run/resolved/result
+├── setup.R                   # starburst_setup(), starburst_setup_ec2(), starburst_config()
+├── ec2-pool.R                # capacity providers, ASGs, warm pools (EC2 backend)
+├── session-api.R             # detached sessions (submit / status / collect / cleanup)
+├── session-state.R           # S3-backed manifest + task status (atomic, ETag-guarded)
+├── cost.R                    # estimate_cost() + live AWS pricing with static fallback
+├── images.R                  # renv -&gt; multi-arch base + worker image, cached in ECR
+└── aws-retry.R / aws-clients.R</code></pre>
 </div>
 <div class="section level3">
-<h3 id="id_2-environment-synchronization">2. Environment Synchronization<a class="anchor" aria-label="anchor" href="#id_2-environment-synchronization"></a></h3>
-<p><strong>Challenge</strong>: Ensure worker R environments match local</p>
-<p><strong>Solution</strong>: renv + Docker + Caching</p>
-<pre><code>1. Local renv snapshot
-   └─&gt; renv.lock file (exact package versions)
-
-2. Docker image build
-   ├─&gt; Base: rocker/r-ver:4.3.0
-   ├─&gt; Install system deps
-   ├─&gt; renv::restore(renv.lock)
-   └─&gt; Add worker script
-
-3. ECR caching
-   ├─&gt; Tag: starburst-{hash(renv.lock)}
-   ├─&gt; If exists: pull
-   └─&gt; If new: build and push</code></pre>
-<p><strong>Performance</strong>: - First run: 5-10 min (build Docker image) - Subsequent runs: &lt;10 sec (cached image) - Only rebuilds when packages change</p>
-</div>
-<div class="section level3">
-<h3 id="id_3-task-execution-flow">3. Task Execution Flow<a class="anchor" aria-label="anchor" href="#id_3-task-execution-flow"></a></h3>
-<p><strong>Submission</strong>:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># User code</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>f <span class="ot">&lt;-</span> <span class="fu">future</span>({ <span class="fu">expensive_computation</span>(x) })</span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co"># Behind the scenes:</span></span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="fl">1.</span> Capture expression and dependencies</span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>   expr <span class="ot">&lt;-</span> <span class="fu">quote</span>({ <span class="fu">expensive_computation</span>(x) })</span>
-<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>   deps <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x =</span> x, <span class="at">expensive_computation =</span> expensive_computation)</span>
-<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a></span>
-<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="fl">2.</span> Serialize to S3</span>
-<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>   task_id <span class="ot">&lt;-</span> uuid<span class="sc">::</span><span class="fu">UUIDgenerate</span>()</span>
-<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>   qs<span class="sc">::</span><span class="fu">qsave</span>(<span class="fu">list</span>(<span class="at">expr =</span> expr, <span class="at">deps =</span> deps), </span>
-<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>             <span class="fu">sprintf</span>(<span class="st">"s3://bucket/tasks/%s.qs"</span>, task_id))</span>
-<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a></span>
-<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="fl">3.</span> Submit Fargate task</span>
-<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>   <span class="fu">ecs_run_task</span>(</span>
-<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>     <span class="at">taskDefinition =</span> <span class="st">"starburst-worker"</span>,</span>
-<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>     <span class="at">environment =</span> <span class="fu">list</span>(</span>
-<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>       <span class="at">TASK_ID =</span> task_id,</span>
-<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>       <span class="at">S3_BUCKET =</span> bucket</span>
-<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>     )</span>
-<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>   )</span>
-<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a></span>
-<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a><span class="fl">4.</span> Return future object</span>
-<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>   future_obj <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>     <span class="at">task_id =</span> task_id,</span>
-<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>     <span class="at">submitted_at =</span> <span class="fu">Sys.time</span>(),</span>
-<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>     <span class="at">state =</span> <span class="st">"running"</span></span>
-<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>   )</span></code></pre></div>
-<p><strong>Worker Execution</strong>:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Worker container entrypoint</span></span>
-<span><span class="va">main</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># Get task info from environment</span></span>
-<span>  <span class="va">task_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"TASK_ID"</span><span class="op">)</span></span>
-<span>  <span class="va">bucket</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"S3_BUCKET"</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Download task</span></span>
-<span>  <span class="va">task</span> <span class="op">&lt;-</span> <span class="fu">qs</span><span class="fu">::</span><span class="fu">qread</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"s3://%s/tasks/%s.qs"</span>, <span class="va">bucket</span>, <span class="va">task_id</span><span class="op">)</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Restore environment</span></span>
-<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">name</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">task</span><span class="op">$</span><span class="va">deps</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/assign.html" class="external-link">assign</a></span><span class="op">(</span><span class="va">name</span>, <span class="va">task</span><span class="op">$</span><span class="va">deps</span><span class="op">[[</span><span class="va">name</span><span class="op">]</span><span class="op">]</span>, envir <span class="op">=</span> <span class="va">.GlobalEnv</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="co"># Execute</span></span>
-<span>  <span class="va">result</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/eval.html" class="external-link">eval</a></span><span class="op">(</span><span class="va">task</span><span class="op">$</span><span class="va">expr</span>, envir <span class="op">=</span> <span class="va">.GlobalEnv</span><span class="op">)</span></span>
-<span>  <span class="op">}</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>error <span class="op">=</span> <span class="cn">TRUE</span>, message <span class="op">=</span> <span class="va">e</span><span class="op">$</span><span class="va">message</span><span class="op">)</span></span>
-<span>  <span class="op">}</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Upload result</span></span>
-<span>  <span class="fu">qs</span><span class="fu">::</span><span class="fu">qsave</span><span class="op">(</span><span class="va">result</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"s3://%s/results/%s.qs"</span>, <span class="va">bucket</span>, <span class="va">task_id</span><span class="op">)</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Exit</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/quit.html" class="external-link">quit</a></span><span class="op">(</span>status <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
+<h3 id="backend-selection-ec2-default-fargate-optional">Backend selection (EC2 default, Fargate optional)<a class="anchor" aria-label="anchor" href="#backend-selection-ec2-default-fargate-optional"></a></h3>
+<p><code><a href="reference/plan.starburst.html">plan.starburst()</a></code> and <code><a href="reference/starburst_session.html">starburst_session()</a></code> default to <code>launch_type = "EC2"</code>, <code>instance_type = "c7g.xlarge"</code>, <code>use_spot = TRUE</code>. Both backends submit ECS <code>run_task</code> calls; they differ only in how capacity is provided:</p>
+<table class="table"><colgroup><col width="33%"><col width="33%"><col width="33%"></colgroup><thead><tr><th></th>
+<th>EC2 (default)</th>
+<th>Fargate (optional)</th>
+</tr></thead><tbody><tr><td>Selector</td>
+<td><code>launch_type = "EC2"</code></td>
+<td><code>launch_type = "FARGATE"</code></td>
+</tr><tr><td>Capacity</td>
+<td>Auto Scaling Group + ECS capacity provider</td>
+<td>Managed by AWS</td>
+</tr><tr><td>Setup needed</td>
+<td>Capacity provider (created by <code><a href="reference/starburst_setup.html">starburst_setup()</a></code>)</td>
+<td>None</td>
+</tr><tr><td>Startup</td>
+<td>Warm pool (~75–90 s cold, then reused)</td>
+<td>Per-task cold start</td>
+</tr><tr><td>Cost lever</td>
+<td>Spot (default), any instance type</td>
+<td>Fargate vCPU pricing</td>
+</tr><tr><td>Scale limit</td>
+<td>EC2 On-Demand / Spot instance limits</td>
+<td>Fargate vCPU quota (wave-based)</td>
+</tr></tbody></table><div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Default: EC2 + Spot, c7g.xlarge</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">main</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Result Collection</strong>:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># value(future) implementation</span></span>
-<span><span class="va">value.starburst</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">future</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># Poll for result</span></span>
-<span>  <span class="kw">while</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="reference/result_exists.html">result_exists</a></span><span class="op">(</span><span class="va">future</span><span class="op">$</span><span class="va">task_id</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="co"># Download result</span></span>
-<span>  <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">qs</span><span class="fu">::</span><span class="fu">qread</span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"s3://%s/results/%s.qs"</span>, <span class="va">bucket</span>, <span class="va">future</span><span class="op">$</span><span class="va">task_id</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Handle errors</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">is.list</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">error</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">message</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="co"># Cleanup</span></span>
-<span>  <span class="fu">delete_task_files</span><span class="op">(</span><span class="va">future</span><span class="op">$</span><span class="va">task_id</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">result</span></span>
-<span><span class="op">}</span></span></code></pre></div>
+<span><span class="co"># Serverless alternative</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, launch_type <span class="op">=</span> <span class="st">"FARGATE"</span><span class="op">)</span></span></code></pre></div>
+<p>Worker count is capped at 500 (<code>validate_workers()</code>); higher requires an AWS quota increase.</p>
 </div>
 <div class="section level3">
-<h3 id="id_4-quota-management">4. Quota Management<a class="anchor" aria-label="anchor" href="#id_4-quota-management"></a></h3>
-<p><strong>Proactive Checking</strong>:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">plan.starburst</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">workers</span>, <span class="va">cpu</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># Check quota before doing anything</span></span>
-<span>  <span class="va">quota</span> <span class="op">&lt;-</span> <span class="fu">get_fargate_quota</span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="va">needed</span> <span class="op">&lt;-</span> <span class="va">workers</span> <span class="op">*</span> <span class="va">cpu</span></span>
-<span>  </span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="va">needed</span> <span class="op">&gt;</span> <span class="va">quota</span><span class="op">$</span><span class="va">limit</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="co"># Calculate wave execution</span></span>
-<span>    <span class="va">workers_per_wave</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">floor</a></span><span class="op">(</span><span class="va">quota</span><span class="op">$</span><span class="va">limit</span> <span class="op">/</span> <span class="va">cpu</span><span class="op">)</span></span>
-<span>    <span class="va">num_waves</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="va">workers</span> <span class="op">/</span> <span class="va">workers_per_wave</span><span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="co"># Inform user</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
-<span>      <span class="st">"Quota allows %d workers, running in %d waves"</span>,</span>
-<span>      <span class="va">workers_per_wave</span>, <span class="va">num_waves</span></span>
-<span>    <span class="op">)</span><span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="co"># Offer quota increase</span></span>
-<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="va">quota</span><span class="op">$</span><span class="va">increase_pending</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="kw">if</span> <span class="op">(</span><span class="fu">ask_user</span><span class="op">(</span><span class="st">"Request quota increase?"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>        <span class="fu"><a href="reference/request_quota_increase.html">request_quota_increase</a></span><span class="op">(</span><span class="fu"><a href="reference/suggest_quota.html">suggest_quota</a></span><span class="op">(</span><span class="va">needed</span><span class="op">)</span><span class="op">)</span></span>
-<span>      <span class="op">}</span></span>
-<span>    <span class="op">}</span></span>
-<span>    </span>
-<span>    <span class="co"># Create wave-based plan</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu">create_wave_plan</span><span class="op">(</span><span class="va">workers</span>, <span class="va">workers_per_wave</span>, <span class="va">num_waves</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="co"># Sufficient quota - normal plan</span></span>
-<span>  <span class="fu">create_plan</span><span class="op">(</span><span class="va">workers</span>, <span class="va">cpu</span><span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-<p><strong>Wave Execution</strong>:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">execute_with_waves</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">tasks</span>, <span class="va">plan</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">vector</a></span><span class="op">(</span><span class="st">"list"</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tasks</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">completed</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
-<span>  </span>
-<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">wave</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">plan</span><span class="op">$</span><span class="va">num_waves</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="co"># Get tasks for this wave</span></span>
-<span>    <span class="va">start_idx</span> <span class="op">&lt;-</span> <span class="va">completed</span> <span class="op">+</span> <span class="fl">1</span></span>
-<span>    <span class="va">end_idx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">completed</span> <span class="op">+</span> <span class="va">plan</span><span class="op">$</span><span class="va">workers_per_wave</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tasks</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="va">wave_tasks</span> <span class="op">&lt;-</span> <span class="va">tasks</span><span class="op">[</span><span class="va">start_idx</span><span class="op">:</span><span class="va">end_idx</span><span class="op">]</span></span>
-<span>    </span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Wave %d/%d: %d tasks"</span>, </span>
-<span>                   <span class="va">wave</span>, <span class="va">plan</span><span class="op">$</span><span class="va">num_waves</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">wave_tasks</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="co"># Submit wave</span></span>
-<span>    <span class="va">futures</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">wave_tasks</span>, <span class="va">submit_task</span><span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="co"># Collect results</span></span>
-<span>    <span class="va">wave_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">futures</span>, <span class="va">value</span><span class="op">)</span></span>
-<span>    <span class="va">results</span><span class="op">[</span><span class="va">start_idx</span><span class="op">:</span><span class="va">end_idx</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">wave_results</span></span>
-<span>    </span>
-<span>    <span class="va">completed</span> <span class="op">&lt;-</span> <span class="va">end_idx</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="va">results</span></span>
-<span><span class="op">}</span></span></code></pre></div>
+<h3 id="one-time-setup">One-time setup<a class="anchor" aria-label="anchor" href="#one-time-setup"></a></h3>
+<p><code><a href="reference/starburst_setup.html">starburst_setup()</a></code> is a single call that provisions everything the default backend needs:</p>
+<ul><li>an S3 bucket (encrypted, 7-day lifecycle) for the task/result/session data plane;</li>
+<li>an ECR repository for worker images;</li>
+<li>an ECS cluster and VPC resources shared by both backends;</li>
+<li>the <strong>default EC2 capacity provider</strong> — a Launch Template, an Auto Scaling Group at <code>DesiredCapacity = 0</code>, and an ECS capacity provider for <code>c7g.xlarge</code>. Creating it at zero instances means no compute cost from setup, but the default EC2 backend works on the first job. Skip with <code>setup_ec2 = FALSE</code> if you only use Fargate.</li>
+<li>a Fargate vCPU quota check (with an optional increase request);</li>
+<li>the initial worker image build (skippable with <code>build_image = FALSE</code>; built lazily on first launch otherwise).</li>
+</ul><p>Capacity providers for <strong>non-default instance types are provisioned lazily</strong>: the first time a job requests, say, <code>c8a.xlarge</code>, <code><a href="reference/start_warm_pool.html">start_warm_pool()</a></code> finds no ASG and calls <code><a href="reference/setup_ec2_capacity_provider.html">setup_ec2_capacity_provider()</a></code> once (idempotent). You can also pre-provision several types with <code>starburst_setup_ec2(instance_types = c(...))</code>.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/starburst_setup.html">starburst_setup</a></span><span class="op">(</span><span class="op">)</span>                          <span class="co"># default: EC2 capacity + image build</span></span>
+<span><span class="fu"><a href="reference/starburst_setup.html">starburst_setup</a></span><span class="op">(</span>build_image <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>       <span class="co"># provision infra only (CI / connectivity)</span></span>
+<span><span class="fu"><a href="reference/starburst_setup.html">starburst_setup</a></span><span class="op">(</span>setup_ec2 <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>         <span class="co"># Fargate-only</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="id_5-cost-tracking">5. Cost Tracking<a class="anchor" aria-label="anchor" href="#id_5-cost-tracking"></a></h3>
-<p><strong>Estimation</strong>:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">estimate_cost</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">workers</span>, <span class="va">cpu</span>, <span class="va">memory</span>, <span class="va">estimated_runtime_sec</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># Fargate pricing (us-east-1, as of 2025)</span></span>
-<span>  <span class="va">vcpu_price_per_hour</span> <span class="op">&lt;-</span> <span class="fl">0.04048</span></span>
-<span>  <span class="va">gb_price_per_hour</span> <span class="op">&lt;-</span> <span class="fl">0.004445</span></span>
-<span>  </span>
-<span>  <span class="va">memory_gb</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/parse_memory.html">parse_memory</a></span><span class="op">(</span><span class="va">memory</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">cost_per_hour</span> <span class="op">&lt;-</span> </span>
-<span>    <span class="op">(</span><span class="va">cpu</span> <span class="op">*</span> <span class="va">vcpu_price_per_hour</span><span class="op">)</span> <span class="op">+</span> </span>
-<span>    <span class="op">(</span><span class="va">memory_gb</span> <span class="op">*</span> <span class="va">gb_price_per_hour</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">total_cost</span> <span class="op">&lt;-</span> <span class="va">cost_per_hour</span> <span class="op">*</span> <span class="va">workers</span> <span class="op">*</span> <span class="op">(</span><span class="va">estimated_runtime_sec</span> <span class="op">/</span> <span class="fl">3600</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    per_hour <span class="op">=</span> <span class="va">cost_per_hour</span>,</span>
-<span>    total <span class="op">=</span> <span class="va">total_cost</span>,</span>
-<span>    workers <span class="op">=</span> <span class="va">workers</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-<p><strong>Actual Tracking</strong>:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">track_cost</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">cluster_id</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># Query CloudWatch for actual runtime</span></span>
-<span>  <span class="va">tasks</span> <span class="op">&lt;-</span> <span class="fu">list_tasks</span><span class="op">(</span><span class="va">cluster_id</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">total_cost</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
-<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">task</span> <span class="kw">in</span> <span class="va">tasks</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">runtime_sec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/difftime.html" class="external-link">difftime</a></span><span class="op">(</span><span class="va">task</span><span class="op">$</span><span class="va">stopped_at</span>, <span class="va">task</span><span class="op">$</span><span class="va">started_at</span>, units <span class="op">=</span> <span class="st">"secs"</span><span class="op">)</span></span>
-<span>    <span class="va">task_cost</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_task_cost.html">calculate_task_cost</a></span><span class="op">(</span><span class="va">task</span><span class="op">$</span><span class="va">cpu</span>, <span class="va">task</span><span class="op">$</span><span class="va">memory</span>, <span class="va">runtime_sec</span><span class="op">)</span></span>
-<span>    <span class="va">total_cost</span> <span class="op">&lt;-</span> <span class="va">total_cost</span> <span class="op">+</span> <span class="va">task_cost</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="va">total_cost</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="id_6-error-handling-and-retries">6. Error Handling and Retries<a class="anchor" aria-label="anchor" href="#id_6-error-handling-and-retries"></a></h3>
-<p><strong>Worker Failures</strong>:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">submit_task_with_retry</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">task</span>, <span class="va">max_retries</span> <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">attempt</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">max_retries</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>      <span class="va">future</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/submit_task.html">submit_task</a></span><span class="op">(</span><span class="va">task</span><span class="op">)</span></span>
-<span>      <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">future</span><span class="op">)</span></span>
-<span>    <span class="op">}</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="kw">if</span> <span class="op">(</span><span class="va">attempt</span> <span class="op">==</span> <span class="va">max_retries</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span></span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Retry %d/%d: %s"</span>, <span class="va">attempt</span>, <span class="va">max_retries</span>, <span class="va">e</span><span class="op">$</span><span class="va">message</span><span class="op">)</span><span class="op">)</span></span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">2</span><span class="op">^</span><span class="va">attempt</span><span class="op">)</span>  <span class="co"># Exponential backoff</span></span>
-<span>    <span class="op">}</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-<p><strong>Partial Results</strong>:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Save results as they complete</span></span>
-<span><span class="va">collect_results_progressive</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">futures</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">vector</a></span><span class="op">(</span><span class="st">"list"</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">futures</span><span class="op">)</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">futures</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>      <span class="va">results</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">value</span><span class="op">(</span><span class="va">futures</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span>      <span class="co"># Save checkpoint</span></span>
-<span>      <span class="fu">save_checkpoint</span><span class="op">(</span><span class="va">results</span>, <span class="va">i</span><span class="op">)</span></span>
-<span>    <span class="op">}</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="kw"><a href="https://rdrr.io/r/base/warning.html" class="external-link">warning</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Task %d failed: %s"</span>, <span class="va">i</span>, <span class="va">e</span><span class="op">$</span><span class="va">message</span><span class="op">)</span><span class="op">)</span></span>
-<span>      <span class="va">results</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NULL</span></span>
-<span>    <span class="op">}</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="va">results</span></span>
-<span><span class="op">}</span></span></code></pre></div>
+<h3 id="environment-reproduction-renv--docker--ecr">Environment reproduction (renv + Docker + ECR)<a class="anchor" aria-label="anchor" href="#environment-reproduction-renv--docker--ecr"></a></h3>
+<p>Workers must run the same package versions as your local session:</p>
+<pre><code>1. renv.lock (exact package versions), discovered by walking up to the project root
+        |
+        v
+2. Docker build
+   ├─ multi-arch base image (linux/amd64 + linux/arm64), public
+   │  (public.ecr.aws/.../base:r&lt;version&gt;) or privately built
+   ├─ renv::restore(renv.lock)
+   └─ + worker entrypoint (inst/templates/worker.R)
+        |
+        v
+3. ECR cache, tagged by a hash of the environment (compute_env_hash)
+   ├─ hash unchanged  -&gt; reuse cached image  (seconds)
+   └─ packages changed -&gt; rebuild + push      (first run: ~5-10 min)</code></pre>
+<p>The multi-arch base lets the same logical image run on Graviton (ARM64, e.g. <code>c7g</code>) and x86 (<code>c7i</code>/<code>c8a</code>) workers. Separately, the EC2 <em>hosts</em> boot from the region’s ECS-optimized AMI (ARM64 or x86 to match the instance).</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="data-flow-optimization">Data Flow Optimization<a class="anchor" aria-label="anchor" href="#data-flow-optimization"></a></h2>
+<h2 id="execution-model">Execution Model<a class="anchor" aria-label="anchor" href="#execution-model"></a></h2>
 <div class="section level3">
-<h3 id="serialization-strategy">Serialization Strategy<a class="anchor" aria-label="anchor" href="#serialization-strategy"></a></h3>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Choose serialization based on object type</span></span>
-<span><span class="va">serialize_smart</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">is.data.frame</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">10000</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="co"># Large data frames: Arrow</span></span>
-<span>    <span class="fu">arrow</span><span class="fu">::</span><span class="fu">write_parquet</span><span class="op">(</span><span class="va">obj</span>, <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span> <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span><span class="fu">is_large_object</span><span class="op">(</span><span class="va">obj</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="co"># Large R objects: qs (fast compression)</span></span>
-<span>    <span class="fu">qs</span><span class="fu">::</span><span class="fu">qsave</span><span class="op">(</span><span class="va">obj</span>, <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span>, preset <span class="op">=</span> <span class="st">"fast"</span><span class="op">)</span></span>
-<span>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>    <span class="co"># Small objects: base serialize</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/serialize.html" class="external-link">serialize</a></span><span class="op">(</span><span class="va">obj</span>, <span class="cn">NULL</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span><span class="op">}</span></span></code></pre></div>
+<h3 id="data-flow">Data flow<a class="anchor" aria-label="anchor" href="#data-flow"></a></h3>
+<ol style="list-style-type: decimal"><li>Locally, staRburst captures <code>{expr, globals, packages}</code> (auto-detecting globals via <code><a href="https://future.futureverse.org/reference/getGlobalsAndPackages.html" class="external-link">future::getGlobalsAndPackages()</a></code>), serializes it with <strong>qs2</strong>, and uploads it to <code>s3://&lt;bucket&gt;/tasks/&lt;task_id&gt;.qs</code>.</li>
+<li>It launches workers (EC2 warm pool or Fargate tasks) via ECS <code>run_task</code>, passing <code>TASK_ID</code>, <code>S3_BUCKET</code>, and region as container environment variables.</li>
+<li>Each worker pulls its task from S3, restores globals/packages, evaluates the expression, and writes the result (or a structured error) to <code>s3://&lt;bucket&gt;/results/&lt;task_id&gt;.qs</code>.</li>
+<li>The client polls <code>results/</code> (via <code>resolved()</code> / <code>result()</code>) and returns values in submission order — or, for detached sessions, leaves them in S3 for later.</li>
+</ol></div>
+<div class="section level3">
+<h3 id="one-task-per-element-no-auto-chunking">One task per element (no auto-chunking)<a class="anchor" aria-label="anchor" href="#one-task-per-element-no-auto-chunking"></a></h3>
+<p>staRburst creates <strong>one task per element of <code>.x</code></strong> — there is no automatic batching. Each task is a separate client-side S3 submit and collect, so thousands of tiny tasks is an anti-pattern: the client serializes submissions (~1–2/sec) while workers sit idle, and cost scales with idle worker time. The four levers that decide whether a workload fits (see the <em>Workload Shapes</em> guide) are:</p>
+<ul><li>
+<strong>Task length</strong> — sub-second tasks should stay local; seconds-to-minutes each is the sweet spot.</li>
+<li>
+<strong>Task count</strong> — batch fine-grained work into dozens-to-hundreds of tasks, each doing real work. A 10k-point sweep is ~65× faster and ~27× cheaper batched vs. one task per point.</li>
+<li>
+<strong>Fan-out width</strong> — more workers cut wall-clock only up to the number of tasks; beyond <code>workers == tasks</code> you pay for idle machines.</li>
+<li>
+<strong>Cost vs. time</strong> — adding workers (up to #tasks) buys wall-clock at ~constant total cost; Spot (default) and warm pools cut cost for anything run more than once.</li>
+</ul><div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># DON'T: 10,000 tasks — 10,000 serial S3 submits</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="va">evaluate_point</span>, workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># DO: batch into ~100 tasks, same 10,000 evaluations</span></span>
+<span><span class="va">batches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10000</span><span class="op">)</span> <span class="op">/</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="va">batches</span>, <span class="kw">function</span><span class="op">(</span><span class="va">ids</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">ids</span>, <span class="va">evaluate_point</span><span class="op">)</span>,</span>
+<span>                         workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">results</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="s3-upload-optimization">S3 Upload Optimization<a class="anchor" aria-label="anchor" href="#s3-upload-optimization"></a></h3>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Parallel multipart upload for large objects</span></span>
-<span><span class="va">upload_to_s3</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">file</span>, <span class="va">bucket</span>, <span class="va">key</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">file_size</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.size</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="va">file_size</span> <span class="op">&gt;</span> <span class="fl">100</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span> <span class="op">{</span>  <span class="co"># &gt;100MB</span></span>
-<span>    <span class="co"># Use multipart upload</span></span>
-<span>    <span class="fu">multipart_upload_parallel</span><span class="op">(</span><span class="va">file</span>, <span class="va">bucket</span>, <span class="va">key</span>, </span>
-<span>                              part_size <span class="op">=</span> <span class="fl">50</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">2</span>,</span>
-<span>                              num_threads <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
-<span>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>    <span class="co"># Simple upload</span></span>
-<span>    <span class="fu">put_object</span><span class="op">(</span><span class="va">file</span>, <span class="va">bucket</span>, <span class="va">key</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span><span class="op">}</span></span></code></pre></div>
+<h3 id="wave-based-execution-fargate-quota-handling">Wave-based execution (Fargate quota handling)<a class="anchor" aria-label="anchor" href="#wave-based-execution-fargate-quota-handling"></a></h3>
+<p>The Fargate vCPU quota is a hard account limit. When a Fargate job requests more vCPUs than the quota allows, <code><a href="reference/plan.starburst.html">plan.starburst()</a></code> computes <code>workers_per_wave</code> and <code>num_waves</code> and runs the tasks in sequential waves, optionally offering a quota-increase request. This logic is <strong>Fargate-specific</strong>: the EC2 backend is bounded by ordinary EC2 On-Demand / Spot instance limits, not this quota, and does not use waves.</p>
 </div>
+</div>
+<div class="section level2">
+<h2 id="cost-model">Cost Model<a class="anchor" aria-label="anchor" href="#cost-model"></a></h2>
+<p>Reported cost is an <strong>estimate, not an AWS bill.</strong> <code><a href="reference/estimate_cost.html">estimate_cost()</a></code> produces a normalized <code>hourly_rate</code> (total $/hour for the whole job) that works for both backends:</p>
+<ul><li>
+<strong>EC2</strong>: <code>instances_needed × per-instance hourly rate</code>, where the rate is looked up live — On-Demand from the AWS Pricing API, Spot from EC2 spot-price history — cached per session, and falling back to a built-in static price table when offline or for unknown types.</li>
+<li>
+<strong>Fargate</strong>: <code>workers × (cpu × vCPU-hour + memory × GB-hour)</code> at published Fargate rates.</li>
+</ul><p>Final per-run cost is measured worker runtime (from ECS task start/stop times) times that rate — close to reality, but not the figure from AWS billing / Cost Explorer.</p>
+<p>Guardrails via <code><a href="reference/starburst_config.html">starburst_config()</a></code> (both are hourly <em>rates</em>, USD/hour):</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/starburst_config.html">starburst_config</a></span><span class="op">(</span></span>
+<span>  max_hourly_cost <span class="op">=</span> <span class="fl">10</span>,        <span class="co"># hard stop: jobs estimated over $10/hr won't start</span></span>
+<span>  cost_alert_threshold <span class="op">=</span> <span class="fl">5</span>     <span class="co"># soft warning at $5/hr</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><code>max_hourly_cost</code> raises an error before launch; <code>cost_alert_threshold</code> only warns. Both fire on the EC2 default because the estimate is normalized across backends.</p>
+</div>
+<div class="section level2">
+<h2 id="detached-sessions">Detached Sessions<a class="anchor" aria-label="anchor" href="#detached-sessions"></a></h2>
+<p><code><a href="reference/starburst_session.html">starburst_session()</a></code> decouples a job’s lifetime from your R session. It launches workers immediately (EC2 + Spot by default) and returns a handle whose <code>$session_id</code> you can persist:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">session</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_session.html">starburst_session</a></span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">50</span><span class="op">)</span>              <span class="co"># EC2 + Spot by default</span></span>
+<span><span class="va">ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">inputs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span>                       <span class="co"># fan out: one task per input</span></span>
+<span>  <span class="va">session</span><span class="op">$</span><span class="fu">submit</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substitute.html" class="external-link">quote</a></span><span class="op">(</span><span class="fu">f</span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span>, globals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sid</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="va">session_id</span>                               <span class="co"># save this, then close R</span></span>
+<span></span>
+<span><span class="co"># Later, from a fresh R session:</span></span>
+<span><span class="va">session</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/starburst_session_attach.html">starburst_session_attach</a></span><span class="op">(</span><span class="va">sid</span><span class="op">)</span></span>
+<span><span class="va">session</span><span class="op">$</span><span class="fu">status</span><span class="op">(</span><span class="op">)</span>                                         <span class="co"># pending/running/completed/failed</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">session</span><span class="op">$</span><span class="fu">collect</span><span class="op">(</span>wait <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>                  <span class="co"># keyed by task id, in order</span></span>
+<span><span class="va">session</span><span class="op">$</span><span class="fu">cleanup</span><span class="op">(</span><span class="op">)</span>                                        <span class="co"># preserves S3 unless force = TRUE</span></span></code></pre></div>
+<p>Mechanics:</p>
+<ul><li>
+<strong>State lives in S3.</strong> A manifest at <code>sessions/&lt;id&gt;/manifest.qs</code> and per-task status at <code>sessions/&lt;id&gt;/tasks/&lt;task_id&gt;/status.qs</code>; results share the <code>results/</code> prefix. Manifest updates are atomic (ETag-guarded conditional writes with backoff) so concurrent workers and clients don’t clobber each other.</li>
+<li>
+<strong>Failures are visible, not fatal.</strong> A failed task is recorded and does not abort the others; <code>collect()</code> returns it as a structured failure entry (<code>list(error = TRUE, message = ..., value = NULL, task_id = ...)</code>) alongside the successful results. <code>collect(wait = TRUE)</code> blocks until every <em>user</em> task is terminal (long-lived bootstrap/worker tasks are excluded so it doesn’t hang).</li>
+<li>
+<strong>Cleanup preserves data by default.</strong> <code>cleanup()</code> stops workers and marks the session terminated but leaves S3 objects intact so you can still inspect/collect; pass <code>force = TRUE</code> to also delete the session’s S3 task/result objects. Sessions do not auto-clean on garbage collection — they self-terminate at <code>absolute_timeout</code>.</li>
+</ul><p>Ephemeral runs (<code><a href="reference/starburst_map.html">starburst_map()</a></code>, <code>plan(starburst)</code>) instead auto-clean on completion: <code><a href="reference/cleanup_cluster.html">cleanup_cluster()</a></code> stops tasks, reports runtime/cost, removes the job’s S3 objects (unless <code>auto_cleanup_s3 = FALSE</code>), and for EC2 keeps the warm pool alive until <code>warm_pool_timeout</code> so repeated jobs skip the cold start.</p>
 </div>
 <div class="section level2">
 <h2 id="security">Security<a class="anchor" aria-label="anchor" href="#security"></a></h2>
-<p><strong>IAM Roles</strong>: - User: <code>starburst-user</code> with permissions for ECS, S3, ECR, Service Quotas - Task: <code>starburst-worker-execution</code> for pulling images - Worker: <code>starburst-worker-task</code> for S3 access only</p>
-<p><strong>S3 Bucket</strong>: - Private by default - Encryption at rest (SSE-S3) - Lifecycle policy: delete after 7 days - Access logging enabled</p>
-<p><strong>Network</strong>: - Workers in private subnets (NAT gateway for S3/ECR access) - Security groups: egress only to AWS services - No SSH access to containers</p>
-</div>
+<ul><li>
+<strong>Credentials</strong> are read only from your local environment; workers use IAM roles.</li>
+<li>
+<strong>IAM roles</strong> (created at setup): <code>starburstECSExecutionRole</code> (pull images / logs), <code>starburstECSTaskRole</code> (task S3 access), and for the EC2 backend <code>starburstECSInstanceRole</code> / <code>starburstECSInstanceProfile</code> on the hosts.</li>
+<li>
+<strong>S3 bucket</strong> is private, encrypted at rest (SSE-S3), with a 7-day lifecycle on transfer objects.</li>
+<li>
+<strong>Command execution</strong> on the client is routed through a <code><a href="reference/safe_system.html">safe_system()</a></code> wrapper (whitelisted commands, no shell expansion) to prevent injection.</li>
+</ul></div>
 <div class="section level2">
-<h2 id="monitoring-and-debugging">Monitoring and Debugging<a class="anchor" aria-label="anchor" href="#monitoring-and-debugging"></a></h2>
-<p><strong>CloudWatch Logs</strong>:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># View worker logs</span></span>
-<span><span class="fu"><a href="reference/starburst_logs.html">starburst_logs</a></span><span class="op">(</span>task_id <span class="op">=</span> <span class="st">"12345"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/starburst_logs.html">starburst_logs</a></span><span class="op">(</span>cluster_id <span class="op">=</span> <span class="st">"cluster-67890"</span>, last_n <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Task Status</strong>:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Check running tasks</span></span>
-<span><span class="fu"><a href="reference/starburst_status.html">starburst_status</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co"># &gt; 3 workers running</span></span>
-<span><span class="co"># &gt; 47 tasks completed</span></span>
-<span><span class="co"># &gt; 0 tasks failed</span></span>
-<span><span class="co"># &gt; Est. cost so far: $2.34</span></span></code></pre></div>
-<p><strong>Debug Mode</strong>:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Keep workers alive for debugging</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, workers <span class="op">=</span> <span class="fl">1</span>, debug <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co"># Workers stay alive, can SSH via AWS Session Manager</span></span></code></pre></div>
-</div>
+<h2 id="extension-points">Extension Points<a class="anchor" aria-label="anchor" href="#extension-points"></a></h2>
+<ul><li>
+<strong>New backend:</strong> implement the <code>future</code> backend contract (<code>StarburstBackend</code> factory + <code>future</code>/<code>run</code>/<code>resolved</code>/<code>result</code> methods) — the S3 task/result protocol is backend-agnostic.</li>
+<li>
+<strong>New instance families:</strong> add fallback prices to <code><a href="reference/dot-static_ec2_prices.html">.static_ec2_prices()</a></code> in <code>R/cost.R</code>; capacity providers are created lazily, so no other wiring is needed.</li>
+<li>
+<strong>Serialization / data plane:</strong> tasks and results are qs2 blobs under <code>tasks/</code> and <code>results/</code>; alternative formats plug in at <code><a href="reference/run.StarburstFuture.html">run.StarburstFuture()</a></code> / <code><a href="reference/result.StarburstFuture.html">result.StarburstFuture()</a></code>.</li>
+</ul></div>
 <div class="section level2">
-<h2 id="performance-benchmarks">Performance Benchmarks<a class="anchor" aria-label="anchor" href="#performance-benchmarks"></a></h2>
-<p><strong>Overhead Analysis</strong> (100 workers, 4 vCPU each):</p>
-<table class="table"><thead><tr><th>Component</th>
-<th>Time</th>
-<th>Percentage</th>
-</tr></thead><tbody><tr><td>Quota check</td>
-<td>0.5s</td>
-<td>0.8%</td>
-</tr><tr><td>Environment sync (cached)</td>
-<td>2s</td>
-<td>3.2%</td>
-</tr><tr><td>Task serialization</td>
-<td>3s</td>
-<td>4.8%</td>
-</tr><tr><td>Fargate cold start</td>
-<td>45s</td>
-<td>72%</td>
-</tr><tr><td>Result collection</td>
-<td>5s</td>
-<td>8%</td>
-</tr><tr><td>Cleanup</td>
-<td>1s</td>
-<td>1.6%</td>
-</tr><tr><td><strong>Total overhead</strong></td>
-<td><strong>56.5s</strong></td>
-<td><strong>100%</strong></td>
-</tr></tbody></table><p><strong>Crossover Point</strong>: - Local task time: 1 min → Not worth cloud (overhead = 56s) - Local task time: 5 min → Marginal (overhead = 19%) - Local task time: 30 min → Clear win (overhead = 3%)</p>
-<p><strong>Scalability</strong>: - 10 workers: Linear overhead - 100 workers: Linear overhead (wave-based if quota-limited) - 1000 workers: Requires quota increase, linear overhead with waves</p>
-</div>
-<div class="section level2">
-<h2 id="future-extensions">Future Extensions<a class="anchor" aria-label="anchor" href="#future-extensions"></a></h2>
-<div class="section level3">
-<h3 id="gpu-support-v11">GPU Support (v1.1)<a class="anchor" aria-label="anchor" href="#gpu-support-v11"></a></h3>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>, </span>
-<span>     workers <span class="op">=</span> <span class="fl">10</span>, </span>
-<span>     gpu <span class="op">=</span> <span class="st">"nvidia-t4"</span>,  <span class="co"># Triggers EC2 instead of Fargate</span></span>
-<span>     instance <span class="op">=</span> <span class="st">"g4dn.xlarge"</span><span class="op">)</span></span></code></pre></div>
-<p>Implementation: Switch from Fargate to EC2 Batch, same task execution model.</p>
-</div>
-<div class="section level3">
-<h3 id="spot-instances-v11">Spot Instances (v1.1)<a class="anchor" aria-label="anchor" href="#spot-instances-v11"></a></h3>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst</span>,</span>
-<span>     workers <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>     spot <span class="op">=</span> <span class="cn">TRUE</span>,  <span class="co"># Use spot instances</span></span>
-<span>     max_price <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>  <span class="co"># Bid price</span></span></code></pre></div>
-<p>Implementation: EC2 Spot Fleet with interruption handling and checkpointing.</p>
-</div>
-<div class="section level3">
-<h3 id="emr-integration-v12">EMR Integration (v1.2)<a class="anchor" aria-label="anchor" href="#emr-integration-v12"></a></h3>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">plan</span><span class="op">(</span><span class="va">future_starburst_spark</span>,</span>
-<span>     workers <span class="op">=</span> <span class="fl">20</span>,</span>
-<span>     spark_config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>       executor_memory <span class="op">=</span> <span class="st">"8g"</span>,</span>
-<span>       executor_cores <span class="op">=</span> <span class="fl">4</span></span>
-<span>     <span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Implementation: Separate backend using EMR + sparklyr, different data model (distributed DataFrames).</p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="testing-strategy">Testing Strategy<a class="anchor" aria-label="anchor" href="#testing-strategy"></a></h2>
-<p><strong>Unit Tests</strong>: - Serialization/deserialization correctness - Quota calculation logic - Cost estimation accuracy</p>
-<p><strong>Integration Tests</strong> (requires AWS): - Environment sync end-to-end - Task submission and result collection - Wave-based execution - Error handling and retries</p>
-<p><strong>Load Tests</strong>: - 100 workers, 1000 tasks - Quota-limited scenarios - Large data transfer (1GB+ objects)</p>
-<p><strong>Cost Tests</strong>: - Track actual vs estimated costs - Ensure no runaway billing - Cleanup verification</p>
-</div>
+<h2 id="future-directions">Future Directions<a class="anchor" aria-label="anchor" href="#future-directions"></a></h2>
+<p>EC2 and Spot are <strong>shipped</strong>, not roadmap. What remains ahead:</p>
+<ul><li>
+<strong>GPU support</strong> — GPU instance families and NVIDIA-enabled worker images for accelerated workloads.</li>
+<li>
+<strong>Enhanced error recovery</strong> — automatic task-level retry/resubmission on Spot interruption.</li>
+<li>
+<strong>Interactive progress monitoring</strong> and <strong>multi-region</strong> execution.</li>
+</ul></div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
-<ul><li><a href="https://aws.amazon.com/fargate/pricing/" class="external-link">AWS Fargate Pricing</a></li>
-<li><a href="https://future.futureverse.org/" class="external-link">future Framework</a></li>
-<li><a href="https://rstudio.github.io/renv/" class="external-link">renv Documentation</a></li>
-<li><a href="https://docs.aws.amazon.com/servicequotas/" class="external-link">AWS Service Quotas</a></li>
+<ul><li><a href="https://future.futureverse.org/" class="external-link"><code>future</code> framework</a></li>
+<li><a href="https://rstudio.github.io/renv/" class="external-link">renv</a></li>
+<li>
+<a href="https://aws.amazon.com/fargate/pricing/" class="external-link">AWS Fargate pricing</a> · <a href="https://aws.amazon.com/ec2/spot/" class="external-link">EC2 Spot</a> · <a href="https://docs.aws.amazon.com/servicequotas/" class="external-link">AWS Service Quotas</a>
+</li>
+<li>Guides: <code><a href="articles/getting-started.html">vignette("getting-started")</a></code>, <code><a href="articles/workload-shapes.html">vignette("workload-shapes")</a></code>, <code><a href="articles/detached-sessions.html">vignette("detached-sessions")</a></code>, <code><a href="articles/performance.html">vignette("performance")</a></code>
+</li>
 </ul></div>
 </div>
 

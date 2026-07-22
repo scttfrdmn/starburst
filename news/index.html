@@ -56,6 +56,19 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.9" id="starburst-039-development">starburst 0.3.9 (development)<a class="anchor" aria-label="anchor" href="#starburst-039-development"></a></h2>
 <div class="section level3">
+<h3 id="cost--cleanup-fixes-important-0-3-9">Cost &amp; cleanup fixes (important)<a class="anchor" aria-label="anchor" href="#cost--cleanup-fixes-important-0-3-9"></a></h3>
+<ul><li>
+<strong>The <code>max_hourly_cost</code> guard now works on the EC2 backend (the default).</strong> Previously <code><a href="../reference/estimate_cost.html">estimate_cost()</a></code> returned <code>per_hour</code> for Fargate but <code>total_per_hour</code> for EC2, and the guard read <code>per_hour</code> — which is <code>NULL</code> on EC2 — so the cost ceiling was silently never enforced on the default backend. <code><a href="../reference/estimate_cost.html">estimate_cost()</a></code> now returns a normalized <code>hourly_rate</code> for every backend, and the guard, cost display, and <code><a href="../reference/starburst_map.html">starburst_map()</a></code>/<code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code> all use it.</li>
+<li>
+<strong><code>cost_alert_threshold</code> is now enforced</strong> — it warns when a plan’s estimated hourly rate exceeds it (previously it was stored but never read).</li>
+<li>
+<strong><code>starburst_config(auto_cleanup_s3 = …)</code> now actually controls S3 cleanup.</strong> The runtime read a different key (<code>getOption("starburst.cleanup_s3")</code>) and ignored the stored setting; cleanup now resolves option → <code>auto_cleanup_s3</code> config → default TRUE.</li>
+<li>
+<strong><code><a href="../reference/starburst_map.html">starburst_map()</a></code>/<code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code> cost estimates match the backend used</strong> — they forward <code>launch_type</code>/<code>instance_type</code>/<code>use_spot</code>, so an EC2 job no longer reports a Fargate price.</li>
+<li>
+<strong>Cost estimates now use live AWS pricing</strong> (Pricing API for On-Demand, EC2 spot-price history for Spot), cached per session with a built-in static-rate fallback when offline. Reported costs are <strong>estimates</strong> (measured runtime × current rate), not AWS billing figures; docs reworded accordingly.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="new-features-0-3-9">New features<a class="anchor" aria-label="anchor" href="#new-features-0-3-9"></a></h3>
 <ul><li>
 <strong><code><a href="../reference/starburst_setup.html">starburst_setup()</a></code> now provisions the default EC2 capacity provider</strong> (for <code>c7g.xlarge</code>) so the default EC2 backend works out of the box — previously the first <code><a href="../reference/starburst_map.html">starburst_map()</a></code>/<code>plan(starburst)</code> run failed because no capacity provider existed. It is created at <code>DesiredCapacity = 0</code> (no billable instances launch during setup). Pass <code>setup_ec2 = FALSE</code> to skip (Fargate-only users). (<a href="https://github.com/scttfrdmn/starburst/issues/37" class="external-link">#37</a>)</li>
