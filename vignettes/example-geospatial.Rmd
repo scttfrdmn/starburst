@@ -248,7 +248,7 @@ cat(sprintf("  Estimated time for all %d regions: %.1f seconds\n",
             nrow(regions), local_time * (nrow(regions) / length(test_regions))))
 ```
 
-**Typical output**:
+**Illustrative output**:
 ```
 Analyzing 3 regions locally...
 [OK] Completed in 4.5 seconds
@@ -288,7 +288,7 @@ cat(sprintf("\n[OK] Completed in %.1f seconds\n", cloud_time))
 spatial_metrics <- do.call(rbind, results)
 ```
 
-**Typical output**:
+**Illustrative output**:
 ```
 [Starting] Starting starburst cluster with 20 workers
 [Status] Processing 20 items with 20 workers
@@ -376,7 +376,7 @@ for (i in 1:min(5, nrow(region_summary))) {
 }
 ```
 
-**Typical output**:
+**Illustrative output**:
 ```
 === Geospatial Analysis Results ===
 

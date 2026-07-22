@@ -123,20 +123,26 @@ session$extend(seconds = 3600)
 ### Cleanup
 
 ```{r}
-# Terminate workers and mark session complete
+# Stop workers and mark the session terminated. S3 objects are PRESERVED by
+# default, so you can still reattach and collect afterwards.
 session$cleanup()
+
+# To also delete the session's S3 task/result objects, pass force = TRUE:
+session$cleanup(force = TRUE)
 ```
 
 ## Choosing and tuning the backend
 
 Sessions use **EC2 with Spot instances by default** — no extra arguments needed.
-You can tune the instance type, or opt into Fargate:
+You can tune the instance type, or opt into Fargate. A non-default instance type is
+provisioned automatically on first use (a one-time ~1–2 min step), or run
+`starburst_setup_ec2(instance_types = "c8a.xlarge")` once to pre-provision it.
 
 ```{r}
-# Default is already EC2 + Spot; override the instance type if you like
+# Default is already EC2 + Spot (c7g.xlarge); override the instance type if you like
 session <- starburst_session(
   workers = 50,
-  instance_type = "c8a.xlarge",  # AMD 8th gen; default is c7g.xlarge
+  instance_type = "c8a.xlarge",  # AMD 8th gen; auto-provisioned on first use
   use_spot = TRUE                 # default TRUE — ~70% cheaper
 )
 
@@ -152,28 +158,31 @@ session <- starburst_session(
 ### Error Handling
 
 ```{r}
-# Tasks that fail are tracked
+# Tasks that fail are tracked, not silently dropped
 session <- starburst_session(workers = 5)
 
-lapply(1:10, function(i) {
+task_ids <- lapply(1:10, function(i) {
   session$submit(quote({
     if (i == 5) stop("Intentional error")
     i * 2
-  }))
+  }), globals = list(i = i))
 })
 
 # Check status
 status <- session$status()
-print(status)
-# Failed: 1
+print(status)   # Failed: 1
 
-# Failed tasks are still in results with error info
+# collect() returns an entry for EVERY task, keyed by task id. A failed task
+# comes back as a structured failure (error = TRUE) alongside the successes.
 results <- session$collect(wait = TRUE)
-failed_task <- results[[5]]
-print(failed_task$error)
-# TRUE
-print(failed_task$message)
-# "Intentional error"
+
+# Separate successes from failures
+failures <- Filter(function(r) isTRUE(r$error), results)
+length(failures)                 # 1
+print(failures[[1]]$message)     # "Intentional error"
+
+# Successful values are the non-error entries
+successes <- Filter(function(r) !isTRUE(r$error), results)
 ```
 
 ### Partial Collection
