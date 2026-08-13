@@ -27,30 +27,36 @@ env:
   LATEST_R_VERSION: '4.6.1'
 
 jobs:
-  # Build each architecture NATIVELY on a self-hosted runner (no QEMU emulation):
-  #   amd64 -> janus (Linux x86_64), arm64 -> orion (macOS/colima, arm64).
+  # Build each architecture NATIVELY on a GitHub-hosted runner (no QEMU emulation):
+  #   amd64 -> ubuntu-24.04, arm64 -> ubuntu-24.04-arm.
   # Each job pushes a single-arch, per-arch tag; the `merge` job then assembles the
   # final multi-arch manifest. Native builds avoid the ~80-min emulated arm64 build.
+  # GitHub's Linux arm64 images are free on public repositories, which this is.
   #
-  # SECURITY: self-hosted runners on a public repo. Safe because this workflow has
-  # NO pull_request trigger (only schedule / workflow_dispatch / push-to-main), and
-  # the repo requires approval for all external contributors' workflow runs — so a
-  # fork PR cannot execute on these runners.
+  # SECURITY: this workflow has NO pull_request trigger (only schedule /
+  # workflow_dispatch / push-to-main), so a fork PR can never reach the OIDC role
+  # or the public-ECR push credentials.
   build:
     strategy:
       fail-fast: false
       matrix:
         r_version: ['4.5.3', '4.6.1']
         arch: [amd64, arm64]
-    # Select the native runner by arch: amd64 -> janus, arm64 -> orion.
-    # (Both carry the shared `starburst` label plus their arch label.)
-    runs-on: [self-hosted, starburst, "${{ matrix.arch }}"]
+    # Native runner per arch — no cross-building, no emulation.
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     permissions:
       id-token: write
       contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      # Registry push needs a builder whose driver supports it. The
+      # docker-container driver always does; the runner's default `docker` driver
+      # depends on how its image store is configured, so don't rely on it. Same
+      # reasoning as ensure_buildx_builder() in R/images.R.
+      - name: Create buildx builder
+        run: docker buildx create --name starburst-ci --driver docker-container --use
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -74,8 +80,8 @@ jobs:
             .
 
   # Combine the per-arch images into one multi-arch manifest per R version, plus
-  # the dated tag and :latest (for the latest R version). imagetools works on the
-  # registry, so this runs fine on a GitHub-hosted runner.
+  # the dated tag and :latest (for the latest R version). imagetools operates on the
+  # registry rather than on a local build, so it needs no builder setup.
   merge:
     needs: build
     runs-on: ubuntu-latest
