@@ -12,8 +12,8 @@
 #
 # Updates are grouped into a single weekly PR to keep review cost low. Note that
 # merging a bump inside build-base-images.yml triggers a real public-ECR base
-# image publish on the self-hosted runners (that workflow watches its own path
-# on push to main) — review those merges deliberately.
+# image publish (that workflow watches its own path on push to main) — review
+# those merges deliberately.
 version: 2
 
 updates:
