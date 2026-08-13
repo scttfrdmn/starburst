@@ -69,15 +69,33 @@ jobs:
           aws ecr-public get-login-password --region us-east-1 | \
             docker login --username AWS --password-stdin public.ecr.aws
 
-      - name: Build and push single-arch base image (native)
+      # Build into the local image store, smoke-test, and only then push, so a
+      # broken image cannot reach the registry at all.
+      - name: Build single-arch base image (native)
         run: |
           docker buildx build \
             --file inst/templates/Dockerfile.base \
             --build-arg R_VERSION=${{ matrix.r_version }} \
             --platform linux/${{ matrix.arch }} \
             --tag ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:r${{ matrix.r_version }}-${{ matrix.arch }} \
-            --push \
+            --load \
             .
+
+      # Assert the worker packages are actually usable in the image users pull.
+      # Dockerfile.base now fails on a missing package itself, but check here too:
+      # requireNamespace() also catches packages that are installed yet fail to
+      # LOAD (e.g. a shared object linked against the wrong library), which
+      # install-time checks cannot see. See #55.
+      - name: Smoke-test the image
+        run: |
+          docker run --rm \
+            ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:r${{ matrix.r_version }}-${{ matrix.arch }} \
+            Rscript -e 'pkgs <- c("renv", "future", "globals", "listenv", "parallelly", "qs2", "paws.common", "paws.storage", "paws.compute"); bad <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]; if (length(bad)) stop("unusable in image: ", paste(bad, collapse = ", ")); cat("all worker packages load |", R.version.string, "|", R.version$platform, "\n")'
+
+      - name: Push single-arch base image
+        run: |
+          docker push \
+            ${{ env.PUBLIC_ECR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:r${{ matrix.r_version }}-${{ matrix.arch }}
 
   # Combine the per-arch images into one multi-arch manifest per R version, plus
   # the dated tag and :latest (for the latest R version). imagetools operates on the
