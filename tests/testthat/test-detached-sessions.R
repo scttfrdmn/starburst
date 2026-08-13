@@ -241,6 +241,10 @@ test_that("collect(wait=TRUE) returns when user tasks finish despite live bootst
   # which stay "claimed"/"running" for the session's life. Otherwise wait=TRUE
   # hangs until timeout even though every real result has landed in S3.
   skip_if_not_installed("mockery")
+  # This test round-trips a real qs2 blob, so it needs a *loadable* qs2 — an
+  # installed-but-unloadable one (e.g. a macOS binary linked against a different
+  # RcppParallel TBB) would otherwise fail here as a confusing name mismatch.
+  skip_if_not_installed("qs2")
 
   statuses <- list(
     "bootstrap-session-x-1" = list(state = "claimed"),
@@ -272,6 +276,7 @@ test_that("collect() returns a structured failure entry for failed tasks", {
   # Regression for the 4th-review finding: collect() must NOT silently drop
   # failed tasks. Every terminal task appears; failures carry error=TRUE.
   skip_if_not_installed("mockery")
+  skip_if_not_installed("qs2")  # needs a loadable qs2 (see note above)
 
   statuses <- list(
     "bootstrap-session-x-1" = list(state = "claimed"),
