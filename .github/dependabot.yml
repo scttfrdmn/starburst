@@ -1,0 +1,33 @@
+# Dependabot configuration for staRburst.
+#
+# Only the GitHub Actions ecosystem is enabled, deliberately:
+#
+#   * R packages are not a Dependabot ecosystem — package dependencies are
+#     bounded in DESCRIPTION and checked by the R-CMD-check matrix instead.
+#   * The two Dockerfiles are not Dependabot-resolvable: inst/templates/
+#     Dockerfile.base pins its base via `FROM rocker/r-ver:${R_VERSION}`
+#     (a real build ARG, intentionally), and Dockerfile.template uses the
+#     `{{BASE_IMAGE}}` placeholder substituted at build time. Neither is a
+#     literal image:tag, so a `docker` entry would find nothing to update.
+#
+# Updates are grouped into a single weekly PR to keep review cost low. Note that
+# merging a bump inside build-base-images.yml triggers a real public-ECR base
+# image publish on the self-hosted runners (that workflow watches its own path
+# on push to main) — review those merges deliberately.
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "type: infrastructure"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
