@@ -2,6 +2,8 @@
 
 ## starburst 0.3.9 (2026-07-22)
 
+CRAN release: 2026-07-22
+
 ### Cost & cleanup fixes (important)
 
 - **The `max_hourly_cost` guard now works on the EC2 backend (the
