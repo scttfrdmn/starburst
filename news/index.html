@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.9</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.10</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,6 +53,15 @@
       <small>Source: <a href="https://github.com/scttfrdmn/starburst/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.10" id="starburst-0310-2026-10-23">starburst 0.3.10 (2026-10-23)<a class="anchor" aria-label="anchor" href="#starburst-0310-2026-10-23"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-3-10">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-3-10"></a></h3>
+<ul><li>
+<strong>Locally built base images no longer silently lack <code>qs2</code>.</strong> When no public base image matches your exact R version (only R 4.5.3 and 4.6.1 are published), staRburst builds one from <code>inst/templates/Dockerfile.base</code>. Since RcppParallel 6.2.0 (2026-07-30) requires <code>cmake</code> at configure time, that build failed to install <code>qs2</code> — but <code><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages()</a></code> only warns, so the image built “successfully” and workers later failed to deserialize tasks. The template now installs <code>cmake</code> and stops the build if any worker package fails to install (<a href="https://github.com/scttfrdmn/starburst/issues/55" class="external-link">#55</a>, <a href="https://github.com/scttfrdmn/starburst/issues/56" class="external-link">#56</a>).</li>
+<li>Tests that deserialize results now skip when <code>qs2</code> is installed but cannot be loaded (e.g. a stale binary built against an older RcppParallel), instead of failing with misleading name-mismatch errors.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.9" id="starburst-039-2026-07-22">starburst 0.3.9 (2026-07-22)<a class="anchor" aria-label="anchor" href="#starburst-039-2026-07-22"></a></h2><p class="text-muted">CRAN release: 2026-07-22</p>
 <div class="section level3">
