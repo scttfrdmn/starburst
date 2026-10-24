@@ -1,4 +1,4 @@
-# starburst 0.3.10
+# starburst 0.3.10 (2026-10-23)
 
 ## Bug fixes
 
