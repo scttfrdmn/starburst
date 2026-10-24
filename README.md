@@ -290,7 +290,12 @@ Started](https://starburst.ing/articles/getting-started.html) guide.
 
 ## Roadmap
 
-### v0.3.9 (current CRAN release)
+### v0.3.10 (current CRAN release)
+
+- ✅ Locally built base images now install `cmake` and fail loudly if
+  any worker package (e.g. `qs2`) does not install
+
+### v0.3.9
 
 - ✅ Backend arguments (`launch_type`/`instance_type`/`use_spot`) on
   `starburst_map()`/`starburst_cluster()`
@@ -340,7 +345,7 @@ Copyright 2026 Scott Friedman
   title = {staRburst: Seamless AWS Cloud Bursting for R},
   author = {Scott Friedman},
   year = {2026},
-  version = {0.3.9},
+  version = {0.3.10},
   url = {https://starburst.ing},
   license = {Apache-2.0}
 }

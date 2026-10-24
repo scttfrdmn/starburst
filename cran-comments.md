@@ -1,27 +1,25 @@
 ## Submission
 
-This is a minor update from the current CRAN release (0.3.8) to 0.3.9.
+This is a patch update from the current CRAN release (0.3.9, accepted
+2026-07-22) to 0.3.10, fixing a significant silent-failure bug.
 
-### Notable changes in 0.3.9
+### Bug fix in 0.3.10
 
-* `starburst_map()` and `starburst_cluster()` now accept and forward the
-  `launch_type` / `instance_type` / `use_spot` backend arguments (previously
-  these functions had no backend selection).
-* `starburst_setup()` provisions the default EC2 capacity provider so the
-  default backend works out of the box (created at zero instances; no cost).
-* Cost estimates now use live AWS pricing (Pricing API for On-Demand, EC2
-  spot-price history for Spot), cached per session with a built-in static-rate
-  fallback when offline; the `max_hourly_cost` guard and `cost_alert_threshold`
-  are now enforced on every backend.
-* Documentation consistency pass and several corrected examples.
+* The Docker template shipped in `inst/templates/Dockerfile.base` (used at
+  runtime to build worker base images) did not install `cmake`, which
+  RcppParallel >= 6.2.0 now requires. As a result `qs2` silently failed to
+  install in locally built images and remote workers could not deserialize
+  tasks. The template now installs `cmake` and fails the build if any required
+  package is missing.
+* A test that round-trips a `qs2` blob now skips when `qs2` is not loadable.
 
-See NEWS.md for the full list.
+No R code or exported API changes. See NEWS.md.
 
 ## Test environments
 
-* local: macOS 26.5 (Tahoe), R 4.6.1
+* local: Docker rocker/r-ver:4.6.1 (Ubuntu 24.04, aarch64), R 4.6.1
 * GitHub Actions:
-  - Ubuntu 22.04, R oldrel-1, release, devel
+  - Ubuntu latest, R oldrel-1, release, devel
   - Windows latest, R release
   - macOS latest, R release
 * win-builder: R-devel

@@ -1,3 +1,19 @@
+# starburst 0.3.10 (2026-10-23)
+
+## Bug fixes
+
+* **Locally built base images no longer silently lack `qs2`.** When no public
+  base image matches your exact R version (only R 4.5.3 and 4.6.1 are published),
+  staRburst builds one from `inst/templates/Dockerfile.base`. Since RcppParallel
+  6.2.0 (2026-07-30) requires `cmake` at configure time, that build failed to
+  install `qs2` — but `install.packages()` only warns, so the image built
+  "successfully" and workers later failed to deserialize tasks. The template now
+  installs `cmake` and stops the build if any worker package fails to install
+  (#55, #56).
+* Tests that deserialize results now skip when `qs2` is installed but cannot be
+  loaded (e.g. a stale binary built against an older RcppParallel), instead of
+  failing with misleading name-mismatch errors.
+
 # starburst 0.3.9 (2026-07-22)
 
 ## Cost & cleanup fixes (important)
