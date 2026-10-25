@@ -2,6 +2,11 @@
 #'
 #' A future backend for running parallel R workloads on AWS ECS
 #'
+#' You do not normally call this constructor yourself: \code{plan(starburst, ...)}
+#' creates the backend for you (see \code{\link{plan.starburst}}, whose defaults
+#' are the ones users see). It is exported as an extension point for code that
+#' builds on the \pkg{future} backend API.
+#'
 #' @param workers Number of parallel workers
 #' @param cpu vCPUs per worker (1, 2, 4, 8, or 16)
 #' @param memory Memory per worker (supports GB notation, e.g., "8GB")
@@ -14,6 +19,7 @@
 #' @param ... Additional arguments
 #'
 #' @return A StarburstBackend object
+#' @seealso \code{\link{plan.starburst}}
 #' @export
 StarburstBackend <- function(workers = 10,
                              cpu = 4,
@@ -141,6 +147,17 @@ StarburstBackend <- function(workers = 10,
 #' @param ... Arguments passed to StarburstBackend()
 #' @return Does not return a value; always signals an error if called directly.
 #'   This object exists as a strategy marker for \code{\link[future]{plan}}.
+#' @seealso \code{\link{plan.starburst}} for the worker, backend, and cost arguments.
+#' @examples
+#' \donttest{
+#' if (starburst_is_configured()) {
+#'   # Pass `starburst` to plan(); existing future code then runs on AWS workers
+#'   future::plan(starburst, workers = 4)
+#'   f <- future::future(Sys.info()[["nodename"]])
+#'   future::value(f)
+#'   future::plan(future::sequential)
+#' }
+#' }
 #' @export
 starburst <- function(...) {
   stop("INTERNAL ERROR: The starburst() function must never be called directly. Use plan(starburst, ...) instead.")

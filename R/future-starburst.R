@@ -41,6 +41,9 @@ future.starburst <- function(expr, envir = parent.frame(), substitute = TRUE,
 #'
 #' Creates a Future object for evaluation on AWS workers (EC2 by default, or Fargate)
 #'
+#' You do not normally call this yourself: with \code{plan(starburst)} active,
+#' \code{future::future()}, \pkg{future.apply}, and \pkg{furrr} create these for you.
+#'
 #' @param expr Expression to evaluate
 #' @param envir Environment for evaluation
 #' @param substitute Whether to substitute the expression

@@ -41,4 +41,8 @@ A StarburstFuture object
 \description{
 Creates a Future object for evaluation on AWS workers (EC2 by default, or Fargate)
 }
+\details{
+You do not normally call this yourself: with \code{plan(starburst)} active,
+\code{future::future()}, \pkg{future.apply}, and \pkg{furrr} create these for you.
+}
 \keyword{internal}

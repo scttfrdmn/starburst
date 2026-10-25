@@ -378,7 +378,16 @@ starburst_config <- function(max_hourly_cost = NULL,
 
 #' Show staRburst status
 #'
+#' Prints the configured region, S3 bucket, and ECR repository, plus current
+#' Fargate vCPU quota usage (this makes AWS API calls).
+#'
 #' @return Invisibly returns a list with current configuration and quota information.
+#' @examples
+#' \donttest{
+#' if (starburst_is_configured()) {
+#'   starburst_status()
+#' }
+#' }
 #' @export
 starburst_status <- function() {
   config <- get_starburst_config()

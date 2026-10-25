@@ -31,3 +31,4 @@
 ^setup-iam-roles\.sh$
 ^SWAT-FEASIBILITY-BRIEF\.md$
 ^CRAN-SUBMISSION$
+^vignettes/articles$
