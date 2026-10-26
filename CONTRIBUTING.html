@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.10</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.11</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -132,12 +132,22 @@
 <li>Place tests in <code>tests/testthat/test-*.R</code>
 </li>
 <li>Use descriptive test names</li>
-<li>Mock AWS API calls when possible</li>
+<li>Mock AWS API calls when possible, but <strong>never mock the client/worker seam</strong>: anything that changes how tasks are serialized, submitted, executed by <code>inst/templates/worker.R</code>, or read back must be covered by the round-trip harness (<code>tests/testthat/helper-roundtrip.R</code>, used by <code>test-roundtrip.R</code>). It runs the shipped worker script against an in-memory S3 and a fake ECS that rejects requests real EC2 rejects. Releases 0.3.0-0.3.10 shipped with <code>plan(starburst)</code>, <code><a href="reference/starburst_map.html">starburst_map()</a></code> and <code><a href="reference/starburst_cluster.html">starburst_cluster()</a></code> broken on real workers because every test mocked that seam.</li>
 </ul><div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">test_that</span><span class="op">(</span><span class="st">"function does what it should"</span>, <span class="op">{</span></span>
 <span>  <span class="fu">expect_equal</span><span class="op">(</span><span class="fu">my_function</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 </div>
+<div class="section level2">
+<h2 id="releasing">Releasing<a class="anchor" aria-label="anchor" href="#releasing"></a></h2>
+<p>A release (tag, GitHub Release, CRAN submission) requires, on the release commit:</p>
+<ol style="list-style-type: decimal"><li><p><code>R CMD check --as-cran</code> with 0 errors / 0 warnings / 0 notes, run with AWS credentials unset.</p></li>
+<li>
+<p><strong>A passing live smoke test on real EC2</strong>: every public entry point (<code>plan(starburst)</code> + <code>future.apply</code>, <code><a href="reference/starburst_map.html">starburst_map()</a></code>, <code><a href="reference/starburst_cluster.html">starburst_cluster()</a></code>, <code><a href="reference/starburst_session.html">starburst_session()</a></code>) end to end:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">timeout</span> 45m Rscript tools/live-smoke.R</span></code></pre></div>
+<p>or the <strong>AWS Integration Tests</strong> workflow with suite <code>live-smoke</code>. Every check must PASS. Green offline tests and a green monthly <code>quick</code> run do not substitute for this.</p>
+</li>
+</ol></div>
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a></h2>
 <ul><li>Document all exported functions with <code>roxygen2</code>

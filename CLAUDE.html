@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.10</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.11</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -293,6 +293,7 @@ Closes: #&lt;issue-number&gt;</code></pre>
 <span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="st"># Your test code here</span></span>
 <span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="st">"</span></span></code></pre></div>
 <p><strong>Important:</strong> Always verify AWS integration for: - Security changes - Resource management changes - Reliability improvements - New AWS service integrations</p>
+<p><strong>Release gate (mandatory):</strong> never tag, publish a GitHub Release, or submit to CRAN without a passing <code>tools/live-smoke.R</code> run (or the integration workflow’s <code>live-smoke</code> suite) on the release commit. It runs every public entry point on real EC2. <code>devtools::test()</code> is NOT a substitute: 0.3.0-0.3.10 passed all tests while <code>plan(starburst)</code>, <code><a href="reference/starburst_map.html">starburst_map()</a></code> and <code><a href="reference/starburst_cluster.html">starburst_cluster()</a></code> failed on every real worker, because tests mocked the client/worker seam and the live runs only used sessions. Changes to task serialization, submission, <code>worker.R</code> or result handling also need a case in <code>tests/testthat/test-roundtrip.R</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="common-tasks">Common Tasks<a class="anchor" aria-label="anchor" href="#common-tasks"></a></h2>

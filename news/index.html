@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.10</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.11</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,6 +54,32 @@
       <small>Source: <a href="https://github.com/scttfrdmn/starburst/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.11" id="starburst-0311">starburst 0.3.11<a class="anchor" aria-label="anchor" href="#starburst-0311"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-3-11">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-3-11"></a></h3>
+<p>These were invisible to the test suite, which mocks AWS, and to earlier live runs, which used <code><a href="../reference/starburst_session.html">starburst_session()</a></code>. Sessions were not affected.</p>
+<ul><li>
+<strong><code>plan(starburst)</code> futures work again.</strong> Since 0.3.0 the worker uploaded the result of every <code>plan(starburst)</code> future under an empty S3 key, so each future failed with <code>SignatureDoesNotMatch (HTTP 403)</code>. The worker now uses the task ID it was launched with (<a href="https://github.com/scttfrdmn/starburst/issues/63" class="external-link">#63</a>). Environment images are rebuilt automatically: their tag now also covers the worker script.</li>
+<li>
+<strong><code><a href="../reference/starburst_map.html">starburst_map()</a></code> and <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code> work again.</strong> They failed before launching any workers with “environment did not shut itself down properly”, because they registered a pre-built backend with <code><a href="https://future.futureverse.org/reference/plan.html" class="external-link">future::plan()</a></code>. They now submit to their own backend without changing your active plan, so <code>cluster$shutdown()</code> no longer resets the plan to <code>sequential</code> (<a href="https://github.com/scttfrdmn/starburst/issues/64" class="external-link">#64</a>). Past that error they had further EC2 failures, now fixed:
+<ul><li>the warm pool waited on the wrong ECS cluster and timed out after 180 s even with all instances in service;</li>
+<li>task submission set <code>assignPublicIp</code>, which EC2 rejects (“Assign public IP is not supported for this launch type”), and ignored the configured subnets and security groups;</li>
+<li>the default <code>cpu = 4, memory = "8GB"</code> was not resized to the instance (as <code>plan(starburst)</code> and sessions already did), so tasks on e.g. c7g.xlarge could never be placed and stayed <code>PROVISIONING</code> forever;</li>
+<li>every call warned “Detected 1 unknown future arguments: ‘backend’”.</li>
+</ul></li>
+<li>
+<strong><code>future.apply</code>/<code>furrr</code> no longer hang after a worker error.</strong> When one element failed they cancel the remaining futures, and a canceled starburst future never counted as resolved, so collecting results waited forever.</li>
+<li>
+<strong>Worker errors keep their message.</strong> A task that failed on a worker was reported as a <code>future</code> “INTERNAL ERROR: Unexpected structure for condition set element”; <code>value()</code> and <code><a href="../reference/starburst_map.html">starburst_map()</a></code> now raise the worker’s own error message (<a href="https://github.com/scttfrdmn/starburst/issues/65" class="external-link">#65</a>).</li>
+<li>A <code>plan(starburst)</code> backend now always submits to its own cluster, even after a <code><a href="../reference/starburst_map.html">starburst_map()</a></code> or <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code> call in the same session.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="testing-0-3-11">Testing<a class="anchor" aria-label="anchor" href="#testing-0-3-11"></a></h3>
+<ul><li>New offline round-trip tests run the shipped worker script against the real client code (in-memory S3, and a fake ECS that rejects what EC2 rejects) for <code>plan(starburst)</code>, <code>future.apply</code>, <code><a href="../reference/starburst_map.html">starburst_map()</a></code> and <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code>.</li>
+<li>New <code>tools/live-smoke.R</code> (also the <code>live-smoke</code> suite of the AWS integration workflow) runs every entry point on real EC2; it is now a release requirement.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.10" id="starburst-0310-2026-10-23">starburst 0.3.10 (2026-10-23)<a class="anchor" aria-label="anchor" href="#starburst-0310-2026-10-23"></a></h2><p class="text-muted">CRAN release: 2026-10-24</p>
 <div class="section level3">

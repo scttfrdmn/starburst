@@ -59,6 +59,7 @@
 <url><loc>https://starburst.ing/reference/create_task_status.html</loc></url>
 <url><loc>https://starburst.ing/reference/dot-static_ec2_prices.html</loc></url>
 <url><loc>https://starburst.ing/reference/ec2-pool.html</loc></url>
+<url><loc>https://starburst.ing/reference/ec2_worker_resources.html</loc></url>
 <url><loc>https://starburst.ing/reference/ensure_base_image.html</loc></url>
 <url><loc>https://starburst.ing/reference/ensure_buildx_builder.html</loc></url>
 <url><loc>https://starburst.ing/reference/ensure_ecs_instance_profile.html</loc></url>

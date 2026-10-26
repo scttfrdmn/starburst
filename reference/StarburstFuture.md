@@ -17,6 +17,7 @@ StarburstFuture(
   stdout = TRUE,
   conditions = "condition",
   label = NULL,
+  backend = NULL,
   ...
 )
 ```
@@ -50,6 +51,12 @@ StarburstFuture(
 - seed:
 
   Random seed
+
+- backend:
+
+  Backend environment to submit to. Defaults to the active
+  `plan(starburst)` backend, then
+  `getOption("starburst.current_backend")`.
 
 - ...:
 
