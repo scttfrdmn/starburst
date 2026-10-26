@@ -44,3 +44,12 @@ A StarburstBackend object
 \description{
 A future backend for running parallel R workloads on AWS ECS
 }
+\details{
+You do not normally call this constructor yourself: \code{plan(starburst, ...)}
+creates the backend for you (see \code{\link{plan.starburst}}, whose defaults
+are the ones users see). It is exported as an extension point for code that
+builds on the \pkg{future} backend API.
+}
+\seealso{
+\code{\link{plan.starburst}}
+}

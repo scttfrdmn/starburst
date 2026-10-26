@@ -1,0 +1,191 @@
+---
+title: "Frequently Asked Questions"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+Short answers to the questions that come up most, with links to the guide that
+covers each topic in depth.
+
+## Getting started
+
+### What do I need before I can use staRburst?
+
+- An AWS account, with credentials available to R (see
+  [credentials](#which-aws-credentials-does-it-use) below).
+- **Docker running on your machine.** staRburst builds the worker image locally
+  with `docker buildx` and pushes it to your ECR repository. You only pay this
+  build once per environment (see [the first run](#why-is-my-first-run-so-slow)).
+- A one-time `starburst_setup()`, which creates the S3 bucket, ECR repository,
+  ECS cluster, IAM roles, and the default EC2 capacity provider.
+
+The [Getting Started](getting-started.html) guide walks through all three.
+
+### Which function should I use?
+
+Start with `starburst_map()`. If you already have `future`, `future.apply`, or
+`furrr` code, set `plan(starburst)` and leave the rest unchanged. Use
+`starburst_session()` for long jobs you want to close R and come back to. The
+[comparison table](getting-started.html#which-api-should-i-use) has the
+full list.
+
+### EC2 or Fargate?
+
+EC2 is the default and the right choice for most work. It's cheaper with Spot
+(also the default), lets you pick any instance type, and supports warm pools.
+Fargate (`launch_type = "FARGATE"`) is a serverless option that needs no
+capacity provider, but it has cold-start latency and is limited by your
+account's Fargate vCPU quota. See
+[Which backend?](getting-started.html#which-backend-ec2-default-vs-fargate).
+
+### Does it work with `furrr`, `future.apply`, and `targets`?
+
+Yes. Anything built on `future` runs on staRburst once `plan(starburst, ...)` is
+active:
+
+```{r}
+library(furrr)
+plan(starburst, workers = 50)
+results <- future_map(inputs, slow_function)
+```
+
+## Environment and data
+
+### Why is my first run so slow?
+
+The first run builds a Docker image containing your R packages. That takes
+roughly 5–10 minutes. The image is tagged with a hash of your `renv.lock` and
+cached in ECR, so later runs with the same lockfile reuse it. Changing your
+lockfile, for example by installing or upgrading a package and snapshotting,
+triggers a rebuild.
+
+Worker startup itself (launching instances and pulling the image) adds about
+90 seconds per cold run. Running many jobs against one warm cluster spreads
+that cost out; see the [Performance](performance.html) guide.
+
+### Which R packages are available on the workers?
+
+The packages in your project's `renv.lock`. If no lockfile is found, staRburst
+creates one with `renv::snapshot()`. To change what the workers have, update
+your lockfile. The next run detects the new hash and rebuilds the image.
+
+### My R version has no public base image. What happens?
+
+Public base images are published only for specific R releases (currently
+4.5.3 and 4.6.1). On any other R version, staRburst builds a private base image
+in your ECR instead, a one-time 3–5 minute step per R version. Use
+staRburst 0.3.10 or later: earlier versions' base-image template could silently
+produce images without `qs2`, and workers built from them fail to read their
+tasks.
+
+### What gets uploaded? Is my whole workspace sent?
+
+No. For each task, staRburst uploads the function, that task's input, and the
+globals the function actually references. Large datasets should go to S3 once,
+and each worker reads them from there. See
+[Working with Data](getting-started.html#working-with-data) and the
+"don't serialize huge objects to every worker" pitfall in the
+[Performance](performance.html) guide.
+
+## Cost
+
+### How much will a job cost?
+
+Estimate before you run. `starburst_estimate()` times a small sample of your
+tasks locally and projects the cloud time and cost:
+
+```{r}
+starburst_estimate(inputs, slow_function, workers = 50)
+```
+
+You can also set a ceiling so that over-budget jobs refuse to start:
+
+```{r}
+starburst_config(max_hourly_cost = 10, cost_alert_threshold = 5)
+```
+
+Reported costs are **estimates**: measured runtime multiplied by the current AWS
+price, looked up live and cached, with built-in rates as an offline fallback.
+They are not AWS billing figures.
+
+### What does staRburst cost when I'm not running anything?
+
+Setup itself launches nothing billable. The EC2 capacity provider is created at
+zero instances. What persists between jobs:
+
+- **ECR images.** Storage for your worker images, typically cents to a dollar a
+  month. Pass `ecr_image_ttl_days` to `starburst_setup()` to expire old images
+  automatically, or run `starburst_cleanup_ecr()`.
+- **S3 objects.** Job inputs and results are removed when a job finishes, unless
+  you set `starburst_config(auto_cleanup_s3 = FALSE)`. Detached sessions keep
+  their results in S3 until you call `session$cleanup(force = TRUE)`.
+- **Detached-session workers.** These keep running until the session finishes,
+  hits its `session_timeout` or `absolute_timeout`, or you call
+  `session$cleanup()`.
+
+To confirm nothing is still running, check `starburst_list_sessions()` and the
+EC2 and ECS consoles. The [Troubleshooting](troubleshooting.html) guide's
+"High Costs / Runaway Workers" section shows how to find and stop leftovers.
+Setting an AWS Budgets alert is also a good idea.
+
+## Scale and limits
+
+### How many workers can I use?
+
+Up to 500 per plan. staRburst refuses larger requests to protect you from
+accidental runaway costs. On EC2, your account's EC2 instance limits also apply.
+On Fargate, your Fargate vCPU quota applies: staRburst runs the job in waves if
+you ask for more than the quota allows, and `starburst_quota_status()` and
+`starburst_request_quota_increase()` help you raise it.
+
+### Why isn't my job faster on the cloud?
+
+Usually because each task is too small. Every task pays fixed overhead
+(serialization plus S3 round-trips), so thousands of sub-second tasks run slower
+than they would locally. Batch them into fewer, larger tasks, and use no more
+workers than you have tasks. The [Workload Shapes](workload-shapes.html)
+guide covers this with measured numbers.
+
+## Accounts and operations
+
+### Which AWS credentials does it use?
+
+Whatever the standard AWS credential chain finds, through the `paws` SDK:
+environment variables, a named profile (`AWS_PROFILE`), AWS SSO profiles, or an
+IAM role when running on EC2 or ECS. Credentials never go in your code or in S3.
+The workers use their own IAM role. See [Security](security.html).
+
+### Which region does it run in?
+
+The region you passed to `starburst_setup()` (default `us-east-1`), stored in
+your staRburst config. Most functions also take a `region` argument, but your
+bucket, repository, and cluster live in the setup region.
+
+### Can I close R while a job is running?
+
+Yes, with a detached session:
+
+```{r}
+session <- starburst_session(workers = 20)
+session$submit(quote(long_simulation()))
+id <- session$session_id
+
+# ...later, in a new R session:
+session <- starburst_session_attach(id)
+results <- session$collect(wait = TRUE)
+```
+
+See the [Detached Sessions](detached-sessions.html) guide.
+
+### Where are the worker logs?
+
+In CloudWatch Logs. Read them from R with `starburst_logs()`, or for a single
+task with `starburst_logs(task_id = ...)`. The
+[Troubleshooting](troubleshooting.html) guide lists common error patterns
+and what they mean.

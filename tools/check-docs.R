@@ -28,7 +28,9 @@ note <- function(...) problems[[length(problems) + 1]] <<- paste0(...)
 
 read_lines_safe <- function(path) if (file.exists(path)) readLines(path, warn = FALSE) else character(0)
 
-vignettes <- list.files(file.path(pkg_root, "vignettes"), pattern = "\\.Rmd$", full.names = TRUE)
+# recursive = TRUE also picks up pkgdown-only articles in vignettes/articles/.
+vignettes <- list.files(file.path(pkg_root, "vignettes"), pattern = "\\.Rmd$",
+                        full.names = TRUE, recursive = TRUE)
 readme    <- Filter(file.exists, file.path(pkg_root, c("README.md", "README.Rmd")))
 r_files   <- list.files(file.path(pkg_root, "R"), pattern = "\\.R$", full.names = TRUE)
 man_files <- list.files(file.path(pkg_root, "man"), pattern = "\\.Rd$", full.names = TRUE)

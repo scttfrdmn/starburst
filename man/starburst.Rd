@@ -16,3 +16,17 @@ Does not return a value; always signals an error if called directly.
 \description{
 This function should never be called directly. Use plan(starburst, ...) instead.
 }
+\examples{
+\donttest{
+if (starburst_is_configured()) {
+  # Pass `starburst` to plan(); existing future code then runs on AWS workers
+  future::plan(starburst, workers = 4)
+  f <- future::future(Sys.info()[["nodename"]])
+  future::value(f)
+  future::plan(future::sequential)
+}
+}
+}
+\seealso{
+\code{\link{plan.starburst}} for the worker, backend, and cost arguments.
+}

@@ -54,6 +54,8 @@ navbar:
         href: articles/workload-shapes.html
       - text: "Performance & When to Use Cloud"
         href: articles/performance.html
+      - text: "FAQ"
+        href: articles/faq.html
     examples:
       text: Runnable Scripts
       href: https://github.com/scttfrdmn/starburst/tree/main/examples
@@ -152,6 +154,7 @@ articles:
   - performance
   - security
   - troubleshooting
+  - articles/faq
 
 footer:
   structure:
