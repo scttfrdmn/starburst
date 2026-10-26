@@ -75,13 +75,38 @@ devtools::check()
 - Write tests for all new functionality
 - Place tests in `tests/testthat/test-*.R`
 - Use descriptive test names
-- Mock AWS API calls when possible
+- Mock AWS API calls when possible, but **never mock the client/worker seam**:
+  anything that changes how tasks are serialized, submitted, executed by
+  `inst/templates/worker.R`, or read back must be covered by the round-trip
+  harness (`tests/testthat/helper-roundtrip.R`, used by `test-roundtrip.R`).
+  It runs the shipped worker script against an in-memory S3 and a fake ECS
+  that rejects requests real EC2 rejects. Releases 0.3.0-0.3.10 shipped with
+  `plan(starburst)`, `starburst_map()` and `starburst_cluster()` broken on
+  real workers because every test mocked that seam.
 
 ```r
 test_that("function does what it should", {
   expect_equal(my_function(1), 2)
 })
 ```
+
+## Releasing
+
+A release (tag, GitHub Release, CRAN submission) requires, on the release commit:
+
+1. `R CMD check --as-cran` with 0 errors / 0 warnings / 0 notes, run with AWS
+   credentials unset.
+2. **A passing live smoke test on real EC2**: every public entry point
+   (`plan(starburst)` + `future.apply`, `starburst_map()`,
+   `starburst_cluster()`, `starburst_session()`) end to end:
+
+   ```bash
+   timeout 45m Rscript tools/live-smoke.R
+   ```
+
+   or the **AWS Integration Tests** workflow with suite `live-smoke`. Every
+   check must PASS. Green offline tests and a green monthly `quick` run do not
+   substitute for this.
 
 ## Documentation
 

@@ -63,13 +63,10 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
 
   start_time <- Sys.time()
 
-  # Set up the Future plan by calling plan.starburst directly
-  # (bypasses Future package dispatch issues)
-  old_plan <- future::plan()
-  on.exit({
-    future::plan(old_plan)
-  }, add = TRUE)
-
+  # Create the backend via plan.starburst() but do not register it with
+  # future::plan(): the strategy carries both a pre-built backend and the
+  # StarburstBackend factory, which future's plan() rejects ("did not shut
+  # itself down properly"). The futures below are submitted directly.
   strategy <- plan.starburst(
     strategy = starburst,
     workers = workers,
@@ -81,8 +78,7 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
     instance_type = instance_type,
     use_spot = use_spot
   )
-
-  future::plan(strategy)
+  backend <- attr(strategy, "backend")
 
   # Execute by creating StarburstFuture objects directly
   # Pass extra arguments via wrapper function
@@ -113,7 +109,8 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
       envir = parent.frame(),
       substitute = FALSE,
       globals = globals_list,  # Pass as globals so they get serialized
-      packages = NULL
+      packages = NULL,
+      backend = backend
     )
   }
 
@@ -143,7 +140,7 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
         result_obj <- result(futures[[i]])
 
         if (length(result_obj$conditions) > 0) {
-          stop(sprintf("Task %d failed: %s", i, result_obj$conditions[[1]]$message))
+          stop(sprintf("Task %d failed: %s", i, conditionMessage(result_obj$conditions[[1]]$condition)))
         }
 
         results[[i]] <- result_obj$value
@@ -219,7 +216,8 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
   config <- get_starburst_config()
   region <- region %||% config$region %||% "us-east-1"
 
-  # Setup the Future plan by calling plan.starburst directly
+  # Create the backend via plan.starburst(); like starburst_map(), the
+  # strategy is not registered with future::plan() (see note there)
   strategy <- plan.starburst(
     strategy = starburst,
     workers = workers,
@@ -231,11 +229,7 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
     instance_type = instance_type,
     use_spot = use_spot
   )
-
-  future::plan(strategy)
-
-  # Get backend from options (set by plan.starburst)
-  backend <- getOption("starburst.current_backend")
+  backend <- attr(strategy, "backend")
 
   # Create cluster object
   cluster <- list(
@@ -268,7 +262,6 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
 
   cluster$shutdown <- function() {
     cleanup_cluster(cluster$backend)
-    future::plan(future::sequential)
   }
 
   class(cluster) <- "starburst_cluster"
@@ -310,7 +303,8 @@ starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
       envir = parent.frame(),
       substitute = FALSE,
       globals = globals_list,  # Pass as globals so they get serialized
-      packages = NULL
+      packages = NULL,
+      backend = cluster$backend
     )
   }
 
@@ -341,7 +335,7 @@ starburst_cluster_map <- function(cluster, .x, .f, .progress = TRUE) {
 
         # Check for errors
         if (length(result_obj$conditions) > 0) {
-          stop(sprintf("Task %d failed: %s", i, result_obj$conditions[[1]]$message))
+          stop(sprintf("Task %d failed: %s", i, conditionMessage(result_obj$conditions[[1]]$condition)))
         }
 
         results[[i]] <- result_obj$value

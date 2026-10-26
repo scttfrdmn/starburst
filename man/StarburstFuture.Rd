@@ -15,6 +15,7 @@ StarburstFuture(
   stdout = TRUE,
   conditions = "condition",
   label = NULL,
+  backend = NULL,
   ...
 )
 }
@@ -32,6 +33,9 @@ StarburstFuture(
 \item{lazy}{Whether to lazily evaluate (always FALSE for remote)}
 
 \item{seed}{Random seed}
+
+\item{backend}{Backend environment to submit to. Defaults to the active
+\code{plan(starburst)} backend, then \code{getOption("starburst.current_backend")}.}
 
 \item{...}{Additional arguments}
 }

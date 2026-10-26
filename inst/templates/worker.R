@@ -22,10 +22,7 @@ main <- function() {
     library(qs2)
 
     # Create S3 client with connect timeout to prevent hanging
-    s3 <- paws.storage::s3(config = list(
-      region = region,
-      connect_timeout = 60    # 60 seconds to establish connection
-    ))
+    s3 <- make_s3_client(region, connect_timeout = 60)
 
     # Download task from S3
     task_key <- sprintf("tasks/%s.qs", task_id)
@@ -51,7 +48,7 @@ main <- function() {
     } else {
       # Ephemeral mode (existing behavior)
       message("Running in EPHEMERAL mode")
-      run_ephemeral_worker(task, s3, bucket, region)
+      run_ephemeral_worker(task, s3, bucket, region, task_id)
     }
 
   }, error = function(e) {
@@ -63,7 +60,7 @@ main <- function() {
       library(paws.storage)
       library(qs2)
 
-      s3 <- paws.storage::s3(config = list(region = region))
+      s3 <- make_s3_client(region)
 
       error_result <- list(
         error = TRUE,
@@ -93,14 +90,20 @@ main <- function() {
   })
 }
 
+#' Create the S3 client (single seam, so tests can run this script offline)
+make_s3_client <- function(region, ...) {
+  paws.storage::s3(config = list(region = region, ...))
+}
+
 #' Run worker in ephemeral mode (existing behavior)
 #'
-#' Executes one task and exits
-run_ephemeral_worker <- function(task, s3, bucket, region) {
+#' Executes one task and exits. The Future-format payload carries no task_id,
+#' so the result key comes from the TASK_ID env var passed in by main().
+run_ephemeral_worker <- function(task, s3, bucket, region, task_id) {
   result <- execute_task_content(task)
 
   # Upload result and exit
-  upload_result(result, task$task_id, s3, bucket)
+  upload_result(result, task_id, s3, bucket)
 
   message("Worker completed successfully")
   quit(status = 0)

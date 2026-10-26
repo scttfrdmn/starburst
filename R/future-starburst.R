@@ -51,6 +51,8 @@ future.starburst <- function(expr, envir = parent.frame(), substitute = TRUE,
 #' @param packages Packages to load
 #' @param lazy Whether to lazily evaluate (always FALSE for remote)
 #' @param seed Random seed
+#' @param backend Backend environment to submit to. Defaults to the active
+#'   \code{plan(starburst)} backend, then \code{getOption("starburst.current_backend")}.
 #' @param ... Additional arguments
 #'
 #' @return A StarburstFuture object
@@ -59,18 +61,17 @@ future.starburst <- function(expr, envir = parent.frame(), substitute = TRUE,
 StarburstFuture <- function(expr, envir = parent.frame(), substitute = TRUE,
                             globals = TRUE, packages = NULL, lazy = FALSE,
                             seed = FALSE, stdout = TRUE, conditions = "condition",
-                            label = NULL, ...) {
+                            label = NULL, backend = NULL, ...) {
 
   # Substitute expression if needed
   if (substitute) {
     expr <- substitute(expr)
   }
 
-  # Get current plan
-  plan_obj <- future::plan("next")
-
-  # Get backend from plan attributes or options
-  backend <- attr(plan_obj, "backend")
+  # Get backend from the explicit argument, the current plan, or options
+  if (is.null(backend)) {
+    backend <- attr(future::plan("next"), "backend")
+  }
 
   if (is.null(backend)) {
     # Try to get from options
@@ -203,6 +204,12 @@ resolved.StarburstFuture <- function(x, ...) {
     return(TRUE)
   }
 
+  # future's cancel() (used e.g. by future.apply/furrr after an error) sets
+  # "canceled"; a canceled future is resolved, or callers wait forever
+  if (future$state == "canceled") {
+    return(TRUE)
+  }
+
   # If queued, check if wave has progressed
   if (future$state == "queued") {
     backend <- future$backend
@@ -268,43 +275,52 @@ result.StarburstFuture <- function(future, ...) {
   result_key <- sprintf("results/%s.qs", future$task_id)
   temp_file <- tempfile(fileext = ".qs")
 
-  tryCatch({
+  result_data <- tryCatch({
     s3$download_file(
       Bucket = backend$bucket,
       Key = result_key,
       Filename = temp_file
     )
-    result_data <- qs2::qs_read(temp_file)
+    qs2::qs_read(temp_file)
+  }, error = function(e) {
+    # A canceled future may never produce a result
+    if (!identical(future$state, "canceled")) stop(e)
+    NULL
   }, finally = {
     unlink(temp_file)
   })
 
+  if (is.null(result_data)) {
+    canceled <- structure(
+      class = c("FutureCanceledError", "FutureError", "error", "condition"),
+      list(message = sprintf("Future (task %s) was canceled", future$task_id),
+           call = NULL)
+    )
+    result_obj <- future::FutureResult(
+      conditions = list(list(condition = canceled, signal = TRUE))
+    )
+    future$result_value <- result_obj
+    return(result_obj)
+  }
+
   # Create FutureResult object
   if (!is.null(result_data$error) && result_data$error) {
-    # Task failed
-    result_obj <- structure(
-      list(
-        value = NULL,
-        visible = TRUE,
-        stdout = result_data$stdout %||% "",
-        conditions = list(
-          simpleError(result_data$message %||% "Task failed")
-        ),
-        version = "1.8"
-      ),
-      class = "FutureResult"
+    # Task failed. future expects each condition as list(condition, signal);
+    # a bare condition is reported as an INTERNAL ERROR that hides the message.
+    result_obj <- future::FutureResult(
+      value = NULL,
+      stdout = result_data$stdout %||% "",
+      conditions = list(list(
+        condition = simpleError(result_data$message %||% "Task failed"),
+        signal = TRUE
+      ))
     )
   } else {
     # Task succeeded
-    result_obj <- structure(
-      list(
-        value = result_data$value,
-        visible = TRUE,
-        stdout = result_data$stdout %||% "",
-        conditions = list(),
-        version = "1.8"
-      ),
-      class = "FutureResult"
+    result_obj <- future::FutureResult(
+      value = result_data$value,
+      stdout = result_data$stdout %||% "",
+      conditions = list()
     )
   }
 
@@ -341,19 +357,29 @@ submit_task <- function(future, backend) {
   # Get ECS client
   ecs <- get_ecs_client(backend$region)
 
-  # Get network configuration
-  vpc_config <- get_vpc_config(backend$region)
+  # Network configuration: the configured subnets/security groups (as
+  # launchFuture() and sessions use), else the default VPC's
+  if (length(backend$subnets) > 0 && length(backend$security_groups) > 0) {
+    vpc_config <- list(subnets = backend$subnets,
+                       security_groups = backend$security_groups)
+  } else {
+    vpc_config <- get_vpc_config(backend$region)
+  }
+  awsvpc_config <- list(
+    subnets = vpc_config$subnets,
+    securityGroups = vpc_config$security_groups
+  )
+  # assignPublicIp is Fargate-only; EC2 run_task rejects it
+  if (backend$launch_type != "EC2") {
+    awsvpc_config$assignPublicIp <- "ENABLED"
+  }
 
   # Build base run_task parameters
   run_task_params <- list(
-    cluster = backend$cluster,
+    cluster = backend$cluster_name %||% backend$cluster,
     taskDefinition = backend$task_definition_arn,
     networkConfiguration = list(
-      awsvpcConfiguration = list(
-        subnets = vpc_config$subnets,
-        securityGroups = vpc_config$security_groups,
-        assignPublicIp = "ENABLED"
-      )
+      awsvpcConfiguration = awsvpc_config
     ),
     overrides = list(
       containerOverrides = list(

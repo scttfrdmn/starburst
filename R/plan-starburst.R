@@ -60,9 +60,20 @@ plan.starburst <- function(strategy,
 
   # Validate inputs
   validate_workers(workers)
+  validate_launch_type(launch_type)
+
+  # For EC2, size tasks to fit the instance (as StarburstBackend() and
+  # sessions do); unadjusted defaults can never be placed
+  if (launch_type == "EC2") {
+    validate_instance_type(instance_type)
+    resources <- ec2_worker_resources(instance_type)
+    cpu <- resources$cpu
+    memory <- resources$memory
+    cat_info(sprintf("   * Using instance resources: %g vCPUs, %s memory\n", cpu, memory))
+  }
+
   validate_cpu(cpu)
   validate_memory(memory)
-  validate_launch_type(launch_type)
 
   # Get configuration
   config <- get_starburst_config()
@@ -185,6 +196,7 @@ plan.starburst <- function(strategy,
   backend <- list(
     cluster_id = cluster_id,
     cluster = env_info$cluster,
+    cluster_name = config$cluster_name,
     workers = workers,
     workers_per_wave = workers_per_wave,
     num_waves = num_waves,
@@ -219,7 +231,11 @@ plan.starburst <- function(strategy,
     capacity_provider_name = sprintf("starburst-%s", gsub("\\.", "-", instance_type)),
     pool_started_at = NULL,
     asg_name = sprintf("starburst-asg-%s", gsub("\\.", "-", instance_type)),
-    aws_account_id = config$aws_account_id
+    aws_account_id = config$aws_account_id,
+    # VPC configuration (same fields StarburstBackend() sets; without them
+    # the warm pool polls the default cluster and run_task has no network)
+    subnets = config$subnets,
+    security_groups = config$security_groups
   )
 
   # Convert backend list to environment for mutability
@@ -255,9 +271,10 @@ plan.starburst <- function(strategy,
 
   # Create a tweaked strategy that knows about our backend
   # This tells future() to call future.starburst() when creating futures
+  # (backend is attached as an attribute below; passing it to tweak() only
+  # triggers future's "unknown future arguments" warning)
   tweaked_strategy <- future::tweak(
     starburst,
-    backend = backend_env,
     workers = workers,
     cpu = cpu,
     memory = memory,

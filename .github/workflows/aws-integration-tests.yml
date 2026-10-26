@@ -11,6 +11,7 @@ on:
         type: choice
         options:
           - all
+          - live-smoke
           - detached-sessions
           - integration-examples
           - ec2
@@ -96,6 +97,26 @@ jobs:
             starburst_setup(region = 'us-east-1', force = TRUE, build_image = FALSE)
           "
 
+      - name: Set up QEMU (multi-arch worker image build)
+        if: env.SUITE == 'live-smoke' || env.SUITE == 'all'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: env.SUITE == 'live-smoke' || env.SUITE == 'all'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Run live smoke test (every entry point on real EC2)
+        # The release gate: plan(starburst)/future.apply, starburst_map(),
+        # starburst_cluster() and starburst_session() end to end (#63-#65).
+        if: env.SUITE == 'live-smoke' || env.SUITE == 'all'
+        timeout-minutes: 45
+        env:
+          STARBURST_SMOKE_INSTANCE: c7g.xlarge
+          STARBURST_SMOKE_SCALE_DOWN: "true"
+        run: |
+          Rscript -e "install.packages('future.apply')"
+          Rscript tools/live-smoke.R
+
       - name: Run quick smoke tests
         if: env.SUITE == 'quick' || env.SUITE == 'all'
         run: |
@@ -132,7 +153,9 @@ jobs:
               'tests/testthat/test-detached-sessions.R',
               reporter = 'summary'
             )
-            if (length(results) > 0 && any(sapply(results, function(r) !is.null(r\$failed) && r\$failed > 0))) {
+            # Errors count too: a test that errors has failed = 0
+            df <- as.data.frame(results)
+            if (any(df\$failed > 0) || any(df\$error)) {
               quit(status = 1)
             }
           "
@@ -148,7 +171,9 @@ jobs:
               'tests/testthat/test-integration-examples.R',
               reporter = 'summary'
             )
-            if (length(results) > 0 && any(sapply(results, function(r) !is.null(r\$failed) && r\$failed > 0))) {
+            # Errors count too: a test that errors has failed = 0
+            df <- as.data.frame(results)
+            if (any(df\$failed > 0) || any(df\$error)) {
               quit(status = 1)
             }
           "
@@ -163,7 +188,9 @@ jobs:
               'tests/testthat/test-ec2-integration.R',
               reporter = 'summary'
             )
-            if (length(results) > 0 && any(sapply(results, function(r) !is.null(r\$failed) && r\$failed > 0))) {
+            # Errors count too: a test that errors has failed = 0
+            df <- as.data.frame(results)
+            if (any(df\$failed > 0) || any(df\$error)) {
               quit(status = 1)
             }
           "
@@ -177,7 +204,9 @@ jobs:
               'tests/testthat/test-cleanup.R',
               reporter = 'summary'
             )
-            if (length(results) > 0 && any(sapply(results, function(r) !is.null(r\$failed) && r\$failed > 0))) {
+            # Errors count too: a test that errors has failed = 0
+            df <- as.data.frame(results)
+            if (any(df\$failed > 0) || any(df\$error)) {
               quit(status = 1)
             }
           "
