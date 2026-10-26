@@ -1,3 +1,50 @@
+# starburst 0.3.11
+
+## Bug fixes
+
+These were invisible to the test suite, which mocks AWS, and to earlier live
+runs, which used `starburst_session()`. Sessions were not affected.
+
+* **`plan(starburst)` futures work again.** Since 0.3.0 the worker uploaded the
+  result of every `plan(starburst)` future under an empty S3 key, so each
+  future failed with `SignatureDoesNotMatch (HTTP 403)`. The worker now uses
+  the task ID it was launched with (#63). Environment images are rebuilt
+  automatically: their tag now also covers the worker script.
+* **`starburst_map()` and `starburst_cluster()` work again.** They failed before
+  launching any workers with "environment did not shut itself down properly",
+  because they registered a pre-built backend with `future::plan()`. They now
+  submit to their own backend without changing your active plan, so
+  `cluster$shutdown()` no longer resets the plan to `sequential` (#64). Past
+  that error they had further EC2 failures, now fixed:
+  * the warm pool waited on the wrong ECS cluster and timed out after 180 s
+    even with all instances in service;
+  * task submission set `assignPublicIp`, which EC2 rejects ("Assign public IP
+    is not supported for this launch type"), and ignored the configured
+    subnets and security groups;
+  * the default `cpu = 4, memory = "8GB"` was not resized to the instance (as
+    `plan(starburst)` and sessions already did), so tasks on e.g. c7g.xlarge
+    could never be placed and stayed `PROVISIONING` forever;
+  * every call warned "Detected 1 unknown future arguments: 'backend'".
+* **`future.apply`/`furrr` no longer hang after a worker error.** When one
+  element failed they cancel the remaining futures, and a canceled starburst
+  future never counted as resolved, so collecting results waited forever.
+* **Worker errors keep their message.** A task that failed on a worker was
+  reported as a `future` "INTERNAL ERROR: Unexpected structure for condition
+  set element"; `value()` and `starburst_map()` now raise the worker's own
+  error message (#65).
+* A `plan(starburst)` backend now always submits to its own cluster, even after
+  a `starburst_map()` or `starburst_cluster()` call in the same session.
+
+## Testing
+
+* New offline round-trip tests run the shipped worker script against the real
+  client code (in-memory S3, and a fake ECS that rejects what EC2 rejects) for
+  `plan(starburst)`, `future.apply`, `starburst_map()` and
+  `starburst_cluster()`.
+* New `tools/live-smoke.R` (also the `live-smoke` suite of the AWS integration
+  workflow) runs every entry point on real EC2; it is now a release
+  requirement.
+
 # starburst 0.3.10 (2026-10-23)
 
 ## Bug fixes

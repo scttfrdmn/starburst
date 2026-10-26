@@ -3,8 +3,8 @@ test_that("plan.starburst validates inputs", {
 
   expect_error(plan.starburst(workers = -1))
   expect_error(plan.starburst(workers = 0))
-  expect_error(plan.starburst(cpu = 3))
-  expect_error(plan.starburst(memory = "invalid"))
+  expect_error(plan.starburst(cpu = 3, launch_type = "FARGATE"))
+  expect_error(plan.starburst(memory = "invalid", launch_type = "FARGATE"))
 })
 
 test_that("plan.starburst creates valid plan object", {

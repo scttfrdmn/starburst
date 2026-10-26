@@ -1,19 +1,28 @@
 ## Submission
 
-This is a patch update from the current CRAN release (0.3.9, accepted
-2026-07-22) to 0.3.10, fixing a significant silent-failure bug.
+This is a patch update from the current CRAN release (0.3.10, accepted
+2026-10-24) to 0.3.11. It fixes bugs that made the package's main `future`
+backend fail on real AWS.
 
-### Bug fix in 0.3.10
+### Bug fixes in 0.3.11
 
-* The Docker template shipped in `inst/templates/Dockerfile.base` (used at
-  runtime to build worker base images) did not install `cmake`, which
-  RcppParallel >= 6.2.0 now requires. As a result `qs2` silently failed to
-  install in locally built images and remote workers could not deserialize
-  tasks. The template now installs `cmake` and fails the build if any required
-  package is missing.
-* A test that round-trips a `qs2` blob now skips when `qs2` is not loadable.
+* The worker script (`inst/templates/worker.R`) uploaded results of
+  `plan(starburst)` futures under an empty S3 key, so every such future failed
+  remotely.
+* `starburst_map()` and `starburst_cluster()` registered a strategy that
+  `future::plan()` rejects; they now submit to their own backend without
+  changing the active plan.
+* Errors from remote workers were returned in a `FutureResult` with malformed
+  `conditions`, which `future` reported as an internal error; they now use
+  `future::FutureResult()` and keep the original message.
+* Canceled futures (e.g. after an error in `future.apply`) never counted as
+  resolved, so collecting results could wait forever.
+* EC2 task submission from `starburst_map()`/`starburst_cluster()` used invalid
+  parameters and unplaceable task sizes.
 
-No R code or exported API changes. See NEWS.md.
+Offline regression tests cover all of these, including new round-trip tests
+that run the shipped worker script against the client code. No exported API
+was removed. See NEWS.md.
 
 ## Test environments
 

@@ -32,3 +32,4 @@
 ^SWAT-FEASIBILITY-BRIEF\.md$
 ^CRAN-SUBMISSION$
 ^vignettes/articles$
+^tools/live-smoke\.R$

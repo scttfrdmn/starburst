@@ -273,6 +273,15 @@ devtools::load_all()
 - Reliability improvements
 - New AWS service integrations
 
+**Release gate (mandatory):** never tag, publish a GitHub Release, or submit to
+CRAN without a passing `tools/live-smoke.R` run (or the integration workflow's
+`live-smoke` suite) on the release commit. It runs every public entry point on
+real EC2. `devtools::test()` is NOT a substitute: 0.3.0-0.3.10 passed all tests
+while `plan(starburst)`, `starburst_map()` and `starburst_cluster()` failed on
+every real worker, because tests mocked the client/worker seam and the live runs
+only used sessions. Changes to task serialization, submission, `worker.R` or
+result handling also need a case in `tests/testthat/test-roundtrip.R`.
+
 ## Common Tasks
 
 ### Adding a New Feature

@@ -98,6 +98,29 @@ get_architecture_from_instance_type <- function(instance_type) {
   }
 }
 
+#' Size an EC2 worker task to fit its instance
+#'
+#' ECS can only place a task whose cpu/memory fit on the instance; a task that
+#' asks for more (e.g. the default 8GB on an 8 GiB c7g.xlarge, after the ECS
+#' agent's share) stays PROVISIONING forever. Every EC2 entry point must size
+#' tasks with this helper.
+#'
+#' @param instance_type EC2 instance type
+#' @return list(cpu = vCPUs, memory = "<n>GB")
+#' @keywords internal
+ec2_worker_resources <- function(instance_type) {
+  instance_specs <- get_instance_specs(instance_type)
+
+  # Largest valid ECS cpu value that fits on the instance
+  valid_cpus <- c(0.25, 0.5, 1, 2, 4, 8, 16)
+  cpu <- max(valid_cpus[valid_cpus <= instance_specs$vcpus])
+
+  # Memory: instance capacity minus 512MB for ECS agent overhead
+  memory <- sprintf("%dGB", floor(instance_specs$memory_gb - 0.5))
+
+  list(cpu = cpu, memory = memory)
+}
+
 #' Get instance specifications (vCPUs, memory)
 #'
 #' @keywords internal

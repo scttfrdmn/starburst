@@ -11,6 +11,9 @@ name: R-CMD-check
 jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
+    # Jobs take 2-11 min; a hung test (e.g. a future that never resolves)
+    # should fail fast instead of holding the runner for 6 hours
+    timeout-minutes: 30
 
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
 
