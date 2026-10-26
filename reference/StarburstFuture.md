@@ -58,3 +58,9 @@ StarburstFuture(
 ## Value
 
 A StarburstFuture object
+
+## Details
+
+You do not normally call this yourself: with `plan(starburst)` active,
+[`future::future()`](https://future.futureverse.org/reference/future.html),
+future.apply, and furrr create these for you.

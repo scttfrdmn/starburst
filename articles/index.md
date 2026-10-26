@@ -45,3 +45,4 @@ Performance, security, and operations
   staRburst](https://starburst.ing/articles/security.md):
 - [Troubleshooting
   staRburst](https://starburst.ing/articles/troubleshooting.md):
+- [Frequently Asked Questions](https://starburst.ing/articles/faq.md):

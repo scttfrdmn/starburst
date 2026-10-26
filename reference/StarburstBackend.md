@@ -64,3 +64,15 @@ StarburstBackend(
 ## Value
 
 A StarburstBackend object
+
+## Details
+
+You do not normally call this constructor yourself:
+`plan(starburst, ...)` creates the backend for you (see
+[`plan.starburst`](https://starburst.ing/reference/plan.starburst.md),
+whose defaults are the ones users see). It is exported as an extension
+point for code that builds on the future backend API.
+
+## See also
+
+[`plan.starburst`](https://starburst.ing/reference/plan.starburst.md)

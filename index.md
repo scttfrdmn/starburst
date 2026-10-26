@@ -280,6 +280,8 @@ Full documentation available at
 ## Requirements
 
 - R \>= 4.0
+- Docker, running locally (worker images are built with `docker buildx`
+  and pushed to your ECR repository)
 - AWS account with:
   - AWS CLI configured or `AWS_PROFILE` set
   - IAM permissions for ECS, ECR, S3, VPC

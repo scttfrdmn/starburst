@@ -2,6 +2,8 @@
 
 ## starburst 0.3.10 (2026-10-23)
 
+CRAN release: 2026-10-24
+
 ### Bug fixes
 
 - **Locally built base images no longer silently lack `qs2`.** When no
