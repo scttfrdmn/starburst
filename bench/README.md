@@ -54,6 +54,55 @@ to `bench/results/<workload>-<date>.md`. The table columns are:
 Plus a metadata block: staRburst version, date, region, backend, Spot, cold/warm,
 and local machine.
 
+## Component timings (`components.R`)
+
+`benchmark.R` measures end-to-end phases. `components.R` breaks those phases into
+their parts, each measured through the same internal code path staRburst uses, so a
+regression can be traced to one component:
+
+| Component | Measures | Cost / opt-in |
+|---|---|---|
+| `serialize` | `qs2::qs_save` / `qs_read` of task-shaped payloads (1 KB–100 MB) | Local, free; no opt-in |
+| `s3` | `put_object` / `get_object` round-trip of those payloads to your staRburst bucket (objects deleted afterwards) | Real AWS, fractions of a cent; `STARBURST_BENCH=TRUE` |
+| `image` | `build_environment_image()` under a fresh tag: base resolution, multi-arch `docker buildx` build, ECR push (tag deleted afterwards) | Real AWS + local Docker, a few minutes; `STARBURST_BENCH=TRUE` |
+| `ci` | Base-image build times from the `build-base-images.yml` run history | Free; needs the `gh` CLI |
+
+```bash
+Rscript bench/components.R serialize
+Rscript bench/components.R ci
+STARBURST_BENCH=TRUE AWS_PROFILE=aws Rscript bench/components.R all
+```
+
+Results go to `bench/results/components-<date>.md` and `.rds`. The median of `--reps`
+repetitions (default 5) is reported. `image` is a single run because it takes minutes.
+`ci` rows are dated by when CI ran, not when the script ran.
+
+The `image` timing depends on the build host. On an Apple-silicon Mac, the amd64 half
+of the multi-arch build runs under emulation, so the metadata block records the host.
+
+## Trends (`trends.R`)
+
+```bash
+Rscript bench/trends.R
+```
+
+Reads every `.rds` in `bench/results/` (both formats) and writes:
+
+- `trends.md`: every metric by date, in seconds. This is the full table view.
+- `trends.png`: small multiples of the headline metrics (end-to-end totals, 10 MB
+  serialize and S3 round-trips, image build, CI base-image builds), one metric
+  per panel.
+
+It is free, local and uses base R only. Re-run it after adding results.
+
+Read the CI series with its context. Runs before 2026-08-13 used self-hosted runners
+with a persistent layer cache, so most of those jobs show cache hits of about 10–17 s.
+From-scratch builds on GitHub-hosted runners took about 285–313 s on 2026-08-13,
+before the cmake fix. Those were the broken images from
+[#55](https://github.com/scttfrdmn/starburst/issues/55): qs2 silently failed to build,
+so there was less to compile. Builds after the fix take about 410–520 s. A sudden
+drop in build time is as suspicious as a rise.
+
 ## Status (2026-07)
 
 The harness is **working end-to-end on real AWS**: it builds the worker image, launches
