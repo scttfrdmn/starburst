@@ -1,6 +1,6 @@
 # Changelog
 
-## starburst 0.3.11
+## starburst 0.3.11 (2026-11-06)
 
 ### Bug fixes
 
