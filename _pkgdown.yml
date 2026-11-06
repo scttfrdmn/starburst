@@ -121,6 +121,7 @@ reference:
   - resolved.StarburstFuture
   - result.StarburstFuture
   - run.StarburstFuture
+  - stopWorkers.StarburstBackend
   - print.StarburstSessionStatus
   - session-api
 
