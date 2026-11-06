@@ -99,11 +99,11 @@ jobs:
 
       - name: Set up QEMU (multi-arch worker image build)
         if: env.SUITE == 'live-smoke' || env.SUITE == 'all'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
         if: env.SUITE == 'live-smoke' || env.SUITE == 'all'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Run live smoke test (every entry point on real EC2)
         # The release gate: plan(starburst)/future.apply, starburst_map(),
