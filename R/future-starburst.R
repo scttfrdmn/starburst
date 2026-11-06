@@ -226,27 +226,156 @@ resolved.StarburstFuture <- function(x, ...) {
 
   # Check S3 for result
   backend <- future$backend
-  s3 <- get_s3_client(backend$region)
-  result_key <- sprintf("results/%s.qs", future$task_id)
-
-  result_exists <- tryCatch({
-    s3$head_object(
-      Bucket = backend$bucket,
-      Key = result_key
-    )
-    TRUE
-  }, error = function(e) {
-    FALSE
-  })
-
-  if (result_exists) {
+  if (result_in_s3(future, backend)) {
     future$state <- "finished"
     return(TRUE)
   }
 
-  # Check if task failed (optional: query ECS for task status)
-  # For now, just return FALSE
+  # The worker uploads its result before exiting, so a task that stopped
+  # without one died (OOM, image pull failure, Spot reclaim, ...); without
+  # this check value() would wait forever (#67)
+  failure <- task_failure(future, backend)
+  if (!is.null(failure)) {
+    # The result may have landed between the two checks
+    if (result_in_s3(future, backend)) {
+      future$state <- "finished"
+      return(TRUE)
+    }
+    future$result_value <- future::FutureResult(
+      conditions = list(list(condition = simpleError(failure), signal = TRUE))
+    )
+    future$state <- "finished"
+    return(TRUE)
+  }
+
   FALSE
+}
+
+#' Does a future's result exist in S3?
+#'
+#' @keywords internal
+result_in_s3 <- function(future, backend) {
+  s3 <- get_s3_client(backend$region)
+  tryCatch({
+    s3$head_object(
+      Bucket = backend$bucket,
+      Key = sprintf("results/%s.qs", future$task_id)
+    )
+    TRUE
+  }, error = function(e) FALSE)
+}
+
+#' Why a future's worker task ended without a result, if it did
+#'
+#' Checks ECS at most every \code{getOption("starburst.task_check_interval", 15)}
+#' seconds. All of this R session's pending tasks are described together (100
+#' per call), so polling many futures does not multiply API calls.
+#'
+#' @return NULL while the task is fine, else a failure message
+#' @keywords internal
+task_failure <- function(future, backend) {
+  # Enforce the backend timeout, plus a margin for instance start and image pull
+  timeout <- backend$timeout
+  if (!is.null(timeout) && !is.null(future$submitted_at)) {
+    elapsed <- as.numeric(difftime(Sys.time(), future$submitted_at, units = "secs"))
+    if (elapsed > timeout + getOption("starburst.task_start_margin", 900)) {
+      if (!is.null(future$task_arn)) {
+        tryCatch(get_ecs_client(backend$region)$stop_task(
+          cluster = backend$cluster_name %||% backend$cluster,
+          task = future$task_arn,
+          reason = "starburst: task timeout exceeded"
+        ), error = function(e) NULL)
+      }
+      return(sprintf("Task %s did not finish within its timeout (%d s) and was stopped",
+                     future$task_id, as.integer(timeout)))
+    }
+  }
+
+  if (is.null(future$task_arn)) {
+    return(NULL)
+  }
+  status <- ecs_task_status(future$task_arn, backend)
+  if (is.null(status)) {
+    return(NULL)
+  }
+  if (identical(status$lastStatus, "MISSING")) {
+    return(sprintf("Worker task %s is no longer known to ECS and returned no result",
+                   future$task_id))
+  }
+  if (!identical(status$lastStatus, "STOPPED")) {
+    return(NULL)
+  }
+  details <- c(
+    status$stoppedReason,
+    if (!is.null(status$containerReason)) sprintf("container: %s", status$containerReason),
+    if (!is.null(status$exitCode)) sprintf("exit code %s", status$exitCode)
+  )
+  sprintf("Worker task %s stopped without returning a result: %s",
+          future$task_id,
+          if (length(details)) paste(details, collapse = "; ") else "no reason given")
+}
+
+#' Cached ECS status of a task
+#'
+#' @keywords internal
+ecs_task_status <- function(task_arn, backend) {
+  cache <- get_task_status_cache()
+  interval <- getOption("starburst.task_check_interval", 15)
+  stale <- is.null(cache$checked_at) ||
+    as.numeric(difftime(Sys.time(), cache$checked_at, units = "secs")) >= interval
+  if (stale || is.null(cache$status[[task_arn]])) {
+    refresh_task_status(cache, backend, task_arn)
+  }
+  cache$status[[task_arn]]
+}
+
+#' Describe all not-yet-stopped tasks this session launched
+#'
+#' @keywords internal
+refresh_task_status <- function(cache, backend, task_arn) {
+  terminal <- function(a) identical(cache$status[[a]]$lastStatus, "STOPPED") ||
+    identical(cache$status[[a]]$lastStatus, "MISSING")
+  arns <- unique(c(task_arn, vapply(list_task_arns(), function(r) r$task_arn %||% NA_character_,
+                                    character(1))))
+  arns <- arns[!is.na(arns)]
+  arns <- arns[!vapply(arns, terminal, logical(1))]
+  ecs <- get_ecs_client(backend$region)
+  cluster <- backend$cluster_name %||% backend$cluster
+
+  for (batch in split(arns, ceiling(seq_along(arns) / 100))) {
+    resp <- tryCatch(ecs$describe_tasks(cluster = cluster, tasks = as.list(batch)),
+                     error = function(e) NULL)
+    # Transient API error: try again on the next check
+    if (is.null(resp)) next
+    for (t in resp$tasks) {
+      container <- if (length(t$containers)) t$containers[[1]] else list()
+      cache$status[[t$taskArn]] <- list(
+        lastStatus = t$lastStatus,
+        stoppedReason = t$stoppedReason,
+        containerReason = container$reason,
+        exitCode = container$exitCode
+      )
+    }
+    for (f in resp$failures) {
+      if (identical(f$reason, "MISSING")) {
+        cache$status[[f$arn]] <- list(lastStatus = "MISSING")
+      }
+    }
+  }
+  cache$checked_at <- Sys.time()
+  invisible(NULL)
+}
+
+#' Session-wide cache of ECS task status
+#'
+#' @keywords internal
+get_task_status_cache <- function() {
+  if (!exists(".starburst_task_status", envir = .starburst_env)) {
+    cache <- new.env(parent = emptyenv())
+    cache$status <- list()
+    assign(".starburst_task_status", cache, envir = .starburst_env)
+  }
+  get(".starburst_task_status", envir = .starburst_env)
 }
 
 #' Get Result from StarburstFuture
@@ -267,6 +396,11 @@ result.StarburstFuture <- function(future, ...) {
   # Wait for resolution
   while (!resolved(future)) {
     Sys.sleep(1)
+  }
+
+  # resolved() records a failure result itself when the worker died (#67)
+  if (!is.null(future$result_value)) {
+    return(future$result_value)
   }
 
   # Download result from S3
@@ -327,6 +461,12 @@ result.StarburstFuture <- function(future, ...) {
   # Cache result
   future$result_value <- result_obj
 
+  # The result is cached, so the task payload and result can go (honours
+  # auto_cleanup_s3, like cleanup_cluster())
+  if (should_cleanup_s3()) {
+    delete_task_objects(backend, future$task_id)
+  }
+
   # Update backend stats
   backend$completed_tasks <- backend$completed_tasks + 1
 
@@ -347,11 +487,13 @@ submit_task <- function(future, backend) {
     backend$task_definition_arn <- get_or_create_task_definition(backend)
   }
 
-  # Handle EC2 pool warmup if needed
-  if (backend$launch_type == "EC2" && is.null(backend$pool_started_at)) {
+  # Handle EC2 pool warmup if needed. Recorded on the backend's state env,
+  # which is what cleanup_cluster()/stopWorkers() see.
+  state <- backend_state(backend)
+  if (backend$launch_type == "EC2" && is.null(state$pool_started_at)) {
     cat_info("[Setup] Starting warm EC2 pool (~2 min first time)...\n")
     start_warm_pool(backend, backend$workers)
-    backend$pool_started_at <- Sys.time()
+    state$pool_started_at <- Sys.time()
   }
 
   # Get ECS client
@@ -423,8 +565,12 @@ submit_task <- function(future, backend) {
     future$submitted_at <- Sys.time()
     future$state <- "running"
 
-    # Store task ARN for monitoring
+    # Store task ARN for monitoring and for scoped cleanup
     store_task_arn(future$task_id, future$task_arn)
+    state$task_arns <- c(state$task_arns, future$task_arn)
+    state$task_ids <- c(state$task_ids, future$task_id)
+    # Keep the pool warm for warm_pool_timeout past this submission (#59)
+    hold_warm_pool(backend)
   } else {
     # Task submission failed
     failure_msg <- if (length(response$failures) > 0) {

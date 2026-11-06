@@ -130,26 +130,41 @@ list_active_clusters <- function(region) {
   })
 }
 
-#' Stop running tasks
+#' Mutable state behind a backend
+#'
+#' A \pkg{future} \code{StarburstBackend} keeps its state in an environment
+#' attached as \code{attr(, "backend")}; the backend from \code{plan.starburst()}
+#' is that environment itself.
 #'
 #' @keywords internal
-stop_running_tasks <- function(plan) {
-  ecs <- get_ecs_client(plan$region)
+backend_state <- function(backend) {
+  attr(backend, "backend", exact = TRUE) %||% backend
+}
+
+#' Stop running tasks
+#'
+#' Stops the ECS tasks this backend launched that are still running. Only those:
+#' the cluster is shared with other jobs and detached sessions.
+#'
+#' @param backend Backend environment
+#' @keywords internal
+stop_running_tasks <- function(backend) {
+  arns <- unique(backend_state(backend)$task_arns)
+  if (length(arns) == 0) {
+    return(invisible(NULL))
+  }
+  ecs <- get_ecs_client(backend$region)
+  cluster <- backend$cluster_name %||% backend$cluster %||% "starburst-cluster"
 
   tryCatch({
-    # List running tasks
-    tasks <- ecs$list_tasks(
-      cluster = "starburst-cluster",
-      family = "starburst-worker"
-    )
-
-    # Stop each task
-    for (task_arn in tasks$taskArns) {
-      ecs$stop_task(
-        cluster = "starburst-cluster",
-        task = task_arn,
-        reason = "Cluster cleanup"
-      )
+    for (batch in split(arns, ceiling(seq_along(arns) / 100))) {
+      tasks <- ecs$describe_tasks(cluster = cluster, tasks = as.list(batch))$tasks
+      for (task in tasks) {
+        if (!identical(task$lastStatus, "STOPPED")) {
+          ecs$stop_task(cluster = cluster, task = task$taskArn,
+                        reason = sprintf("starburst cleanup: %s", backend$cluster_id))
+        }
+      }
     }
   }, error = function(e) {
     warning(sprintf("Error stopping tasks: %s", e$message))

@@ -41,7 +41,11 @@
 
 \item{use_spot}{Use EC2 Spot instances for cost savings (default: TRUE)}
 
-\item{warm_pool_timeout}{Timeout for warm pool in seconds (default: 3600)}
+\item{warm_pool_timeout}{Seconds to keep the EC2 instances running after the
+plan is shut down (e.g. by \code{plan(sequential)}), so a following run starts
+without waiting for new instances (default: 3600). The instances keep
+billing while warm. The release is scheduled on AWS, so it happens even if R
+exits; \code{0} releases them when the plan ends.}
 
 \item{detached}{Use detached session mode (deprecated, use starburst_session instead)}
 

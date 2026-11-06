@@ -33,10 +33,11 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.repository == 'scttfrdmn/starburst'
 
     # Effective test suite: the dispatch input when triggered manually, or
-    # 'quick' on the monthly schedule (where inputs are empty) so the cron run
-    # performs a real, near-zero-cost drift check instead of a no-op.
+    # 'live-smoke' on the monthly schedule (where inputs are empty): every entry
+    # point on real EC2 (~$0.10/run). 'quick' only checked connectivity and
+    # stayed green while plan(starburst)/starburst_map() were broken (#63-#65).
     env:
-      SUITE: ${{ github.event.inputs.test_suite || 'quick' }}
+      SUITE: ${{ github.event.inputs.test_suite || 'live-smoke' }}
 
     permissions:
       id-token: write  # For OIDC

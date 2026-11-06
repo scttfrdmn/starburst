@@ -17,7 +17,7 @@ LazyData: true
 Depends:
     R (>= 4.0.0)
 Imports:
-    future (>= 1.33.0),
+    future (>= 1.40.0),
     globals,
     paws.compute,
     paws.storage,

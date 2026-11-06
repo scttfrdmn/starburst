@@ -34,7 +34,7 @@ StarburstBackend(
 
 \item{use_spot}{Use spot instances (default: FALSE)}
 
-\item{warm_pool_timeout}{Pool timeout in seconds (default: 3600)}
+\item{warm_pool_timeout}{Seconds to keep the EC2 pool warm after the plan ends (default: 3600)}
 
 \item{...}{Additional arguments}
 }

@@ -119,25 +119,34 @@ poll_for_result <- function(future, timeout = 3600) {
 
 #' Cleanup S3 files
 #'
+#' Deletes the task payloads and results of the tasks this backend launched.
+#' (Task objects are stored as \code{tasks/<task_id>.qs} and
+#' \code{results/<task_id>.qs}; the old per-cluster prefix matched nothing, so
+#' they were never deleted.)
+#'
 #' @keywords internal
 cleanup_s3_files <- function(plan) {
-  bucket <- get_starburst_bucket()
-  prefix <- sprintf("tasks/%s/", plan$cluster_id)
+  delete_task_objects(plan, backend_state(plan)$task_ids)
+}
 
-  s3 <- get_s3_client(plan$region)
+#' Delete the S3 task payload and result objects of the given tasks
+#'
+#' @keywords internal
+delete_task_objects <- function(backend, task_ids) {
+  task_ids <- unique(task_ids)
+  if (length(task_ids) == 0) {
+    return(invisible(NULL))
+  }
+  keys <- c(sprintf("tasks/%s.qs", task_ids), sprintf("results/%s.qs", task_ids))
+  s3 <- get_s3_client(backend$region)
+  bucket <- backend$bucket %||% get_starburst_bucket()
 
   tryCatch({
-    # List and delete task files
-    objects <- s3$list_objects_v2(Bucket = bucket, Prefix = prefix)
-
-    if (length(objects$Contents) > 0) {
-      delete_objects <- lapply(objects$Contents, function(obj) {
-        list(Key = obj$Key)
-      })
-
+    # delete_objects takes up to 1000 keys; missing keys are not an error
+    for (batch in split(keys, ceiling(seq_along(keys) / 1000))) {
       s3$delete_objects(
         Bucket = bucket,
-        Delete = list(Objects = delete_objects)
+        Delete = list(Objects = lapply(batch, function(k) list(Key = k)), Quiet = TRUE)
       )
     }
   }, error = function(e) {

@@ -38,6 +38,17 @@ fake_s3 <- function() {
       body <- get(Key, envir = store)
       list(Body = body, ETag = digest::digest(body))
     },
+    delete_objects = function(Bucket, Delete, ...) {
+      for (o in Delete$Objects) {
+        if (exists(o$Key, envir = store, inherits = FALSE)) rm(list = o$Key, envir = store)
+      }
+      invisible(list())
+    },
+    list_objects_v2 = function(Bucket, Prefix = "", ...) {
+      keys <- ls(store)
+      keys <- keys[startsWith(keys, Prefix)]
+      list(Contents = lapply(keys, function(k) list(Key = k)))
+    },
     download_file = function(Bucket, Key, Filename, ...) {
       check_key(Key)
       if (!exists(Key, envir = store, inherits = FALSE)) missing_key(Key)
@@ -74,19 +85,28 @@ run_worker <- function(worker, task_id, bucket, region) {
 }
 
 # Fake ECS whose run_task enforces the parameters EC2 accepts and then runs
-# the worker synchronously, as a container started by ECS would.
+# the worker synchronously, as a container started by ECS would. Set
+# `ecs$calls$mode` to "die" (container killed before uploading, e.g. OOM) or
+# "hang" (never finishes) to simulate broken workers.
 fake_ecs <- function(worker, cluster_name) {
   calls <- new.env()
   calls$n <- 0
+  calls$mode <- "run"
+  calls$stopped <- character(0)
+  task_db <- new.env()
+  check_cluster <- function(cluster) {
+    if (!identical(cluster, cluster_name)) {
+      stop(sprintf("ClusterNotFoundException: %s", deparse(cluster)))
+    }
+  }
   list(
     calls = calls,
+    tasks = task_db,
     run_task = function(...) {
       p <- list(...)
       calls$n <- calls$n + 1
       calls$last <- p
-      if (!identical(p$cluster, cluster_name)) {
-        stop(sprintf("ClusterNotFoundException: %s", deparse(p$cluster)))
-      }
+      check_cluster(p$cluster)
       vpc <- p$networkConfiguration$awsvpcConfiguration
       if (length(vpc$subnets) == 0) stop("InvalidParameterException: subnets required")
       if (!is.null(p$capacityProviderStrategy) && !is.null(vpc$assignPublicIp)) {
@@ -95,9 +115,99 @@ fake_ecs <- function(worker, cluster_name) {
       env <- p$overrides$containerOverrides[[1]]$environment
       vars <- stats::setNames(vapply(env, `[[`, "", "value"),
                               vapply(env, `[[`, "", "name"))
-      run_worker(worker, vars[["TASK_ID"]], vars[["S3_BUCKET"]], vars[["AWS_DEFAULT_REGION"]])
-      list(tasks = list(list(taskArn = sprintf("arn:aws:ecs:task/%s", vars[["TASK_ID"]]))),
-           failures = list())
+      arn <- sprintf("arn:aws:ecs:task/%s", vars[["TASK_ID"]])
+      if (calls$mode == "die") {
+        assign(arn, list(taskArn = arn, lastStatus = "STOPPED",
+                         stoppedReason = "Essential container in task exited",
+                         containers = list(list(exitCode = 137L, reason = "OutOfMemoryError"))),
+               envir = task_db)
+      } else if (calls$mode == "hang") {
+        assign(arn, list(taskArn = arn, lastStatus = "RUNNING", containers = list(list())),
+               envir = task_db)
+      } else {
+        run_worker(worker, vars[["TASK_ID"]], vars[["S3_BUCKET"]], vars[["AWS_DEFAULT_REGION"]])
+        assign(arn, list(taskArn = arn, lastStatus = "STOPPED",
+                         stoppedReason = "Essential container in task exited",
+                         containers = list(list(exitCode = 0L))),
+               envir = task_db)
+      }
+      list(tasks = list(list(taskArn = arn)), failures = list())
+    },
+    describe_tasks = function(cluster, tasks = list(), ...) {
+      check_cluster(cluster)
+      arns <- unlist(tasks)
+      known <- arns[vapply(arns, exists, logical(1), envir = task_db, inherits = FALSE)]
+      list(
+        tasks = lapply(known, get, envir = task_db),
+        failures = lapply(setdiff(arns, known), function(a) list(arn = a, reason = "MISSING"))
+      )
+    },
+    list_tasks = function(cluster, desiredStatus = "RUNNING", ...) {
+      check_cluster(cluster)
+      all <- mget(ls(task_db), envir = task_db)
+      list(taskArns = unname(unlist(lapply(all, function(t)
+        if (identical(t$lastStatus, desiredStatus)) t$taskArn))))
+    },
+    stop_task = function(cluster, task, ...) {
+      check_cluster(cluster)
+      calls$stopped <- c(calls$stopped, task)
+      if (exists(task, envir = task_db, inherits = FALSE)) {
+        t <- get(task, envir = task_db)
+        t$lastStatus <- "STOPPED"
+        t$stoppedReason <- "Task stopped by user"
+        assign(task, t, envir = task_db)
+      }
+      invisible(list())
+    },
+    list_container_instances = function(cluster, ...) {
+      check_cluster(cluster)
+      list(containerInstanceArns = as.list(sprintf("ci-%d", seq_len(100))))
+    }
+  )
+}
+
+# Fake Auto Scaling group with the constraints the pool code must respect:
+# DesiredCapacity within [MinSize, MaxSize], deleting a missing scheduled
+# action is an error.
+fake_autoscaling <- function() {
+  asg <- new.env()
+  asg$min <- 0L
+  asg$desired <- 0L
+  asg$max <- 100L
+  asg$actions <- list()
+  list(
+    asg = asg,
+    describe_auto_scaling_groups = function(...) {
+      list(AutoScalingGroups = list(list(
+        AutoScalingGroupName = "starburst-asg",
+        MinSize = asg$min, MaxSize = asg$max, DesiredCapacity = asg$desired,
+        Instances = lapply(seq_len(asg$desired), function(i) list(LifecycleState = "InService"))
+      )))
+    },
+    update_auto_scaling_group = function(AutoScalingGroupName, MinSize = asg$min,
+                                         DesiredCapacity = asg$desired, ...) {
+      if (DesiredCapacity < MinSize || DesiredCapacity > asg$max) {
+        stop(sprintf("ValidationError: Desired capacity:%d must be between the specified min size:%d and max size:%d",
+                     DesiredCapacity, MinSize, asg$max))
+      }
+      asg$min <- as.integer(MinSize)
+      asg$desired <- as.integer(DesiredCapacity)
+      invisible(list())
+    },
+    set_desired_capacity = function(...) {
+      stop("AccessDenied: autoscaling:SetDesiredCapacity is not in the CI role")
+    },
+    put_scheduled_update_group_action = function(AutoScalingGroupName, ScheduledActionName,
+                                                 StartTime, MinSize = NULL, ...) {
+      asg$actions[[ScheduledActionName]] <- list(start = StartTime, min = MinSize)
+      invisible(list())
+    },
+    delete_scheduled_action = function(AutoScalingGroupName, ScheduledActionName, ...) {
+      if (is.null(asg$actions[[ScheduledActionName]])) {
+        stop("ValidationError: Scheduled action name not found")
+      }
+      asg$actions[[ScheduledActionName]] <- NULL
+      invisible(list())
     }
   )
 }
@@ -108,6 +218,7 @@ local_fake_aws <- function(env = parent.frame(), instance_type = "c7g.xlarge") {
   worker <- load_worker(s3)
   cluster_name <- "starburst-cluster"
   ecs <- fake_ecs(worker, cluster_name)
+  autoscaling <- fake_autoscaling()
   config <- list(
     region = "us-east-1", bucket = "starburst-test", cluster_name = cluster_name,
     subnets = list("subnet-1"), security_groups = list("sg-1"),
@@ -122,6 +233,7 @@ local_fake_aws <- function(env = parent.frame(), instance_type = "c7g.xlarge") {
                                        total_estimate = 0.1),
     get_s3_client = function(...) s3,
     get_ecs_client = function(...) ecs,
+    get_autoscaling_client = function(...) autoscaling,
     get_vpc_config = function(...) list(subnets = list("subnet-default"),
                                         security_groups = list("sg-default")),
     store_task_arn = function(...) invisible(NULL),
@@ -136,17 +248,21 @@ local_fake_aws <- function(env = parent.frame(), instance_type = "c7g.xlarge") {
       }
       "arn:aws:ecs:task-definition/starburst-worker:1"
     },
-    start_warm_pool = function(backend, capacity, ...) {
-      if (!is.character(backend$cluster_name) || !nzchar(backend$cluster_name)) {
-        stop("start_warm_pool: backend has no cluster_name (would poll the default cluster)")
-      }
-      invisible(NULL)
-    },
     .env = env
   )
-  old_opts <- options(starburst.cleanup_handlers = NULL,
-                      starburst.current_backend = NULL,
-                      starburst.current_cluster_id = NULL)
+  # Leave any starburst plan while the fakes are still in place (runs before
+  # the mocks are restored), so its stopWorkers() cleanup never hits real AWS
+  old_plan <- future::plan()
+  withr::defer(future::plan(old_plan), envir = env)
+  old_opts <- options(starburst.current_backend = NULL,
+                      starburst.current_cluster_id = NULL,
+                      starburst.task_check_interval = 0)
   withr::defer(options(old_opts), envir = env)
-  list(s3 = s3, ecs = ecs, worker = worker)
+  list(s3 = s3, ecs = ecs, autoscaling = autoscaling, worker = worker)
+}
+
+# Fail, instead of hanging the whole check, if a future never resolves
+local_time_limit <- function(seconds, env = parent.frame()) {
+  setTimeLimit(elapsed = seconds, transient = TRUE)
+  withr::defer(setTimeLimit(elapsed = Inf), envir = env)
 }

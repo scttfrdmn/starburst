@@ -86,7 +86,8 @@ test_that("the plan.starburst() strategy shape is what future::plan() rejects (#
 launched_future <- function(result_data) {
   testthat::local_mocked_bindings(
     get_s3_client = function(...) list(
-      download_file = function(Bucket, Key, Filename) qs2::qs_save(result_data, Filename)
+      download_file = function(Bucket, Key, Filename) qs2::qs_save(result_data, Filename),
+      delete_objects = function(...) invisible(list())
     ),
     .env = parent.frame()
   )
@@ -128,6 +129,7 @@ test_that("starburst_map surfaces worker error messages (#65)", {
     f
   })
   local_mocked_bindings(get_s3_client = function(...) list(
+    delete_objects = function(...) invisible(list()),
     download_file = function(Bucket, Key, Filename) {
       qs2::qs_save(list(error = TRUE, message = "boom from worker"), Filename)
     }
@@ -165,8 +167,7 @@ test_that("plan.starburst() backend has the fields StarburstBackend() sets", {
   # Regression: it lacked cluster_name/subnets/security_groups, so
   # start_warm_pool() polled the *default* ECS cluster and starburst_map()/
   # starburst_cluster() timed out with the pool already in service.
-  old <- options(starburst.cleanup_handlers = NULL,
-                 starburst.current_backend = NULL,
+  old <- options(starburst.current_backend = NULL,
                  starburst.current_cluster_id = NULL)
   on.exit(options(old), add = TRUE)
   local_mocked_bindings(
@@ -243,4 +244,24 @@ test_that("a canceled future without a result is resolved and signals cancellati
   expect_true(resolved(f))
   res <- result(f)
   expect_s3_class(res$conditions[[1]]$condition, "FutureCanceledError")
+})
+
+test_that("release_warm_pool() never strands a hold when scheduling fails", {
+  asg <- new.env(); asg$min <- 0L; asg$desired <- 2L
+  autoscaling <- list(
+    describe_auto_scaling_groups = function(...)
+      list(AutoScalingGroups = list(list(DesiredCapacity = asg$desired, MinSize = asg$min))),
+    put_scheduled_update_group_action = function(...) stop("AccessDenied"),
+    update_auto_scaling_group = function(AutoScalingGroupName, MinSize = asg$min, ...) {
+      asg$min <- MinSize; invisible(list())
+    }
+  )
+  local_mocked_bindings(get_autoscaling_client = function(...) autoscaling)
+  backend <- list(region = "us-east-1", asg_name = "starburst-asg-c7g-xlarge",
+                  warm_pool_timeout = 600)
+
+  backend <- list2env(c(as.list(backend), launch_type = "EC2"))
+  out <- capture.output(release_warm_pool(backend))
+  expect_equal(asg$min, 0)
+  expect_match(paste(out, collapse = "\n"), "Could not keep the pool warm")
 })

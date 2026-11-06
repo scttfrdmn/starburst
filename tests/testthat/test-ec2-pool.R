@@ -12,7 +12,8 @@ test_that("start_warm_pool lazily provisions a missing capacity provider", {
   # ASG does NOT exist -> empty AutoScalingGroups.
   autoscaling <- list(
     describe_auto_scaling_groups = function(...) list(AutoScalingGroups = list()),
-    set_desired_capacity = function(...) stop("stop-after-provision")  # sentinel
+    delete_scheduled_action = function(...) NULL,
+    update_auto_scaling_group = function(...) stop("stop-after-provision")  # sentinel
   )
   mockery::stub(start_warm_pool, "get_autoscaling_client", function(...) autoscaling)
   mockery::stub(start_warm_pool, "get_ecs_client", function(...) list())
@@ -20,7 +21,7 @@ test_that("start_warm_pool lazily provisions a missing capacity provider", {
   provisioned <- mockery::mock(invisible(TRUE))
   mockery::stub(start_warm_pool, "setup_ec2_capacity_provider", provisioned)
 
-  # Missing ASG -> provision, then hit the set_desired_capacity sentinel.
+  # Missing ASG -> provision, then hit the scale-up sentinel.
   expect_error(start_warm_pool(backend, capacity = 5), "stop-after-provision")
   mockery::expect_called(provisioned, 1)
 })
@@ -40,7 +41,8 @@ test_that("start_warm_pool does NOT re-provision an existing capacity provider",
   autoscaling <- list(
     describe_auto_scaling_groups = function(...)
       list(AutoScalingGroups = list(list(AutoScalingGroupName = backend$asg_name))),
-    set_desired_capacity = function(...) stop("stop-after-scale")  # sentinel
+    delete_scheduled_action = function(...) NULL,
+    update_auto_scaling_group = function(...) stop("stop-after-scale")  # sentinel
   )
   mockery::stub(start_warm_pool, "get_autoscaling_client", function(...) autoscaling)
   mockery::stub(start_warm_pool, "get_ecs_client", function(...) list())

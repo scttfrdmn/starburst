@@ -8,11 +8,7 @@ test_that("calculate_total_cost handles empty task list", {
     worker_memory = 8
   )
 
-  # Mock list_task_arns to return empty
-  mockery::stub(calculate_total_cost, "list_task_arns", function() {
-    list()
-  })
-
+  # No tasks launched by this plan
   result <- calculate_total_cost(plan)
   expect_equal(result, 0)
 })
@@ -24,16 +20,9 @@ test_that("calculate_total_cost calculates from actual task runtimes", {
   plan <- list(
     region = "us-east-1",
     worker_cpu = 2,    # 2 vCPUs
-    worker_memory = 8  # 8 GB
+    worker_memory = 8, # 8 GB
+    task_arns = c("arn:task-1", "arn:task-2")
   )
-
-  # Mock list_task_arns
-  mockery::stub(calculate_total_cost, "list_task_arns", function() {
-    list(
-      "task-1" = list(task_arn = "arn:task-1"),
-      "task-2" = list(task_arn = "arn:task-2")
-    )
-  })
 
   # Mock ECS client
   ecs_client <- list(
@@ -78,13 +67,9 @@ test_that("calculate_total_cost handles running tasks", {
   plan <- list(
     region = "us-east-1",
     worker_cpu = 1,
-    worker_memory = 2
+    worker_memory = 2,
+    task_arns = "arn:task-1"
   )
-
-  # Mock list_task_arns
-  mockery::stub(calculate_total_cost, "list_task_arns", function() {
-    list("task-1" = list(task_arn = "arn:task-1"))
-  })
 
   # Mock ECS client - task still running (no stoppedAt)
   ecs_client <- list(
@@ -128,9 +113,7 @@ test_that("calculate_total_cost handles batches of tasks", {
     task_list[[paste0("task-", i)]] <- list(task_arn = paste0("arn:task-", i))
   }
 
-  mockery::stub(calculate_total_cost, "list_task_arns", function() {
-    task_list
-  })
+  plan$task_arns <- vapply(task_list, `[[`, "", "task_arn")
 
   batch_count <- 0
 
@@ -168,12 +151,13 @@ test_that("calculate_total_cost falls back to plan cost on error", {
     region = "us-east-1",
     worker_cpu = 2,
     worker_memory = 8,
-    total_cost = 1.5  # Fallback value
+    total_cost = 1.5,  # Fallback value
+    task_arns = "arn:task-1"
   )
 
-  # Mock list_task_arns to throw error
-  mockery::stub(calculate_total_cost, "list_task_arns", function() {
-    stop("AWS error")
+  # ECS call fails
+  mockery::stub(calculate_total_cost, "get_ecs_client", function(...) {
+    list(describe_tasks = function(...) stop("AWS error"))
   })
 
   result <- calculate_total_cost(plan)

@@ -129,6 +129,9 @@ launch_detached_workers <- function(backend) {
     cat_info("[Setup] Starting warm EC2 pool (~2 min first time)...\n")
     start_warm_pool(backend, backend$workers, timeout_seconds = 120)
     backend$pool_started_at <- Sys.time()
+    # Detached workers outlive this R session; the hold always has a
+    # scheduled release, so a session left running cannot pin the pool (#59)
+    hold_warm_pool(backend, force = TRUE)
   }
 
   # Create session manifest in S3

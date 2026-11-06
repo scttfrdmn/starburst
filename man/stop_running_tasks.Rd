@@ -4,9 +4,13 @@
 \alias{stop_running_tasks}
 \title{Stop running tasks}
 \usage{
-stop_running_tasks(plan)
+stop_running_tasks(backend)
+}
+\arguments{
+\item{backend}{Backend environment}
 }
 \description{
-Stop running tasks
+Stops the ECS tasks this backend launched that are still running. Only those:
+the cluster is shared with other jobs and detached sessions.
 }
 \keyword{internal}

@@ -11,6 +11,9 @@
 #
 # Environment:
 #   STARBURST_SMOKE_INSTANCE    instance type (default c7g.xlarge)
+#   STARBURST_SMOKE_LOCK        renv.lock for the worker image (default: the
+#                               repo's bench/worker-renv.lock, which matches the
+#                               public base image so the image build is quick)
 #   STARBURST_SMOKE_SCALE_DOWN  "true" (default) scales the instance type's
 #                               ASG to 0 at the end. ASGs are shared, so set
 #                               "false" on an account with other live users.
@@ -18,13 +21,30 @@
 # Cost: ~2 instances for ~10-20 min (about $0.10 on c7g.xlarge on-demand),
 # plus the env image build the first time a starburst version is used.
 
+# Repo root = parent of this script's directory
+script <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+repo <- if (!is.na(script)) normalizePath(file.path(dirname(script), "..")) else getwd()
+
 suppressMessages({
-  if (dir.exists("R") && file.exists("DESCRIPTION")) {
-    devtools::load_all(quiet = TRUE)
+  if (dir.exists(file.path(repo, "R")) && file.exists(file.path(repo, "DESCRIPTION"))) {
+    devtools::load_all(repo, quiet = TRUE)
   } else {
     library(starburst)
   }
 })
+
+# Build the worker image from a minimal lockfile in an isolated directory.
+# staRburst uses the renv.lock of the working directory (or the nearest package
+# root), which in the repo is the ~100-package dev lockfile: a multi-arch build
+# of that takes far longer than the smoke test's budget, especially under QEMU.
+lock <- Sys.getenv("STARBURST_SMOKE_LOCK", file.path(repo, "bench", "worker-renv.lock"))
+if (file.exists(lock)) {
+  smoke_dir <- file.path(tempdir(), "starburst-live-smoke")
+  dir.create(smoke_dir, showWarnings = FALSE)
+  file.copy(lock, file.path(smoke_dir, "renv.lock"), overwrite = TRUE)
+  setwd(smoke_dir)
+  cat("worker lockfile:", lock, "\n")
+}
 
 instance_type <- Sys.getenv("STARBURST_SMOKE_INSTANCE", "c7g.xlarge")
 scale_down <- !identical(tolower(Sys.getenv("STARBURST_SMOKE_SCALE_DOWN", "true")), "false")
@@ -55,11 +75,24 @@ is_equal <- function(expected) function(x) {
 cluster <- NULL
 session <- NULL
 local_host <- Sys.info()[["nodename"]]
+cfg <- starburst:::get_starburst_config()
+asg_name <- sprintf("starburst-asg-%s", gsub("\\.", "-", instance_type))
+autoscaling <- starburst:::get_autoscaling_client(cfg$region)
+asg_state <- function() {
+  g <- autoscaling$describe_auto_scaling_groups(
+    AutoScalingGroupNames = list(asg_name))$AutoScalingGroups[[1]]
+  actions <- autoscaling$describe_scheduled_actions(
+    AutoScalingGroupName = asg_name)$ScheduledUpdateGroupActions
+  list(min = g$MinSize, desired = g$DesiredCapacity,
+       release = any(vapply(actions, function(a)
+         identical(a$ScheduledActionName, "starburst-release-warm-pool"), logical(1))))
+}
 
 tryCatch({
   # 1. future backend: plan(starburst) ---------------------------------------
   check("plan(starburst)", future::plan(starburst, workers = workers,
-                                        instance_type = instance_type, use_spot = FALSE))
+                                        instance_type = instance_type, use_spot = FALSE,
+                                        warm_pool_timeout = 600))
   check("future value runs remotely",
         future::value(future::future(Sys.info()[["nodename"]])),
         function(x) if (is.character(x) && nzchar(x) && x != local_host) TRUE
@@ -79,7 +112,17 @@ tryCatch({
                      "no error raised" }, error = function(e) conditionMessage(e)),
           function(msg) if (grepl("lapply-boom", msg)) TRUE else msg)
   }
+  check("worker killed mid-task is reported, not waited on (#67)", {
+    f <- future::future({ Sys.sleep(600); "should not finish" })
+    for (i in 1:60) if (!is.null(f$task_arn)) break else Sys.sleep(2)
+    starburst:::get_ecs_client(cfg$region)$stop_task(
+      cluster = cfg$cluster_name, task = f$task_arn, reason = "live-smoke: simulated crash")
+    tryCatch({ future::value(f); "no error raised" }, error = function(e) conditionMessage(e))
+  }, function(msg) if (grepl("stopped without returning a result", msg)) TRUE else msg)
   check("plan(sequential)", future::plan(future::sequential))
+  check("plan(sequential) keeps the pool warm and schedules its release (#59)", asg_state(),
+        function(st) if (st$min >= 1 && st$release) TRUE
+                     else sprintf("MinSize=%s release scheduled=%s", st$min, st$release))
 
   # 2. starburst_map() --------------------------------------------------------
   check("starburst_map", starburst_map(1:4, function(x) x^2, workers = workers,
@@ -92,6 +135,9 @@ tryCatch({
                                  .progress = FALSE); "no error raised" },
                  error = function(e) conditionMessage(e)),
         function(msg) if (grepl("map-boom", msg)) TRUE else msg)
+  check("starburst_map releases the pool when done (#59)", asg_state(),
+        function(st) if (st$min == 0 && !st$release) TRUE
+                     else sprintf("MinSize=%s release scheduled=%s", st$min, st$release))
 
   # 3. starburst_cluster() ----------------------------------------------------
   cluster <- check("starburst_cluster", starburst_cluster(workers = workers,
@@ -121,13 +167,10 @@ tryCatch({
   if (inherits(cluster, "starburst_cluster")) try(cluster$shutdown(), silent = TRUE)
   if (is.environment(session) || is.list(session)) try(session$cleanup(force = TRUE), silent = TRUE)
   if (scale_down) {
-    # Sessions/maps leave capacity to ECS managed scaling (#59); don't pay for it
-    asg <- sprintf("starburst-asg-%s", gsub("\\.", "-", instance_type))
+    # Sessions keep the pool warm for warm_pool_timeout (#59); don't pay for it
     try({
-      cfg <- starburst:::get_starburst_config()
-      starburst:::get_autoscaling_client(cfg$region)$update_auto_scaling_group(
-        AutoScalingGroupName = asg, MinSize = 0L, DesiredCapacity = 0L)
-      cat("scaled", asg, "to 0\n")
+      starburst:::stop_warm_pool(list(region = cfg$region, asg_name = asg_name))
+      cat("scaled", asg_name, "to 0\n")
     }, silent = TRUE)
   }
 })

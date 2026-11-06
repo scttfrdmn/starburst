@@ -15,7 +15,11 @@
 #' @param launch_type Launch type: EC2 or FARGATE (default: EC2)
 #' @param instance_type EC2 instance type when using EC2 launch type (default: c7g.xlarge)
 #' @param use_spot Use EC2 Spot instances for cost savings (default: TRUE)
-#' @param warm_pool_timeout Timeout for warm pool in seconds (default: 3600)
+#' @param warm_pool_timeout Seconds to keep the EC2 instances running after the
+#'   plan is shut down (e.g. by \code{plan(sequential)}), so a following run starts
+#'   without waiting for new instances (default: 3600). The instances keep
+#'   billing while warm. The release is scheduled on AWS, so it happens even if R
+#'   exits; \code{0} releases them when the plan ends.
 #' @param detached Use detached session mode (deprecated, use starburst_session instead)
 #' @param ... Additional arguments passed to future backend
 #'
@@ -230,6 +234,7 @@ plan.starburst <- function(strategy,
     warm_pool_timeout = warm_pool_timeout,
     capacity_provider_name = sprintf("starburst-%s", gsub("\\.", "-", instance_type)),
     pool_started_at = NULL,
+    task_arns = character(0),  # ECS tasks this backend launched
     asg_name = sprintf("starburst-asg-%s", gsub("\\.", "-", instance_type)),
     aws_account_id = config$aws_account_id,
     # VPC configuration (same fields StarburstBackend() sets; without them
@@ -255,16 +260,6 @@ plan.starburst <- function(strategy,
       seed = seed,
       ...
     )
-  }
-
-  # Register cleanup on exit
-  if (!is.null(backend_env)) {
-    cleanup_handler <- function() {
-      cleanup_cluster(backend_env)
-    }
-    cleanup_handlers <- getOption("starburst.cleanup_handlers", list())
-    cleanup_handlers[[backend_env$cluster_id]] <- cleanup_handler
-    options(starburst.cleanup_handlers = cleanup_handlers)
   }
 
   cat_success(sprintf("[OK] Cluster ready: %s\n", cluster_id))
@@ -348,43 +343,11 @@ cleanup_cluster <- function(backend) {
     cleanup_s3_files(backend)
   }
 
-  # Handle EC2 warm pool cleanup
-  if (backend$launch_type == "EC2" && !is.null(backend$pool_started_at)) {
-    idle_time <- difftime(Sys.time(), backend$pool_started_at, units = "secs")
-
-    if (idle_time > backend$warm_pool_timeout) {
-      cat_info("[Cleaning] Pool timeout reached, scaling down...\n")
-      stop_warm_pool(backend)
-    } else {
-      remaining_mins <- (backend$warm_pool_timeout - as.numeric(idle_time)) / 60
-      cat_info(sprintf("[Time]  Pool will remain warm for %.1f more minutes\n", remaining_mins))
-      cat_info(sprintf("   Set warm_pool_timeout=0 to scale down immediately\n"))
-    }
+  # Hold the EC2 pool for warm_pool_timeout, then release it (#59)
+  if (identical(backend$launch_type, "EC2") && !is.null(backend$pool_started_at)) {
+    release_warm_pool(backend)
+    backend$pool_started_at <- NULL
   }
-
-  invisible(NULL)
-}
-
-#' Register cleanup handler
-#'
-#' @keywords internal
-register_cleanup <- function(evaluator) {
-  # Get backend from evaluator
-  backend <- attr(evaluator, "backend")
-
-  if (is.null(backend)) {
-    return(invisible(NULL))
-  }
-
-  # Register cleanup on R session exit
-  cleanup_handler <- function() {
-    cleanup_cluster(backend)
-  }
-
-  # Store in option for later retrieval
-  cleanup_handlers <- getOption("starburst.cleanup_handlers", list())
-  cleanup_handlers[[backend$cluster_id]] <- cleanup_handler
-  options(starburst.cleanup_handlers = cleanup_handlers)
 
   invisible(NULL)
 }
