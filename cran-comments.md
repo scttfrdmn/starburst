@@ -29,9 +29,8 @@ was removed. See NEWS.md.
 * local: Docker rocker/r-ver:4.6.1 (Ubuntu 24.04, aarch64), R 4.6.1
 * GitHub Actions:
   - Ubuntu latest, R oldrel-1, release, devel
-  - Windows latest, R release
+  - Windows latest, R release, devel
   - macOS latest, R release
-* win-builder: R-devel
 
 ## R CMD check results
 
