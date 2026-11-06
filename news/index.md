@@ -2,6 +2,8 @@
 
 ## starburst 0.3.11 (2026-11-06)
 
+CRAN release: 2026-11-06
+
 ### Bug fixes
 
 These were invisible to the test suite, which mocks AWS, and to earlier
