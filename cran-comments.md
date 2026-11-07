@@ -1,28 +1,25 @@
 ## Submission
 
-This is a patch update from the current CRAN release (0.3.10, accepted
-2026-10-24) to 0.3.11. It fixes bugs that made the package's main `future`
-backend fail on real AWS.
+This is a patch update from the current CRAN release (0.3.11, accepted
+2026-11-06) to 0.3.12. I'm sorry for the quick succession: 0.3.11 restored
+the package's main backend, and testing it end to end on AWS uncovered
+further bugs that affect users' cloud resources, including one where shutting
+down a cluster stopped other users' running jobs.
 
-### Bug fixes in 0.3.11
+### Bug fixes in 0.3.12
 
-* The worker script (`inst/templates/worker.R`) uploaded results of
-  `plan(starburst)` futures under an empty S3 key, so every such future failed
-  remotely.
-* `starburst_map()` and `starburst_cluster()` registered a strategy that
-  `future::plan()` rejects; they now submit to their own backend without
-  changing the active plan.
-* Errors from remote workers were returned in a `FutureResult` with malformed
-  `conditions`, which `future` reported as an internal error; they now use
-  `future::FutureResult()` and keep the original message.
-* Canceled futures (e.g. after an error in `future.apply`) never counted as
-  resolved, so collecting results could wait forever.
-* EC2 task submission from `starburst_map()`/`starburst_cluster()` used invalid
-  parameters and unplaceable task sizes.
+* Shutting down a cluster stopped every staRburst task in the shared ECS
+  cluster, including other users' jobs; it now stops only its own tasks.
+* Futures waited forever when a remote worker died without returning a
+  result; they now fail with the reason reported by ECS.
+* Task and result objects were never deleted from the user's S3 bucket.
+* The `warm_pool_timeout` setting had no effect; it is now implemented, with
+  a lower default (600 s).
+* `future (>= 1.40.0)` is now required: the backend API the package uses
+  (`launchFuture()`, `stopWorkers()`) does not exist in older versions.
 
-Offline regression tests cover all of these, including new round-trip tests
-that run the shipped worker script against the client code. No exported API
-was removed. See NEWS.md.
+Offline regression tests cover all of these. No exported function was
+removed; a `stopWorkers()` method was added. See NEWS.md.
 
 ## Test environments
 
@@ -34,7 +31,12 @@ was removed. See NEWS.md.
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 0 warnings | 1 note
+
+* checking CRAN incoming feasibility ... NOTE
+  Days since last update: 1
+
+  This is the quick follow-up explained above.
 
 All tests requiring AWS credentials are gated (skipped on CRAN); `\donttest`
 examples guard on `starburst_is_configured()` and make no network calls when
