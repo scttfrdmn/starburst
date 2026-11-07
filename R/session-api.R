@@ -21,7 +21,7 @@ NULL
 #' @param instance_type EC2 instance type for EC2 launch (default: "c7g.xlarge")
 #' @param use_spot Use spot instances for EC2 (default: TRUE)
 #' @param warm_pool_timeout Seconds to keep the EC2 instances running after
-#'   \code{session$cleanup()} (default: 3600). They keep billing while warm; the
+#'   \code{session$cleanup()} (default: 600). They keep billing while warm; the
 #'   release is scheduled on AWS. \code{0} releases them at cleanup.
 #'
 #' @return A \code{StarburstSession} object (also carrying \code{$session_id}, the
@@ -101,7 +101,7 @@ starburst_session <- function(workers = 10,
                               launch_type = "EC2",
                               instance_type = "c7g.xlarge",
                               use_spot = TRUE,
-                              warm_pool_timeout = 3600) {
+                              warm_pool_timeout = 600) {
 
   # Generate session ID
   session_id <- sprintf("session-%s", gsub("-", "", uuid::UUIDgenerate()))

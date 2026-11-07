@@ -33,7 +33,7 @@ initialize_detached_backend <- function(session_id,
                                        launch_type = "EC2",
                                        instance_type = "c7g.xlarge",
                                        use_spot = TRUE,
-                                       warm_pool_timeout = 3600) {
+                                       warm_pool_timeout = 600) {
 
   # Validate inputs
   validate_workers(workers)

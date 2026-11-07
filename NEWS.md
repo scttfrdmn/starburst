@@ -14,7 +14,8 @@
   going idle, whatever the setting, and `plan(sequential)` warned that
   `StarburstBackend` does not implement `stopWorkers()`.
   * For `plan(starburst)` and `starburst_session()`, the pool is now kept warm
-    until `warm_pool_timeout` seconds (default 3600) after the last submission.
+    until `warm_pool_timeout` seconds after the last submission. The default
+    is now 600 (10 minutes), down from a documented but never enforced 3600.
     The release is an Auto Scaling scheduled action, so it happens even if R
     exits or crashes. **Warm instances bill while they wait**; set
     `warm_pool_timeout = 0` to release them when the run ends.
