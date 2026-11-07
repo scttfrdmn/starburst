@@ -15,8 +15,8 @@ For analyses that take hours or days:
 - **Fault tolerant**: Your computations continue even if your local R
   crashes
 - **Cost efficient**: Instances are released `warm_pool_timeout` seconds
-  after the last submission (default 1 hour), even if your R session is
-  gone
+  after the last submission (default 10 minutes), even if your R session
+  is gone
 
 ### Basic Usage
 

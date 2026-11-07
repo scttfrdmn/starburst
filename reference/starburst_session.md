@@ -18,7 +18,7 @@ starburst_session(
   launch_type = "EC2",
   instance_type = "c7g.xlarge",
   use_spot = TRUE,
-  warm_pool_timeout = 3600
+  warm_pool_timeout = 600
 )
 ```
 
@@ -67,8 +67,8 @@ starburst_session(
 - warm_pool_timeout:
 
   Seconds to keep the EC2 instances running after `session$cleanup()`
-  (default: 3600). They keep billing while warm; the release is
-  scheduled on AWS. `0` releases them at cleanup.
+  (default: 600). They keep billing while warm; the release is scheduled
+  on AWS. `0` releases them at cleanup.
 
 ## Value
 

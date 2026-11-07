@@ -224,12 +224,12 @@ sessions keep their results in S3 until you call
 <li>
 <strong>Warm pools.</strong> After a <code>plan(starburst)</code>
 run or a detached session, the EC2 instances stay up for
-<code>warm_pool_timeout</code> seconds (default 1 hour) past the last
-submission, so the next run starts quickly. They bill while they wait.
-The release is scheduled on AWS, so it happens even if R exits. Use
-<code>warm_pool_timeout = 0</code> to release them as soon as the run
-ends. <code><a href="../reference/starburst_map.html">starburst_map()</a></code> and <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code>
-always release theirs when done.</li>
+<code>warm_pool_timeout</code> seconds (default 10 minutes) past the
+last submission, so the next run starts quickly. They bill while they
+wait. The release is scheduled on AWS, so it happens even if R exits.
+Use <code>warm_pool_timeout = 0</code> to release them as soon as the
+run ends. <code><a href="../reference/starburst_map.html">starburst_map()</a></code> and
+<code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code> always release theirs when done.</li>
 <li>
 <strong>Detached-session workers.</strong> These keep running until
 the session finishes, hits its <code>session_timeout</code> or

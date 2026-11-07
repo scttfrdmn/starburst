@@ -73,7 +73,7 @@
 <span>  launch_type <span class="op">=</span> <span class="st">"EC2"</span>,</span>
 <span>  instance_type <span class="op">=</span> <span class="st">"c7g.xlarge"</span>,</span>
 <span>  use_spot <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  warm_pool_timeout <span class="op">=</span> <span class="fl">3600</span>,</span>
+<span>  warm_pool_timeout <span class="op">=</span> <span class="fl">600</span>,</span>
 <span>  detached <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -126,7 +126,7 @@
 <dt id="arg-warm-pool-timeout">warm_pool_timeout<a class="anchor" aria-label="anchor" href="#arg-warm-pool-timeout"></a></dt>
 <dd><p>Seconds to keep the EC2 instances running after the
 plan is shut down (e.g. by <code>plan(sequential)</code>), so a following run starts
-without waiting for new instances (default: 3600). The instances keep
+without waiting for new instances (default: 600). The instances keep
 billing while warm. The release is scheduled on AWS, so it happens even if R
 exits; <code>0</code> releases them when the plan ends.</p></dd>
 

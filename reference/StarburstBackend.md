@@ -14,7 +14,7 @@ StarburstBackend(
   launch_type = "EC2",
   instance_type = "c6a.large",
   use_spot = FALSE,
-  warm_pool_timeout = 3600,
+  warm_pool_timeout = 600,
   ...
 )
 ```
@@ -55,7 +55,7 @@ StarburstBackend(
 
 - warm_pool_timeout:
 
-  Seconds to keep the EC2 pool warm after the plan ends (default: 3600)
+  Seconds to keep the EC2 pool warm after the plan ends (default: 600)
 
 - ...:
 

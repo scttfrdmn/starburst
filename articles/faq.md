@@ -134,11 +134,11 @@ created at zero instances. What persists between jobs:
   Detached sessions keep their results in S3 until you call
   `session$cleanup(force = TRUE)`.
 - **Warm pools.** After a `plan(starburst)` run or a detached session,
-  the EC2 instances stay up for `warm_pool_timeout` seconds (default 1
-  hour) past the last submission, so the next run starts quickly. They
-  bill while they wait. The release is scheduled on AWS, so it happens
-  even if R exits. Use `warm_pool_timeout = 0` to release them as soon
-  as the run ends.
+  the EC2 instances stay up for `warm_pool_timeout` seconds (default 10
+  minutes) past the last submission, so the next run starts quickly.
+  They bill while they wait. The release is scheduled on AWS, so it
+  happens even if R exits. Use `warm_pool_timeout = 0` to release them
+  as soon as the run ends.
   [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
   and
   [`starburst_cluster()`](https://starburst.ing/reference/starburst_cluster.md)

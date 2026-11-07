@@ -18,7 +18,7 @@ plan(
   launch_type = "EC2",
   instance_type = "c7g.xlarge",
   use_spot = TRUE,
-  warm_pool_timeout = 3600,
+  warm_pool_timeout = 600,
   detached = FALSE,
   ...
 )
@@ -70,7 +70,7 @@ plan(
 
   Seconds to keep the EC2 instances running after the plan is shut down
   (e.g. by `plan(sequential)`), so a following run starts without
-  waiting for new instances (default: 3600). The instances keep billing
+  waiting for new instances (default: 600). The instances keep billing
   while warm. The release is scheduled on AWS, so it happens even if R
   exits; `0` releases them when the plan ends.
 
