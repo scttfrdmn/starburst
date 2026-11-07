@@ -15,7 +15,7 @@
 #' @param launch_type "EC2" or "FARGATE" (default: "EC2")
 #' @param instance_type EC2 instance type (e.g., "c6a.large")
 #' @param use_spot Use spot instances (default: FALSE)
-#' @param warm_pool_timeout Seconds to keep the EC2 pool warm after the plan ends (default: 3600)
+#' @param warm_pool_timeout Seconds to keep the EC2 pool warm after the plan ends (default: 600)
 #' @param ... Additional arguments
 #'
 #' @return A StarburstBackend object
@@ -29,7 +29,7 @@ StarburstBackend <- function(workers = 10,
                              launch_type = "EC2",
                              instance_type = "c6a.large",
                              use_spot = FALSE,
-                             warm_pool_timeout = 3600,
+                             warm_pool_timeout = 600,
                              ...) {
 
   # Validate inputs

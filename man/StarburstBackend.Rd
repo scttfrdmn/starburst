@@ -13,7 +13,7 @@ StarburstBackend(
   launch_type = "EC2",
   instance_type = "c6a.large",
   use_spot = FALSE,
-  warm_pool_timeout = 3600,
+  warm_pool_timeout = 600,
   ...
 )
 }
@@ -34,7 +34,7 @@ StarburstBackend(
 
 \item{use_spot}{Use spot instances (default: FALSE)}
 
-\item{warm_pool_timeout}{Seconds to keep the EC2 pool warm after the plan ends (default: 3600)}
+\item{warm_pool_timeout}{Seconds to keep the EC2 pool warm after the plan ends (default: 600)}
 
 \item{...}{Additional arguments}
 }
