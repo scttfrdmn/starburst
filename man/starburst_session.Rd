@@ -39,7 +39,9 @@ starburst_session(
 
 \item{use_spot}{Use spot instances for EC2 (default: TRUE)}
 
-\item{warm_pool_timeout}{EC2 warm pool timeout in seconds (default: 3600)}
+\item{warm_pool_timeout}{Seconds to keep the EC2 instances running after
+\code{session$cleanup()} (default: 3600). They keep billing while warm; the
+release is scheduled on AWS. \code{0} releases them at cleanup.}
 }
 \value{
 A \code{StarburstSession} object (also carrying \code{$session_id}, the

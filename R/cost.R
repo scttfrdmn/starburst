@@ -346,13 +346,9 @@ calculate_total_cost <- function(plan) {
   total_cost <- 0
 
   tryCatch({
-    # Get all task ARNs for this cluster
-    task_arns <- list()
-    stored_tasks <- list_task_arns()
-
-    for (task_id in names(stored_tasks)) {
-      task_arns <- append(task_arns, stored_tasks[[task_id]]$task_arn)
-    }
+    # This cluster's tasks only; the session-wide registry also holds other
+    # runs' tasks, which inflated the reported cost
+    task_arns <- as.list(unique(backend_state(plan)$task_arns))
 
     if (length(task_arns) == 0) {
       return(0)
@@ -366,7 +362,7 @@ calculate_total_cost <- function(plan) {
       batch <- task_arns[i:end_idx]
 
       tasks <- ecs$describe_tasks(
-        cluster = "starburst-cluster",
+        cluster = plan$cluster_name %||% plan$cluster %||% "starburst-cluster",
         tasks = batch
       )
 

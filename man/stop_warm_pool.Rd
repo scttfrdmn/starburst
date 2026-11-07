@@ -13,6 +13,7 @@ stop_warm_pool(backend)
 Invisible NULL
 }
 \description{
-Scales Auto-Scaling Group to zero
+Scales the Auto-Scaling Group to zero immediately and cancels any scheduled
+release.
 }
 \keyword{internal}

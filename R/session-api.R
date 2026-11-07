@@ -20,7 +20,9 @@ NULL
 #' @param launch_type "EC2" or "FARGATE" (default: "EC2")
 #' @param instance_type EC2 instance type for EC2 launch (default: "c7g.xlarge")
 #' @param use_spot Use spot instances for EC2 (default: TRUE)
-#' @param warm_pool_timeout EC2 warm pool timeout in seconds (default: 3600)
+#' @param warm_pool_timeout Seconds to keep the EC2 instances running after
+#'   \code{session$cleanup()} (default: 3600). They keep billing while warm; the
+#'   release is scheduled on AWS. \code{0} releases them at cleanup.
 #'
 #' @return A \code{StarburstSession} object (also carrying \code{$session_id}, the
 #'   handle you pass to \code{\link{starburst_session_attach}}) with methods:
@@ -310,6 +312,8 @@ create_session_object <- function(backend) {
 #' @keywords internal
 submit_to_session <- function(session, expr, envir, substitute, globals, packages) {
   backend <- session$backend
+  # Keep the pool warm for warm_pool_timeout past this submission (#59)
+  hold_warm_pool(backend)
 
   # Substitute expression if needed
   if (substitute) {
@@ -627,6 +631,10 @@ cleanup_session <- function(session, stop_workers = TRUE, force = FALSE) {
     }, error = function(e) {
       cat_warn(sprintf("  [WARNING] Failed to stop workers: %s\n", e$message))
     })
+    # Hold the pool for warm_pool_timeout, then release it (#59)
+    if (identical(backend$launch_type, "EC2") && !is.null(backend$asg_name)) {
+      release_warm_pool(backend)
+    }
   } else {
     cat_info("  [INFO] Workers not stopped (stop_workers = FALSE)\n")
   }

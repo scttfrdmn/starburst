@@ -76,9 +76,13 @@ starburst_map <- function(.x, .f, workers = 10, cpu = 4, memory = "8GB",
     timeout = timeout,
     launch_type = launch_type,
     instance_type = instance_type,
-    use_spot = use_spot
+    use_spot = use_spot,
+    # One-shot: release the pool when the map finishes (#59)
+    warm_pool_timeout = 0
   )
   backend <- attr(strategy, "backend")
+  # Stop leftover tasks (e.g. after an error), clean up S3, release the pool
+  on.exit(try(cleanup_cluster(backend), silent = TRUE), add = TRUE)
 
   # Execute by creating StarburstFuture objects directly
   # Pass extra arguments via wrapper function
@@ -227,7 +231,9 @@ starburst_cluster <- function(workers = 10, cpu = 4, memory = "8GB",
     timeout = timeout,
     launch_type = launch_type,
     instance_type = instance_type,
-    use_spot = use_spot
+    use_spot = use_spot,
+    # Released by cluster$shutdown() (#59)
+    warm_pool_timeout = 0
   )
   backend <- attr(strategy, "backend")
 

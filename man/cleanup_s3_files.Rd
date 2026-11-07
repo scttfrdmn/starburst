@@ -7,6 +7,9 @@
 cleanup_s3_files(plan)
 }
 \description{
-Cleanup S3 files
+Deletes the task payloads and results of the tasks this backend launched.
+(Task objects are stored as \code{tasks/<task_id>.qs} and
+\code{results/<task_id>.qs}; the old per-cluster prefix matched nothing, so
+they were never deleted.)
 }
 \keyword{internal}

@@ -359,10 +359,20 @@ start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
       })
   }
 
-  # Scale ASG to desired capacity
-  autoscaling$set_desired_capacity(
+  # A pool kept warm by an earlier run has a scheduled release and MinSize > 0;
+  # cancel the release (or it would fire mid-job) and take over the pool. Never
+  # shrink below what is already running, which may serve other jobs.
+  cancel_pool_release(autoscaling, asg_name)
+  current <- tryCatch(
+    autoscaling$describe_auto_scaling_groups(
+      AutoScalingGroupNames = list(asg_name)
+    )$AutoScalingGroups[[1]]$DesiredCapacity,
+    error = function(e) 0L
+  )
+  autoscaling$update_auto_scaling_group(
     AutoScalingGroupName = asg_name,
-    DesiredCapacity = as.integer(capacity)
+    MinSize = 0L,
+    DesiredCapacity = as.integer(max(capacity, current %||% 0L))
   )
 
   cat_info(sprintf("   * Waiting for instances to join cluster (timeout: %ds)...\n", timeout_seconds))
@@ -415,7 +425,8 @@ start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
 
 #' Stop warm pool
 #'
-#' Scales Auto-Scaling Group to zero
+#' Scales the Auto-Scaling Group to zero immediately and cancels any scheduled
+#' release.
 #'
 #' @param backend Backend configuration object
 #' @return Invisible NULL
@@ -423,17 +434,151 @@ start_warm_pool <- function(backend, capacity, timeout_seconds = 180) {
 stop_warm_pool <- function(backend) {
   cat_info(sprintf("[Stop] Stopping warm pool: %s...\n", backend$asg_name))
 
-  region <- backend$region
-  asg_name <- backend$asg_name
+  autoscaling <- get_autoscaling_client(backend$region)
+  cancel_pool_release(autoscaling, backend$asg_name)
 
-  autoscaling <- get_autoscaling_client(region)
-
-  autoscaling$set_desired_capacity(
-    AutoScalingGroupName = asg_name,
-    DesiredCapacity = 0
+  # MinSize too: a pool held warm has MinSize > 0, and DesiredCapacity cannot
+  # go below it
+  autoscaling$update_auto_scaling_group(
+    AutoScalingGroupName = backend$asg_name,
+    MinSize = 0L,
+    DesiredCapacity = 0L
   )
 
   cat_success("[OK] Pool scaled to zero\n")
+
+  invisible(NULL)
+}
+
+# Name of the ASG scheduled action that ends a warm-pool hold
+pool_release_action <- "starburst-release-warm-pool"
+
+#' Cancel a pending warm-pool release
+#'
+#' @param autoscaling Auto Scaling client
+#' @param asg_name Auto-Scaling Group name
+#' @keywords internal
+cancel_pool_release <- function(autoscaling, asg_name) {
+  # Errors (usually "no such action") are expected and ignored
+  tryCatch(
+    autoscaling$delete_scheduled_action(
+      AutoScalingGroupName = asg_name,
+      ScheduledActionName = pool_release_action
+    ),
+    error = function(e) NULL
+  )
+  invisible(NULL)
+}
+
+#' Keep a warm pool for warm_pool_timeout seconds from now
+#'
+#' Holds the pool at its current size (ASG \code{MinSize}, so ECS managed
+#' scaling does not drain idle instances between runs) and schedules an ASG
+#' action that lowers \code{MinSize} to zero \code{warm_pool_timeout} seconds
+#' from now. Called when the pool starts and, at most once a minute, on each
+#' submission, so the timeout counts from the last activity. Because the release
+#' is always scheduled on AWS, a crashed or exited R session never leaves a pool
+#' held: it expires at most \code{warm_pool_timeout} after the last submission,
+#' and ECS managed scaling then removes the idle instances (usually within about
+#' 15 minutes). Instances still running tasks are never removed.
+#'
+#' @param backend Backend configuration object
+#' @param force Refresh even if refreshed in the last minute
+#' @return Invisible NULL
+#' @keywords internal
+hold_warm_pool <- function(backend, force = FALSE) {
+  timeout <- backend$warm_pool_timeout %||% 0
+  if (timeout <= 0 || !identical(backend$launch_type, "EC2")) {
+    return(invisible(NULL))
+  }
+  state <- backend_state(backend)
+  if (!force && !is.null(state$hold_refreshed_at) &&
+      as.numeric(difftime(Sys.time(), state$hold_refreshed_at, units = "secs")) < 60) {
+    return(invisible(NULL))
+  }
+  state$hold_refreshed_at <- Sys.time()
+
+  asg_name <- backend$asg_name
+  autoscaling <- get_autoscaling_client(backend$region)
+  tryCatch({
+    desired <- autoscaling$describe_auto_scaling_groups(
+      AutoScalingGroupNames = list(asg_name)
+    )$AutoScalingGroups[[1]]$DesiredCapacity %||% 0L
+    if (desired == 0) {
+      return(invisible(NULL))
+    }
+    release_at <- Sys.time() + timeout
+    # Schedule the release before raising MinSize, so a failure here can never
+    # leave a pool held with nothing to release it
+    autoscaling$put_scheduled_update_group_action(
+      AutoScalingGroupName = asg_name,
+      ScheduledActionName = pool_release_action,
+      StartTime = release_at,
+      MinSize = 0L
+    )
+    autoscaling$update_auto_scaling_group(AutoScalingGroupName = asg_name,
+                                          MinSize = as.integer(desired))
+    state$pool_release_at <- release_at
+  }, error = function(e) {
+    # Never leave a hold in place if scheduling its release failed
+    tryCatch(autoscaling$update_auto_scaling_group(AutoScalingGroupName = asg_name,
+                                                   MinSize = 0L),
+             error = function(e2) NULL)
+    cat_warn(sprintf(paste0(
+      "[WARNING] Could not keep the pool warm (%s); idle instances drain ",
+      "automatically\n"), conditionMessage(e)))
+  })
+
+  invisible(NULL)
+}
+
+#' Release a warm pool after a run
+#'
+#' Called when a cluster, plan or session finishes with its EC2 pool. With
+#' \code{warm_pool_timeout = 0} the pool is released now: scaled to zero if the
+#' cluster has no other running tasks, otherwise left for ECS managed scaling to
+#' drain once those finish. Otherwise it stays warm for \code{warm_pool_timeout}
+#' more seconds (see \code{hold_warm_pool()}).
+#'
+#' @param backend Backend configuration object
+#' @return Invisible NULL
+#' @keywords internal
+release_warm_pool <- function(backend) {
+  timeout <- backend$warm_pool_timeout %||% 0
+
+  if (timeout > 0) {
+    hold_warm_pool(backend, force = TRUE)
+    release_at <- backend_state(backend)$pool_release_at
+    if (!is.null(release_at)) {
+      cat_info(sprintf(paste0(
+        "[Time]  Pool kept warm until %s UTC (warm_pool_timeout = %ds), then ",
+        "released automatically\n",
+        "   Set warm_pool_timeout = 0 to release it when the run ends\n"),
+        format(release_at, "%H:%M", tz = "UTC"), as.integer(timeout)))
+    }
+    return(invisible(NULL))
+  }
+
+  autoscaling <- get_autoscaling_client(backend$region)
+  tryCatch({
+    running <- get_ecs_client(backend$region)$list_tasks(
+      cluster = backend$cluster_name %||% backend$cluster,
+      desiredStatus = "RUNNING"
+    )$taskArns
+    if (length(running) == 0) {
+      stop_warm_pool(backend)
+    } else {
+      cancel_pool_release(autoscaling, backend$asg_name)
+      autoscaling$update_auto_scaling_group(AutoScalingGroupName = backend$asg_name,
+                                            MinSize = 0L)
+      cat_info(sprintf(paste0(
+        "[Time]  Pool released; %d other task(s) still running in the cluster, ",
+        "so idle instances drain automatically\n"), length(running)))
+    }
+  }, error = function(e) {
+    cat_warn(sprintf("[WARNING] Could not release the pool (%s); idle instances drain automatically\n",
+                     conditionMessage(e)))
+  })
 
   invisible(NULL)
 }

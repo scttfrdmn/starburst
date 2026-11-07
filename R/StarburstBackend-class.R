@@ -15,7 +15,7 @@
 #' @param launch_type "EC2" or "FARGATE" (default: "EC2")
 #' @param instance_type EC2 instance type (e.g., "c6a.large")
 #' @param use_spot Use spot instances (default: FALSE)
-#' @param warm_pool_timeout Pool timeout in seconds (default: 3600)
+#' @param warm_pool_timeout Seconds to keep the EC2 pool warm after the plan ends (default: 3600)
 #' @param ... Additional arguments
 #'
 #' @return A StarburstBackend object
@@ -95,6 +95,7 @@ StarburstBackend <- function(workers = 10,
     warm_pool_timeout = warm_pool_timeout,
     capacity_provider_name = sprintf("starburst-%s", gsub("\\.", "-", instance_type)),
     pool_started_at = NULL,
+    task_arns = character(0),  # ECS tasks this backend launched
     asg_name = sprintf("starburst-asg-%s", gsub("\\.", "-", instance_type)),
     aws_account_id = config$aws_account_id,
     # VPC configuration
@@ -188,6 +189,29 @@ nbrOfWorkers.StarburstBackend <- function(evaluator) {
 listFutures.StarburstBackend <- function(backend, ...) {
   # We don't track futures in the backend, they're managed by the future package
   list()
+}
+
+
+#' Stop workers for StarburstBackend
+#'
+#' Called by \pkg{future} when the plan changes (e.g. \code{plan(sequential)}):
+#' stops this backend's remaining tasks, cleans up its S3 objects, and holds the
+#' EC2 pool for \code{warm_pool_timeout} before releasing it.
+#'
+#' @param backend A StarburstBackend object
+#' @param ... Additional arguments
+#' @return TRUE (invisibly)
+#' @importFrom future stopWorkers
+#' @method stopWorkers StarburstBackend
+#' @export
+stopWorkers.StarburstBackend <- function(backend, ...) {
+  backend_env <- attr(backend, "backend")
+  # Only after work was submitted; a plan that never ran anything has nothing
+  # to clean up
+  if (!is.null(backend_env) && length(backend_env$task_arns) > 0) {
+    cleanup_cluster(backend_env)
+  }
+  invisible(TRUE)
 }
 
 
@@ -317,7 +341,13 @@ launchFuture.StarburstBackend <- function(backend, future, ...) {
   # Store task ARN in future
   if (length(response$tasks) > 0) {
     future$task_arn <- response$tasks[[1]]$taskArn
+    backend_env$task_arns <- c(backend_env$task_arns, future$task_arn)
+    backend_env$task_ids <- c(backend_env$task_ids, future$task_id)
+    store_task_arn(future$task_id, future$task_arn)
+    # Keep the pool warm for warm_pool_timeout past this submission (#59)
+    hold_warm_pool(backend_env)
   }
+  future$submitted_at <- Sys.time()
 
   # Set the future class so our S3 methods get called
   class(future) <- c("StarburstFuture", "Future", class(future))
