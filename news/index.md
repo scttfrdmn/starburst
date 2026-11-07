@@ -1,6 +1,6 @@
 # Changelog
 
-## starburst (development version)
+## starburst 0.3.12
 
 ### Bug fixes
 

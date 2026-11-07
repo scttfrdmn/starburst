@@ -157,8 +157,12 @@ Good for new contributors
 
 1.  **Follow R Best Practices**
 
-    - Use `devtools::load_all()` for testing
-    - Run `devtools::check()` before committing
+    - Use
+      [`devtools::load_all()`](https://devtools.r-lib.org/reference/load_all.html)
+      for testing
+    - Run
+      [`devtools::check()`](https://devtools.r-lib.org/reference/check.html)
+      before committing
     - Add tests for new functionality
     - Document functions with roxygen2
 
@@ -285,8 +289,9 @@ integrations
 **Release gate (mandatory):** never tag, publish a GitHub Release, or
 submit to CRAN without a passing `tools/live-smoke.R` run (or the
 integration workflow’s `live-smoke` suite) on the release commit. It
-runs every public entry point on real EC2. `devtools::test()` is NOT a
-substitute: 0.3.0-0.3.10 passed all tests while `plan(starburst)`,
+runs every public entry point on real EC2.
+[`devtools::test()`](https://devtools.r-lib.org/reference/test.html) is
+NOT a substitute: 0.3.0-0.3.10 passed all tests while `plan(starburst)`,
 [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
 and
 [`starburst_cluster()`](https://starburst.ing/reference/starburst_cluster.md)
@@ -321,8 +326,10 @@ submission, `worker.R` or result handling also need a case in
 
 1.  Create issue: `gh issue create --label "type:docs"`
 2.  Update relevant files (vignettes, README, function docs)
-3.  Build documentation: `devtools::document()`
-4.  Preview: `devtools::build_vignettes()`
+3.  Build documentation:
+    [`devtools::document()`](https://devtools.r-lib.org/reference/document.html)
+4.  Preview:
+    [`devtools::build_vignettes()`](https://devtools.r-lib.org/reference/build_vignettes.html)
 5.  Commit and push
 6.  Close issue
 

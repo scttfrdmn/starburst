@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">starburst</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.11</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.12</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,9 +55,9 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="development version" id="starburst-development-version">starburst (development version)<a class="anchor" aria-label="anchor" href="#starburst-development-version"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.3.12" id="starburst-0312">starburst 0.3.12<a class="anchor" aria-label="anchor" href="#starburst-0312"></a></h2>
 <div class="section level3">
-<h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
+<h3 id="bug-fixes-0-3-12">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-3-12"></a></h3>
 <ul><li>
 <strong>Futures no longer wait forever when a worker dies.</strong> If a worker’s ECS task stops without uploading a result (out of memory, image pull failure, Spot reclaim, a stopped task), <code>value()</code>, <code><a href="../reference/starburst_map.html">starburst_map()</a></code> and friends now fail with the ECS stop reason and exit code. A task that runs past its <code>timeout</code> (plus 15 minutes for instance start and image pull) is stopped and reported the same way. Task status is checked at most every 15 seconds, for all pending tasks at once (<a href="https://github.com/scttfrdmn/starburst/issues/67" class="external-link">#67</a>).</li>
 <li>
@@ -77,11 +77,11 @@
 <code>future</code> (&gt;= 1.40.0) is now required. The backend API that staRburst uses (<code>launchFuture()</code>, <code>stopWorkers()</code>) does not exist in older versions, so the package could not be loaded with them anyway.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="aws-permissions-development-version">AWS permissions<a class="anchor" aria-label="anchor" href="#aws-permissions-development-version"></a></h3>
+<h3 id="aws-permissions-0-3-12">AWS permissions<a class="anchor" aria-label="anchor" href="#aws-permissions-0-3-12"></a></h3>
 <p>The EC2 pool now uses Auto Scaling scheduled actions. The credentials you run staRburst with need <code>autoscaling:PutScheduledUpdateGroupAction</code> and <code>autoscaling:DeleteScheduledAction</code>; without them the pool is not kept warm (a warning is shown) and idle instances drain as before.</p>
 </div>
 <div class="section level3">
-<h3 id="testing-development-version">Testing<a class="anchor" aria-label="anchor" href="#testing-development-version"></a></h3>
+<h3 id="testing-0-3-12">Testing<a class="anchor" aria-label="anchor" href="#testing-0-3-12"></a></h3>
 <ul><li>The live smoke test (<code>tools/live-smoke.R</code>) builds the worker image from the minimal <code>bench/worker-renv.lock</code> in an isolated directory, and also checks a killed worker and the warm-pool lifecycle. It is now the monthly scheduled suite of the AWS integration workflow, instead of the connectivity-only <code>quick</code> suite.</li>
 </ul></div>
 </div>

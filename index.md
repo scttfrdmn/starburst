@@ -294,7 +294,14 @@ Started](https://starburst.ing/articles/getting-started.html) guide.
 
 ## Roadmap
 
-### v0.3.11 (current CRAN release)
+### v0.3.12 (current CRAN release)
+
+- ✅ Futures fail with the ECS reason when a worker dies, instead of
+  waiting forever
+- ✅ `warm_pool_timeout` works (default 10 minutes); cleanup only stops
+  the run’s own tasks and deletes its S3 objects
+
+### v0.3.11
 
 - ✅ `plan(starburst)` futures,
   [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
@@ -362,7 +369,7 @@ Copyright 2026 Scott Friedman
   title = {staRburst: Seamless AWS Cloud Bursting for R},
   author = {Scott Friedman},
   year = {2026},
-  version = {0.3.11},
+  version = {0.3.12},
   url = {https://starburst.ing},
   license = {Apache-2.0}
 }

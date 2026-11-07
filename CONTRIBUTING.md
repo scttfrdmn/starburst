@@ -10,8 +10,10 @@ provides guidelines for contributing.
     `git clone https://github.com/yourusername/starburst.git`
 3.  Create a branch: `git checkout -b feature/your-feature-name`
 4.  Make your changes
-5.  **IMPORTANT**: Run tests: `devtools::test()`
-6.  **IMPORTANT**: Run checks: `devtools::check()`
+5.  **IMPORTANT**: Run tests:
+    [`devtools::test()`](https://devtools.r-lib.org/reference/test.html)
+6.  **IMPORTANT**: Run checks:
+    [`devtools::check()`](https://devtools.r-lib.org/reference/check.html)
 7.  Commit: `git commit -m "Description of changes"`
 8.  Push: `git push origin feature/your-feature-name`
 9.  Open a Pull Request
@@ -28,8 +30,9 @@ and wasted GitHub Actions minutes.
 git config core.hooksPath .githooks
 ```
 
-Now every commit will automatically run `devtools::check()`. The commit
-will be blocked if there are errors.
+Now every commit will automatically run
+[`devtools::check()`](https://devtools.r-lib.org/reference/check.html).
+The commit will be blocked if there are errors.
 
 ### Manual Check Before Push
 
