@@ -68,7 +68,11 @@ plan(
 
 - warm_pool_timeout:
 
-  Timeout for warm pool in seconds (default: 3600)
+  Seconds to keep the EC2 instances running after the plan is shut down
+  (e.g. by `plan(sequential)`), so a following run starts without
+  waiting for new instances (default: 3600). The instances keep billing
+  while warm. The release is scheduled on AWS, so it happens even if R
+  exits; `0` releases them when the plan ends.
 
 - detached:
 

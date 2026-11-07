@@ -81,7 +81,7 @@
       <img src="../logo.png" class="logo" alt=""><h1>Detached Session Mode</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/scttfrdmn/starburst/blob/v0.3.11/vignettes/detached-sessions.Rmd" class="external-link"><code>vignettes/detached-sessions.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/scttfrdmn/starburst/blob/main/vignettes/detached-sessions.Rmd" class="external-link"><code>vignettes/detached-sessions.Rmd</code></a></small>
       <div class="d-none name"><code>detached-sessions.Rmd</code></div>
     </div>
 
@@ -108,8 +108,9 @@ session</li>
 <strong>Fault tolerant</strong>: Your computations continue even if
 your local R crashes</li>
 <li>
-<strong>Cost efficient</strong>: Workers auto-scale down when
-idle</li>
+<strong>Cost efficient</strong>: Instances are released
+<code>warm_pool_timeout</code> seconds after the last submission
+(default 1 hour), even if your R session is gone</li>
 </ul>
 </div>
 <div class="section level3">

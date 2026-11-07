@@ -14,7 +14,9 @@ For analyses that take hours or days:
 - **Reattach anytime**: Check progress from any R session
 - **Fault tolerant**: Your computations continue even if your local R
   crashes
-- **Cost efficient**: Workers auto-scale down when idle
+- **Cost efficient**: Instances are released `warm_pool_timeout` seconds
+  after the last submission (default 1 hour), even if your R session is
+  gone
 
 ### Basic Usage
 

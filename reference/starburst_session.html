@@ -53,7 +53,7 @@ of your R session. You can close R and reattach later to collect results."><meta
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Create a Detached Starburst Session</h1>
-      <small class="dont-index">Source: <a href="https://github.com/scttfrdmn/starburst/blob/v0.3.11/R/session-api.R" class="external-link"><code>R/session-api.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/scttfrdmn/starburst/blob/main/R/session-api.R" class="external-link"><code>R/session-api.R</code></a></small>
       <div class="d-none name"><code>starburst_session.Rd</code></div>
     </div>
 
@@ -124,7 +124,9 @@ of your R session. You can close R and reattach later to collect results.</p>
 
 
 <dt id="arg-warm-pool-timeout">warm_pool_timeout<a class="anchor" aria-label="anchor" href="#arg-warm-pool-timeout"></a></dt>
-<dd><p>EC2 warm pool timeout in seconds (default: 3600)</p></dd>
+<dd><p>Seconds to keep the EC2 instances running after
+<code>session$cleanup()</code> (default: 3600). They keep billing while warm; the
+release is scheduled on AWS. <code>0</code> releases them at cleanup.</p></dd>
 
 </dl></div>
     <div class="section level2">

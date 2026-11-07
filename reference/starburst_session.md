@@ -66,7 +66,9 @@ starburst_session(
 
 - warm_pool_timeout:
 
-  EC2 warm pool timeout in seconds (default: 3600)
+  Seconds to keep the EC2 instances running after `session$cleanup()`
+  (default: 3600). They keep billing while warm; the release is
+  scheduled on AWS. `0` releases them at cleanup.
 
 ## Value
 

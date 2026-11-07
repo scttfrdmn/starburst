@@ -1,5 +1,69 @@
 # Changelog
 
+## starburst (development version)
+
+### Bug fixes
+
+- **Futures no longer wait forever when a worker dies.** If a worker’s
+  ECS task stops without uploading a result (out of memory, image pull
+  failure, Spot reclaim, a stopped task), `value()`,
+  [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
+  and friends now fail with the ECS stop reason and exit code. A task
+  that runs past its `timeout` (plus 15 minutes for instance start and
+  image pull) is stopped and reported the same way. Task status is
+  checked at most every 15 seconds, for all pending tasks at once
+  ([\#67](https://github.com/scttfrdmn/starburst/issues/67)).
+- **`warm_pool_timeout` now works
+  ([\#59](https://github.com/scttfrdmn/starburst/issues/59)).**
+  Previously nothing ever acted on it: EC2 instances were drained by ECS
+  managed scaling about 15 minutes after going idle, whatever the
+  setting, and `plan(sequential)` warned that `StarburstBackend` does
+  not implement `stopWorkers()`.
+  - For `plan(starburst)` and
+    [`starburst_session()`](https://starburst.ing/reference/starburst_session.md),
+    the pool is now kept warm until `warm_pool_timeout` seconds
+    (default 3600) after the last submission. The release is an Auto
+    Scaling scheduled action, so it happens even if R exits or crashes.
+    **Warm instances bill while they wait**; set `warm_pool_timeout = 0`
+    to release them when the run ends.
+  - [`starburst_map()`](https://starburst.ing/reference/starburst_map.md)
+    and
+    [`starburst_cluster()`](https://starburst.ing/reference/starburst_cluster.md)
+    (on `cluster$shutdown()`) release their instances when they finish.
+  - `plan(sequential)` (via the new `stopWorkers()` method) and
+    `session$cleanup()` stop the run’s remaining tasks and start the
+    countdown.
+- **Cleanup no longer stops other people’s workers.** Shutting down a
+  [`starburst_cluster()`](https://starburst.ing/reference/starburst_cluster.md)
+  stopped every staRburst task in the shared ECS cluster, including
+  other users’ jobs and detached sessions. It now stops only the tasks
+  that run launched.
+- **Task payloads and results are deleted from S3.** Cleanup looked
+  under a prefix nothing was stored under, so every task and result
+  object was kept forever. Each future’s objects are now deleted once
+  its result has been read, and leftovers when the run ends (unless
+  `auto_cleanup_s3 = FALSE`).
+- The cost reported at shutdown covers only that run’s tasks, not every
+  task launched in the R session.
+- `future` (\>= 1.40.0) is now required. The backend API that staRburst
+  uses (`launchFuture()`, `stopWorkers()`) does not exist in older
+  versions, so the package could not be loaded with them anyway.
+
+### AWS permissions
+
+The EC2 pool now uses Auto Scaling scheduled actions. The credentials
+you run staRburst with need `autoscaling:PutScheduledUpdateGroupAction`
+and `autoscaling:DeleteScheduledAction`; without them the pool is not
+kept warm (a warning is shown) and idle instances drain as before.
+
+### Testing
+
+- The live smoke test (`tools/live-smoke.R`) builds the worker image
+  from the minimal `bench/worker-renv.lock` in an isolated directory,
+  and also checks a killed worker and the warm-pool lifecycle. It is now
+  the monthly scheduled suite of the AWS integration workflow, instead
+  of the connectivity-only `quick` suite.
+
 ## starburst 0.3.11 (2026-11-06)
 
 CRAN release: 2026-11-06

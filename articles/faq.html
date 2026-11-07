@@ -81,7 +81,7 @@
       <img src="../logo.png" class="logo" alt=""><h1>Frequently Asked Questions</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/scttfrdmn/starburst/blob/v0.3.11/vignettes/articles/faq.Rmd" class="external-link"><code>vignettes/articles/faq.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/scttfrdmn/starburst/blob/main/vignettes/articles/faq.Rmd" class="external-link"><code>vignettes/articles/faq.Rmd</code></a></small>
       <div class="d-none name"><code>faq.Rmd</code></div>
     </div>
 
@@ -221,6 +221,15 @@ a job finishes, unless you set
 <code>starburst_config(auto_cleanup_s3 = FALSE)</code>. Detached
 sessions keep their results in S3 until you call
 <code>session$cleanup(force = TRUE)</code>.</li>
+<li>
+<strong>Warm pools.</strong> After a <code>plan(starburst)</code>
+run or a detached session, the EC2 instances stay up for
+<code>warm_pool_timeout</code> seconds (default 1 hour) past the last
+submission, so the next run starts quickly. They bill while they wait.
+The release is scheduled on AWS, so it happens even if R exits. Use
+<code>warm_pool_timeout = 0</code> to release them as soon as the run
+ends. <code><a href="../reference/starburst_map.html">starburst_map()</a></code> and <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code>
+always release theirs when done.</li>
 <li>
 <strong>Detached-session workers.</strong> These keep running until
 the session finishes, hits its <code>session_timeout</code> or

@@ -51,9 +51,40 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/scttfrdmn/starburst/blob/v0.3.11/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/scttfrdmn/starburst/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="development version" id="starburst-development-version">starburst (development version)<a class="anchor" aria-label="anchor" href="#starburst-development-version"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
+<ul><li>
+<strong>Futures no longer wait forever when a worker dies.</strong> If a worker’s ECS task stops without uploading a result (out of memory, image pull failure, Spot reclaim, a stopped task), <code>value()</code>, <code><a href="../reference/starburst_map.html">starburst_map()</a></code> and friends now fail with the ECS stop reason and exit code. A task that runs past its <code>timeout</code> (plus 15 minutes for instance start and image pull) is stopped and reported the same way. Task status is checked at most every 15 seconds, for all pending tasks at once (<a href="https://github.com/scttfrdmn/starburst/issues/67" class="external-link">#67</a>).</li>
+<li>
+<strong><code>warm_pool_timeout</code> now works (<a href="https://github.com/scttfrdmn/starburst/issues/59" class="external-link">#59</a>).</strong> Previously nothing ever acted on it: EC2 instances were drained by ECS managed scaling about 15 minutes after going idle, whatever the setting, and <code>plan(sequential)</code> warned that <code>StarburstBackend</code> does not implement <code>stopWorkers()</code>.
+<ul><li>For <code>plan(starburst)</code> and <code><a href="../reference/starburst_session.html">starburst_session()</a></code>, the pool is now kept warm until <code>warm_pool_timeout</code> seconds (default 3600) after the last submission. The release is an Auto Scaling scheduled action, so it happens even if R exits or crashes. <strong>Warm instances bill while they wait</strong>; set <code>warm_pool_timeout = 0</code> to release them when the run ends.</li>
+<li>
+<code><a href="../reference/starburst_map.html">starburst_map()</a></code> and <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code> (on <code>cluster$shutdown()</code>) release their instances when they finish.</li>
+<li>
+<code>plan(sequential)</code> (via the new <code>stopWorkers()</code> method) and <code>session$cleanup()</code> stop the run’s remaining tasks and start the countdown.</li>
+</ul></li>
+<li>
+<strong>Cleanup no longer stops other people’s workers.</strong> Shutting down a <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code> stopped every staRburst task in the shared ECS cluster, including other users’ jobs and detached sessions. It now stops only the tasks that run launched.</li>
+<li>
+<strong>Task payloads and results are deleted from S3.</strong> Cleanup looked under a prefix nothing was stored under, so every task and result object was kept forever. Each future’s objects are now deleted once its result has been read, and leftovers when the run ends (unless <code>auto_cleanup_s3 = FALSE</code>).</li>
+<li>The cost reported at shutdown covers only that run’s tasks, not every task launched in the R session.</li>
+<li>
+<code>future</code> (&gt;= 1.40.0) is now required. The backend API that staRburst uses (<code>launchFuture()</code>, <code>stopWorkers()</code>) does not exist in older versions, so the package could not be loaded with them anyway.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="aws-permissions-development-version">AWS permissions<a class="anchor" aria-label="anchor" href="#aws-permissions-development-version"></a></h3>
+<p>The EC2 pool now uses Auto Scaling scheduled actions. The credentials you run staRburst with need <code>autoscaling:PutScheduledUpdateGroupAction</code> and <code>autoscaling:DeleteScheduledAction</code>; without them the pool is not kept warm (a warning is shown) and idle instances drain as before.</p>
+</div>
+<div class="section level3">
+<h3 id="testing-development-version">Testing<a class="anchor" aria-label="anchor" href="#testing-development-version"></a></h3>
+<ul><li>The live smoke test (<code>tools/live-smoke.R</code>) builds the worker image from the minimal <code>bench/worker-renv.lock</code> in an isolated directory, and also checks a killed worker and the warm-pool lifecycle. It is now the monthly scheduled suite of the AWS integration workflow, instead of the connectivity-only <code>quick</code> suite.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.11" id="starburst-0311-2026-11-06">starburst 0.3.11 (2026-11-06)<a class="anchor" aria-label="anchor" href="#starburst-0311-2026-11-06"></a></h2><p class="text-muted">CRAN release: 2026-11-06</p>
 <div class="section level3">

@@ -55,7 +55,7 @@ StarburstBackend(
 
 - warm_pool_timeout:
 
-  Pool timeout in seconds (default: 3600)
+  Seconds to keep the EC2 pool warm after the plan ends (default: 3600)
 
 - ...:
 

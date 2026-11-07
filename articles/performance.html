@@ -81,7 +81,7 @@
       <img src="../logo.png" class="logo" alt=""><h1>Performance Guide: When to Use Cloud vs Local</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/scttfrdmn/starburst/blob/v0.3.11/vignettes/performance.Rmd" class="external-link"><code>vignettes/performance.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/scttfrdmn/starburst/blob/main/vignettes/performance.Rmd" class="external-link"><code>vignettes/performance.Rmd</code></a></small>
       <div class="d-none name"><code>performance.Rmd</code></div>
     </div>
 
@@ -431,13 +431,19 @@ HPC cluster:       Use your cluster</code></pre>
 <h3 id="pattern-daily-production-job-keep-warm-pool">Pattern: Daily production job — keep warm pool<a class="anchor" aria-label="anchor" href="#pattern-daily-production-job-keep-warm-pool"></a>
 </h3>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Start warm pool once in the morning</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, warm_pool_timeout <span class="op">=</span> <span class="fl">28800</span><span class="op">)</span>  <span class="co"># 8 hours</span></span>
+<code class="sourceCode R"><span><span class="co"># Set the plan once in the morning. Instances stay up until 2 hours after the</span></span>
+<span><span class="co"># last submission, so later runs skip the startup.</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">starburst</span>, workers <span class="op">=</span> <span class="fl">50</span>, warm_pool_timeout <span class="op">=</span> <span class="fl">7200</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># All runs during the day start in &lt; 30s</span></span>
-<span><span class="va">results_am</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="va">morning_data</span>, <span class="va">process</span><span class="op">)</span></span>
-<span><span class="va">results_pm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/starburst_map.html">starburst_map</a></span><span class="op">(</span><span class="va">afternoon_data</span>, <span class="va">process</span><span class="op">)</span></span>
-<span><span class="co"># Pool shuts down automatically after 8 hours of inactivity</span></span></code></pre></div>
+<span><span class="va">results_am</span> <span class="op">&lt;-</span> <span class="fu">future.apply</span><span class="fu">::</span><span class="fu"><a href="https://future.apply.futureverse.org/reference/future_lapply.html" class="external-link">future_lapply</a></span><span class="op">(</span><span class="va">morning_data</span>, <span class="va">process</span><span class="op">)</span></span>
+<span><span class="va">results_pm</span> <span class="op">&lt;-</span> <span class="fu">future.apply</span><span class="fu">::</span><span class="fu"><a href="https://future.apply.futureverse.org/reference/future_lapply.html" class="external-link">future_lapply</a></span><span class="op">(</span><span class="va">afternoon_data</span>, <span class="va">process</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Released 2 hours after the last submission, even if R has exited</span></span>
+<span><span class="fu">plan</span><span class="op">(</span><span class="va">sequential</span><span class="op">)</span></span></code></pre></div>
+<p>Warm instances bill while they wait, so size
+<code>warm_pool_timeout</code> to the gap between runs.
+<code><a href="../reference/starburst_map.html">starburst_map()</a></code> and <code><a href="../reference/starburst_cluster.html">starburst_cluster()</a></code> don’t
+keep a pool: they release their instances when they finish.</p>
 </div>
 <div class="section level3">
 <h3 id="pattern-hybrid-develop-local-scale-on-cloud">Pattern: Hybrid — develop local, scale on cloud<a class="anchor" aria-label="anchor" href="#pattern-hybrid-develop-local-scale-on-cloud"></a>

@@ -475,6 +475,8 @@ use.
   : Get Result from StarburstFuture
 - [`run(`*`<StarburstFuture>`*`)`](https://starburst.ing/reference/run.StarburstFuture.md)
   : Run a StarburstFuture
+- [`stopWorkers(`*`<StarburstBackend>`*`)`](https://starburst.ing/reference/stopWorkers.StarburstBackend.md)
+  : Stop workers for StarburstBackend
 - [`print(`*`<StarburstSessionStatus>`*`)`](https://starburst.ing/reference/print.StarburstSessionStatus.md)
   : Print method for session status
 - [`session-api`](https://starburst.ing/reference/session-api.md) :

@@ -1,6 +1,7 @@
 # Stop warm pool
 
-Scales Auto-Scaling Group to zero
+Scales the Auto-Scaling Group to zero immediately and cancels any
+scheduled release.
 
 ## Usage
 
