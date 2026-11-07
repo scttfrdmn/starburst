@@ -14,7 +14,9 @@ check_aws_credentials <- function() {
     identity <- sts$get_caller_identity()
     return(TRUE)
   }, error = function(e) {
-    return(FALSE)
+    # Keep the reason: "no credentials" is often really a package that failed
+    # to load, a network error, or an expired SSO session
+    structure(FALSE, reason = conditionMessage(e))
   })
 }
 

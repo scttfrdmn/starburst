@@ -77,8 +77,12 @@ starburst_setup <- function(region = "us-east-1", force = FALSE, use_public_base
 
   # Step 1: AWS Credentials
   cat_info("\n[1/5] Checking AWS credentials...\n")
-  if (!check_aws_credentials()) {
-    cat_error("AWS credentials not found\n")
+  creds <- check_aws_credentials()
+  if (!isTRUE(creds)) {
+    cat_error("AWS credentials not found or not usable\n")
+    if (!is.null(attr(creds, "reason"))) {
+      cat_info(sprintf("  Reason: %s\n", attr(creds, "reason")))
+    }
     cat_info("\nPlease configure AWS credentials using one of:\n")
     cat_info("  1. AWS CLI: aws configure\n")
     cat_info("  2. Environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY\n")
@@ -660,8 +664,10 @@ starburst_setup_ec2 <- function(region = "us-east-1",
   }
 
   # Check AWS credentials
-  if (!check_aws_credentials()) {
-    cat_error("[ERROR] AWS credentials not found\n")
+  creds <- check_aws_credentials()
+  if (!isTRUE(creds)) {
+    cat_error(sprintf("[ERROR] AWS credentials not found or not usable: %s\n",
+                      attr(creds, "reason") %||% "unknown reason"))
     return(invisible(FALSE))
   }
 

@@ -57,18 +57,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
 
-      - name: Setup R dependencies cache
-        uses: actions/cache@v6
-        with:
-          path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-r-${{ hashFiles('DESCRIPTION') }}
-          restore-keys: |
-            ${{ runner.os }}-r-
-
+      # setup-r-dependencies keys its cache on the OS release and R version.
+      # The previous hand-rolled cache fell back to any "Linux-r-*" key, so
+      # after ubuntu-latest moved to 26.04 it restored a library built on
+      # 24.04 whose compiled packages could not load (staRburst then reported
+      # "AWS credentials not found").
       - name: Install R package dependencies
-        run: |
-          Rscript -e "install.packages(c('remotes', 'devtools', 'testthat'))"
-          Rscript -e "remotes::install_deps(dependencies = TRUE)"
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::devtools, any::testthat, any::future.apply
 
       - name: Install package
         run: |
@@ -115,7 +112,6 @@ jobs:
           STARBURST_SMOKE_INSTANCE: c7g.xlarge
           STARBURST_SMOKE_SCALE_DOWN: "true"
         run: |
-          Rscript -e "install.packages('future.apply')"
           Rscript tools/live-smoke.R
 
       - name: Run quick smoke tests
