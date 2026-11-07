@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       r_versions:
-        description: 'R versions to build (comma-separated, e.g., 4.5.3,4.6.1)'
+        description: 'R versions to build (comma-separated, e.g., 4.5.3,4.6.2)'
         required: false
-        default: '4.5.3,4.6.1'
+        default: '4.5.3,4.6.1,4.6.2'
   push:
     branches:
       - main
@@ -24,7 +24,7 @@ env:
   PUBLIC_ECR_REGISTRY: public.ecr.aws/f8g1e7l5
   REPOSITORY_NAME: base
   # The latest R release gets the :latest tag (kept in sync with the matrix).
-  LATEST_R_VERSION: '4.6.1'
+  LATEST_R_VERSION: '4.6.2'
 
 jobs:
   # Build each architecture NATIVELY on a GitHub-hosted runner (no QEMU emulation):
@@ -40,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        r_version: ['4.5.3', '4.6.1']
+        r_version: ['4.5.3', '4.6.1', '4.6.2']
         arch: [amd64, arm64]
     # Native runner per arch — no cross-building, no emulation.
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
@@ -108,7 +108,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        r_version: ['4.5.3', '4.6.1']
+        r_version: ['4.5.3', '4.6.1', '4.6.2']
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -166,7 +166,8 @@ jobs:
 
           - \`public.ecr.aws/f8g1e7l5/base:r4.5.3\`
           - \`public.ecr.aws/f8g1e7l5/base:r4.6.1\`
-          - \`public.ecr.aws/f8g1e7l5/base:latest\` (points to r4.6.1)
+          - \`public.ecr.aws/f8g1e7l5/base:r4.6.2\`
+          - \`public.ecr.aws/f8g1e7l5/base:latest\` (points to r4.6.2)
 
           ## Image Details
 
