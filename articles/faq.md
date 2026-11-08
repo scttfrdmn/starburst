@@ -79,8 +79,8 @@ detects the new hash and rebuilds the image.
 ### My R version has no public base image. What happens?
 
 Public base images are published only for specific R releases (currently
-4.5.3 and 4.6.1). On any other R version, staRburst builds a private
-base image in your ECR instead, a one-time 3–5 minute step per R
+4.5.3, 4.6.1 and 4.6.2). On any other R version, staRburst builds a
+private base image in your ECR instead, a one-time 3–5 minute step per R
 version. Use staRburst 0.3.10 or later: earlier versions’ base-image
 template could silently produce images without `qs2`, and workers built
 from them fail to read their tasks.
