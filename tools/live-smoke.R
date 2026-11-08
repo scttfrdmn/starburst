@@ -11,9 +11,10 @@
 #
 # Environment:
 #   STARBURST_SMOKE_INSTANCE    instance type (default c7g.xlarge)
-#   STARBURST_SMOKE_LOCK        renv.lock for the worker image (default: the
-#                               repo's bench/worker-renv.lock, which matches the
-#                               public base image so the image build is quick)
+#   STARBURST_SMOKE_LOCK        renv.lock for the worker image. Default: one
+#                               generated from the public base image for this
+#                               R version, so the image build installs nothing
+#                               (falls back to bench/worker-renv.lock)
 #   STARBURST_SMOKE_SCALE_DOWN  "true" (default) scales the instance type's
 #                               ASG to 0 at the end. ASGs are shared, so set
 #                               "false" on an account with other live users.
@@ -37,14 +38,50 @@ suppressMessages({
 # staRburst uses the renv.lock of the working directory (or the nearest package
 # root), which in the repo is the ~100-package dev lockfile: a multi-arch build
 # of that takes far longer than the smoke test's budget, especially under QEMU.
-lock <- Sys.getenv("STARBURST_SMOKE_LOCK", file.path(repo, "bench", "worker-renv.lock"))
-if (file.exists(lock)) {
-  smoke_dir <- file.path(tempdir(), "starburst-live-smoke")
-  dir.create(smoke_dir, showWarnings = FALSE)
-  file.copy(lock, file.path(smoke_dir, "renv.lock"), overwrite = TRUE)
-  setwd(smoke_dir)
-  cat("worker lockfile:", lock, "\n")
+#
+# The lockfile must list exactly the packages and versions in the base image,
+# so renv::restore() in the image build is a no-op. A fixed lockfile drifts as
+# R and CRAN move on: against base:r4.6.2, the committed one differed in 23
+# package versions, and rebuilding those for two architectures timed out the
+# release gate. So by default the lockfile is generated from the base image.
+lock_from_base_image <- function(out) {
+  image <- starburst:::get_base_image_source(use_public = TRUE)
+  code <- paste0(
+    'ip <- installed.packages(); base <- rownames(installed.packages(priority = "base")); ',
+    'P <- list(); for (p in setdiff(rownames(ip), c(base, "starburst"))) ',
+    'P[[p]] <- list(Package = p, Version = unname(ip[p, "Version"]), ',
+    'Source = "Repository", Repository = "CRAN"); ',
+    'jsonlite::write_json(list(R = list(Version = paste(R.version$major, R.version$minor, sep = "."), ',
+    'Repositories = list(list(Name = "CRAN", URL = "https://cloud.r-project.org"))), ',
+    'Packages = P), stdout(), auto_unbox = TRUE, pretty = TRUE)')
+  # Written to stdout rather than a bind mount, which would resolve on the
+  # Docker host (wrong when this runs in a container using the host's socket)
+  json <- tryCatch(system2("docker", c("run", "--rm", image, "Rscript", "-e", shQuote(code)),
+                           stdout = TRUE, stderr = FALSE),
+                   error = function(e) NULL, warning = function(w) NULL)
+  ok <- length(json) > 0 && !is.null(tryCatch(jsonlite::fromJSON(json)$Packages,
+                                               error = function(e) NULL))
+  if (!ok) return(NULL)
+  writeLines(json, out)
+  image
 }
+
+smoke_dir <- file.path(tempdir(), "starburst-live-smoke")
+dir.create(smoke_dir, showWarnings = FALSE)
+lock_out <- file.path(smoke_dir, "renv.lock")
+lock <- Sys.getenv("STARBURST_SMOKE_LOCK")
+if (nzchar(lock)) {
+  file.copy(lock, lock_out, overwrite = TRUE)
+  cat("worker lockfile:", lock, "\n")
+} else if (!is.null(source_image <- lock_from_base_image(lock_out))) {
+  cat("worker lockfile: generated from", source_image, "\n")
+} else {
+  # No public base image for this R version: the image build makes a private
+  # base (slow); the committed lockfile is the best available guess
+  file.copy(file.path(repo, "bench", "worker-renv.lock"), lock_out, overwrite = TRUE)
+  cat("worker lockfile: bench/worker-renv.lock (no public base image for this R version)\n")
+}
+setwd(smoke_dir)
 
 instance_type <- Sys.getenv("STARBURST_SMOKE_INSTANCE", "c7g.xlarge")
 scale_down <- !identical(tolower(Sys.getenv("STARBURST_SMOKE_SCALE_DOWN", "true")), "false")
