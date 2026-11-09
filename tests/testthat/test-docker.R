@@ -278,3 +278,12 @@ test_that("starburst_setup builds image when build_image = TRUE (default)", {
 
   expect_true(run_setup_capturing_build(build_image = TRUE))
 })
+
+test_that("worker image restores into the base image's library, not a fresh renv project", {
+  # A fresh project library made renv reinstall every package the base image
+  # already had (~30 min building the default arm64 image on an x86 machine)
+  tpl <- readLines(system.file("templates", "Dockerfile.template", package = "starburst"))
+  run <- grep("^RUN ", tpl, value = TRUE)
+  expect_false(any(grepl("renv::init", run)))
+  expect_true(any(grepl("renv::restore\\(.*library = \\.libPaths\\(\\)\\[1\\]", run)))
+})

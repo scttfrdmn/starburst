@@ -15,6 +15,8 @@ down a cluster stopped other users' running jobs.
 * Task and result objects were never deleted from the user's S3 bucket.
 * The `warm_pool_timeout` setting had no effect; it is now implemented, with
   a lower default (600 s).
+* Building the remote worker image reinstalled every package already present
+  in its base image (up to ~30 minutes); it now installs only what differs.
 * `future (>= 1.40.0)` is now required: the backend API the package uses
   (`launchFuture()`, `stopWorkers()`) does not exist in older versions.
 
@@ -34,7 +36,7 @@ removed; a `stopWorkers()` method was added. See NEWS.md.
 0 errors | 0 warnings | 1 note
 
 * checking CRAN incoming feasibility ... NOTE
-  Days since last update: 1
+  Days since last update: (a few days)
 
   This is the quick follow-up explained above.
 
