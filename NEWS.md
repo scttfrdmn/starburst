@@ -37,6 +37,17 @@
   (`launchFuture()`, `stopWorkers()`) does not exist in older versions, so the
   package could not be loaded with them anyway.
 
+## Performance
+
+* **Worker images build in seconds instead of up to half an hour.** The image
+  build restored the project's lockfile into a fresh renv library, so it
+  reinstalled every package the base image already had. For the default
+  arm64 (Graviton) workers there are no binary packages, so on an x86 machine
+  that meant ~30 source builds under emulation: about 30 minutes. It now
+  restores into the base image's library and installs only the packages your
+  lockfile adds or pins to a different version. The image tag also covers the
+  Dockerfile template, so existing images are rebuilt once.
+
 ## AWS permissions
 
 The EC2 pool now uses Auto Scaling scheduled actions. The credentials you run

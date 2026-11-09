@@ -9,8 +9,12 @@ COPY renv.lock /app/renv.lock
 # Set working directory
 WORKDIR /app
 
-# Initialize renv and restore packages
-RUN R -e "renv::init(bare = TRUE); renv::restore()"
+# Restore into the base image's own library, so packages it already has at
+# the locked version are skipped and only the project's extra (or differently
+# versioned) packages are installed. Restoring into a fresh renv project
+# library instead reinstalled every base package; on an x86 machine building
+# the arm64 image under emulation that took about 30 minutes.
+RUN R -e "renv::restore(lockfile = '/app/renv.lock', library = .libPaths()[1], prompt = FALSE)"
 
 # Copy worker script
 COPY worker.R /app/worker.R

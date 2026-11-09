@@ -116,7 +116,7 @@ check_ecr_image_age <- function(region, image_tag, ttl_days = NULL, force_rebuil
 #'
 #' Computes the hash used to tag environment Docker images, combining the
 #' renv.lock file contents with the starburst package version and the worker
-#' script baked into the image. This ensures new images are built when either
+#' script and Dockerfile template baked into the image. This ensures new images are built when either
 #' the R package environment or the starburst worker script changes (including
 #' unreleased worker changes under an unchanged version).
 #'
@@ -131,9 +131,11 @@ compute_env_hash <- function(lock_file) {
   } else {
     pkg_version <- as.character(utils::packageVersion("starburst"))
   }
-  worker_script <- system.file("templates", "worker.R", package = "starburst")
-  worker_src <- if (nzchar(worker_script)) readLines(worker_script, warn = FALSE) else character(0)
-  hash_input <- paste0(c(readLines(lock_file, warn = FALSE), worker_src),
+  # The worker script and Dockerfile are baked into the image too
+  templates <- system.file("templates", c("worker.R", "Dockerfile.template"),
+                           package = "starburst")
+  template_src <- unlist(lapply(templates[nzchar(templates)], readLines, warn = FALSE))
+  hash_input <- paste0(c(readLines(lock_file, warn = FALSE), template_src),
                        collapse = "\n", pkg_version)
   digest::digest(hash_input, algo = "md5")
 }
